@@ -1,0 +1,22 @@
+{
+  "generic": "Something went wrong. Please try again.",
+  "network_error": "Cannot reach Fikisha. Check your connection and try again.",
+  "validation_error": "Please check the highlighted fields.",
+  "not_found": "That resource could not be found.",
+  "rate_limited": "Too many attempts. Please wait a moment and try again.",
+  "otp": {
+    "invalid": "That code is not correct.",
+    "expired": "That code has expired. Request a new one.",
+    "already_used": "That code has already been used.",
+    "too_many_attempts": "Too many incorrect attempts. Request a new code."
+  },
+  "auth": {
+    "token_expired": "Your session expired. Please sign in again.",
+    "token_invalid": "Your session is no longer valid. Please sign in again.",
+    "session_invalid": "Your session has ended. Please sign in again.",
+    "forbidden": "You do not have permission to do that."
+  },
+  "authz": {
+    "forbidden": "You do not have permission to do that."
+  }
+}

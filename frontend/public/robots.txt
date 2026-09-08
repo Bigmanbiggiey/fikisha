@@ -1,0 +1,3 @@
+# Fikisha PWA — foundation. No public content to index yet.
+User-agent: *
+Disallow: /

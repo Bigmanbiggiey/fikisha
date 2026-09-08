@@ -1,0 +1,22 @@
+{
+  "generic": "Hitilafu imetokea. Tafadhali jaribu tena.",
+  "network_error": "Haiwezi kufikia Fikisha. Angalia muunganisho wako kisha ujaribu tena.",
+  "validation_error": "Tafadhali angalia sehemu zilizoangaziwa.",
+  "not_found": "Rasilimali hiyo haikupatikana.",
+  "rate_limited": "Majaribio mengi mno. Tafadhali subiri kidogo kisha ujaribu tena.",
+  "otp": {
+    "invalid": "Msimbo huo si sahihi.",
+    "expired": "Msimbo huo umeisha muda. Omba mpya.",
+    "already_used": "Msimbo huo tayari umetumika.",
+    "too_many_attempts": "Majaribio mengi yasiyo sahihi. Omba msimbo mpya."
+  },
+  "auth": {
+    "token_expired": "Kipindi chako kimeisha. Tafadhali ingia tena.",
+    "token_invalid": "Kipindi chako si halali tena. Tafadhali ingia tena.",
+    "session_invalid": "Kipindi chako kimeisha. Tafadhali ingia tena.",
+    "forbidden": "Huna ruhusa ya kufanya hivyo."
+  },
+  "authz": {
+    "forbidden": "Huna ruhusa ya kufanya hivyo."
+  }
+}

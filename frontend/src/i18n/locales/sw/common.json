@@ -1,0 +1,37 @@
+{
+  "appName": "Fikisha",
+  "tagline": "Usafirishaji wa ndani kwa Kitengela na maeneo jirani",
+  "nav": {
+    "home": "Nyumbani",
+    "diagnostics": "Uchunguzi",
+    "signOut": "Toka"
+  },
+  "language": {
+    "label": "Lugha",
+    "en": "Kiingereza",
+    "sw": "Kiswahili"
+  },
+  "actions": {
+    "retry": "Jaribu tena",
+    "loading": "Inapakia…",
+    "continue": "Endelea"
+  },
+  "home": {
+    "welcome": "Karibu, {{name}}",
+    "signedInAs": "Umeingia kama {{phone}}.",
+    "foundationNote": "Hii ni toleo la msingi la Awamu ya 2A. Huduma za usafirishaji bado hazijawashwa.",
+    "roles": "Majukumu",
+    "noRoles": "Akaunti ya kawaida (hakuna majukumu ya usimamizi)"
+  },
+  "diagnostics": {
+    "title": "Uchunguzi wa mfumo",
+    "apiHealth": "Afya ya API",
+    "reference": "Data ya marejeleo",
+    "configVersion": "Toleo la usanidi",
+    "supportedLocales": "Lugha zinazotumika",
+    "vehicleTypes": "Aina za magari",
+    "status": "Hali",
+    "healthy": "nzuri",
+    "unreachable": "haipatikani"
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "appName": "Fikisha",
+  "tagline": "Local logistics for Kitengela and environs",
+  "nav": {
+    "home": "Home",
+    "diagnostics": "Diagnostics",
+    "signOut": "Sign out"
+  },
+  "language": {
+    "label": "Language",
+    "en": "English",
+    "sw": "Kiswahili"
+  },
+  "actions": {
+    "retry": "Try again",
+    "loading": "Loading…",
+    "continue": "Continue"
+  },
+  "home": {
+    "welcome": "Welcome, {{name}}",
+    "signedInAs": "You are signed in as {{phone}}.",
+    "foundationNote": "This is the Phase 2A foundation build. Delivery features are not enabled yet.",
+    "roles": "Roles",
+    "noRoles": "Standard account (no administrative roles)"
+  },
+  "diagnostics": {
+    "title": "System diagnostics",
+    "apiHealth": "API health",
+    "reference": "Reference data",
+    "configVersion": "Config version",
+    "supportedLocales": "Supported locales",
+    "vehicleTypes": "Vehicle types",
+    "status": "Status",
+    "healthy": "healthy",
+    "unreachable": "unreachable"
+  }
+}
