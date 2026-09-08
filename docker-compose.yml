@@ -1,0 +1,133 @@
+# Fikisha — Phase 2A local development stack.
+#
+#   cp .env.example .env
+#   docker compose up --build
+#
+# Brings up: Postgres, Redis, the Django API, a Celery worker, Celery beat
+# (which schedules the transactional-outbox drain), and the Vite PWA dev server.
+# Every default below is a safe local value; nothing here is a real secret.
+
+name: fikisha
+
+x-backend-env: &backend-env
+  DJANGO_SETTINGS_MODULE: config.settings.dev
+  DJANGO_DEBUG: 'true'
+  DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:-dev-only-not-a-secret-change-me}
+  DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS:-localhost,127.0.0.1,backend}
+  DJANGO_CSRF_TRUSTED_ORIGINS: ${DJANGO_CSRF_TRUSTED_ORIGINS:-http://localhost:5173,http://127.0.0.1:5173}
+  POSTGRES_HOST: db
+  POSTGRES_PORT: '5432'
+  POSTGRES_DB: ${POSTGRES_DB:-fikisha}
+  POSTGRES_USER: ${POSTGRES_USER:-fikisha}
+  POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-fikisha-local-dev}
+  REDIS_URL: redis://redis:6379/0
+  CELERY_BROKER_URL: redis://redis:6379/1
+  CELERY_RESULT_BACKEND: redis://redis:6379/2
+  API_CORS_ALLOWED_ORIGINS: ${API_CORS_ALLOWED_ORIGINS:-http://localhost:5173,http://127.0.0.1:5173}
+  OUTBOX_POLL_SECONDS: ${OUTBOX_POLL_SECONDS:-3}
+  OTP_DEV_EXPOSE: 'true'
+  LOG_LEVEL: ${LOG_LEVEL:-INFO}
+  LOG_JSON: ${LOG_JSON:-true}
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-fikisha}
+      POSTGRES_USER: ${POSTGRES_USER:-fikisha}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-fikisha-local-dev}
+    ports:
+      - '${POSTGRES_HOST_PORT:-5433}:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-fikisha} -d ${POSTGRES_DB:-fikisha}']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    command: ['redis-server', '--save', '', '--appendonly', 'no']
+    ports:
+      - '${REDIS_HOST_PORT:-6380}:6379'
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend
+      args:
+        REQUIREMENTS: requirements/dev.txt
+    command: ['api']
+    environment: *backend-env
+    volumes:
+      - ./backend:/app
+      - backend_static:/app/staticfiles
+    ports:
+      - '${BACKEND_HOST_PORT:-8000}:8000'
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'curl', '-fsS', 'http://localhost:8000/healthz']
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
+  worker:
+    build:
+      context: ./backend
+      args:
+        REQUIREMENTS: requirements/dev.txt
+    command: ['worker']
+    environment: *backend-env
+    volumes:
+      - ./backend:/app
+    depends_on:
+      backend:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  beat:
+    build:
+      context: ./backend
+      args:
+        REQUIREMENTS: requirements/dev.txt
+    command: ['beat']
+    environment: *backend-env
+    volumes:
+      - ./backend:/app
+    depends_on:
+      backend:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+      target: dev
+    command: ['npm', 'run', 'dev', '--', '--host', '0.0.0.0', '--port', '5173']
+    environment:
+      VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8000/api/v1}
+      VITE_APP_NAME: ${VITE_APP_NAME:-Fikisha}
+    volumes:
+      - ./frontend:/app
+      - frontend_node_modules:/app/node_modules
+    ports:
+      - '${FRONTEND_HOST_PORT:-5173}:5173'
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:
+  backend_static:
+  frontend_node_modules:
