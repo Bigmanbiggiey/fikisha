@@ -1,0 +1,84 @@
+[project]
+name = "fikisha-backend"
+version = "0.0.1"
+description = "Fikisha — local logistics marketplace. Backend (modular monolith)."
+requires-python = ">=3.12,<3.13"
+
+# ─── Ruff (lint + format) ───────────────────────────────────────────────
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+extend-exclude = ["migrations", ".venv"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "C4", "DJ", "S", "RUF"]
+ignore = [
+    "S101",   # assert — used in tests and the outbox/audit atomicity guards
+    "DJ001",  # null=True on string field — allowed where a NULL is semantically distinct
+    "DJ008",  # __str__ on every model — internal tables rely on admin list_display
+    "RUF012", # ClassVar on Django/DRF list attrs (Meta.indexes, permission_classes, ...) — false positive
+]
+
+[tool.ruff.lint.per-file-ignores]
+"*/tests/*" = ["S105", "S106", "S311"]  # test fixtures use hardcoded/insecure values by design
+"conftest.py" = ["S105", "S106"]
+"*/migrations/*" = ["E501", "RUF"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["config", "fikisha"]
+
+# ─── Pytest ─────────────────────────────────────────────────────────────
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings.test"
+python_files = ["test_*.py", "tests.py"]
+addopts = "-ra --strict-markers --cov=fikisha --cov-report=term-missing --cov-report=xml"
+testpaths = ["fikisha"]
+filterwarnings = [
+    "error::DeprecationWarning:fikisha.*",
+    # WhiteNoise warns when STATIC_ROOT has not been collected yet; irrelevant under test.
+    "ignore:No directory at:UserWarning",
+]
+
+[tool.coverage.run]
+branch = true
+omit = ["*/migrations/*", "*/tests/*", "*/apps.py", "config/*"]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = false
+
+# ─── mypy ───────────────────────────────────────────────────────────────
+# Phase 2A runs mypy in a pragmatic (non-strict) mode — see
+# docs/phase-2/phase-2a-decisions.md (ADR-2A-08). We keep the checks that
+# catch real bugs (untyped defs, undefined names, bad returns, unused
+# ignores) but relax the flags that fight Django/DRF's dynamically-typed
+# base classes (generic type parameters on Serializer/ModelAdmin, Any from
+# settings dicts). Tightening to `strict = true` is tracked for a later phase.
+[tool.mypy]
+python_version = "3.12"
+plugins = ["mypy_django_plugin.main", "mypy_drf_plugin.main"]
+warn_unused_ignores = true
+warn_redundant_casts = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+no_implicit_optional = true
+exclude = ["migrations/", "tests/", "conftest.py"]
+
+[[tool.mypy.overrides]]
+module = ["fikisha.*.migrations.*"]
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = ["celery.*", "kombu.*", "fakeredis.*", "sentry_sdk.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+# DRF's decorators (shared_task, api_view) are untyped; don't let that
+# cascade into "untyped function" errors for the tasks/views they wrap.
+module = ["fikisha.outbox.tasks", "fikisha.identity.api.views"]
+disallow_untyped_decorators = false
+
+[tool.django-stubs]
+django_settings_module = "config.settings.test"

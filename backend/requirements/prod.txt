@@ -1,0 +1,4 @@
+-r base.txt
+
+# Production-only extras (not installed in dev/test images).
+sentry-sdk~=2.17.0
