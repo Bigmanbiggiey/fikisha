@@ -53,6 +53,21 @@ commission, disputes, ratings, or provider integrations.
 | [`phase-2b-decisions.md`](phase-2b-decisions.md) | ADR-2B-01…10 and the four documented deviations from Phase 1 (none touching a product decision) |
 | [`phase-2b-summary.md`](phase-2b-summary.md) | The Phase 2B completion report (with exact reproduction commands) |
 
+### Phase 2C — Vehicles & Verification
+
+Who operates which vehicle, and which verification facts have been independently
+checked about an operator / vehicle / operating base. **No** trust score,
+value-band engine, job/assignment eligibility, ratings, incidents, commission,
+or provider integrations — verification records facts; a later phase consumes
+them.
+
+| File | Contents |
+| --- | --- |
+| [`vehicles-and-verification.md`](vehicles-and-verification.md) | The 2C domain model (Vehicle, VerificationRecord/Decision/Evidence, EvidenceObject), the verification lifecycle, the API surface, events, audit |
+| [`phase-2c-privacy-security.md`](phase-2c-privacy-security.md) | Evidence privacy: API-mediated, explicit per-fetch authorization, HIGH-PII access log, reviewer separation of duties; production hardening deferred |
+| [`phase-2c-decisions.md`](phase-2c-decisions.md) | ADR-2C-01…09 and the four documented deviations from Phase 1 (vehicle-class table, `SUSPENDED` status, one evidence table, heavy-by-class) — none touching a product decision |
+| [`phase-2c-summary.md`](phase-2c-summary.md) | The Phase 2C completion report (§40 structure, recorded smoke-test run, exact commands) |
+
 ## Guardrails honoured
 
 - **No approved product decision was silently changed.** Where implementation
