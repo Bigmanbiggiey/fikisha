@@ -8,7 +8,7 @@ import { useAuth } from '@/features/auth/useAuth';
 import { LanguageSwitcher } from './LanguageSwitcher';
 
 export function TopBar(): JSX.Element {
-  const { t } = useTranslation('common');
+  const { t } = useTranslation(['common', 'org']);
   const { status, logout } = useAuth();
 
   const linkClass = ({ isActive }: { isActive: boolean }): string =>
@@ -19,16 +19,28 @@ export function TopBar(): JSX.Element {
 
   return (
     <header className="border-b border-slate-200 bg-white">
-      <div className="mx-auto flex max-w-3xl items-center gap-4 px-4 py-3">
-        <span className="text-base font-semibold text-brand-700">{t('appName')}</span>
+      <div className="mx-auto flex max-w-3xl flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3">
+        <span className="text-base font-semibold text-brand-700">{t('common:appName')}</span>
 
         {status === 'authenticated' && (
-          <nav className="flex items-center gap-1">
+          <nav className="flex flex-wrap items-center gap-1">
             <NavLink to="/" end className={linkClass}>
-              {t('nav.home')}
+              {t('common:nav.home')}
+            </NavLink>
+            <NavLink to="/businesses" className={linkClass}>
+              {t('org:nav.businesses')}
+            </NavLink>
+            <NavLink to="/operator" className={linkClass}>
+              {t('org:nav.operator')}
+            </NavLink>
+            <NavLink to="/groups" className={linkClass}>
+              {t('org:nav.groups')}
+            </NavLink>
+            <NavLink to="/operating-locations" className={linkClass}>
+              {t('org:nav.locations')}
             </NavLink>
             <NavLink to="/diagnostics" className={linkClass}>
-              {t('nav.diagnostics')}
+              {t('common:nav.diagnostics')}
             </NavLink>
           </nav>
         )}
@@ -37,7 +49,7 @@ export function TopBar(): JSX.Element {
           <LanguageSwitcher />
           {status === 'authenticated' && (
             <Button variant="ghost" onClick={() => void logout()}>
-              {t('nav.signOut')}
+              {t('common:nav.signOut')}
             </Button>
           )}
         </div>

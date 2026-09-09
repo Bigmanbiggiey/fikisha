@@ -1,0 +1,77 @@
+{
+  "nav": {
+    "businesses": "Businesses",
+    "operator": "Operator",
+    "groups": "Groups",
+    "locations": "Operating locations"
+  },
+  "common": {
+    "create": "Create",
+    "save": "Save changes",
+    "cancel": "Cancel",
+    "add": "Add",
+    "remove": "Remove",
+    "edit": "Edit",
+    "back": "Back",
+    "role": "Role",
+    "status": "Status",
+    "name": "Name",
+    "type": "Type",
+    "phone": "Phone",
+    "none": "Nothing here yet."
+  },
+  "business": {
+    "title": "Businesses",
+    "createTitle": "Register a business",
+    "tradingName": "Trading name",
+    "contactName": "Contact person",
+    "contactPhone": "Contact phone",
+    "contactEmail": "Contact email",
+    "category": "Category",
+    "yourRole": "Your role",
+    "standing": "Standing",
+    "members": "Members",
+    "addMember": "Add a member",
+    "memberPhone": "Member phone number",
+    "locations": "Locations",
+    "addLocation": "Add a location",
+    "locationLabel": "Label",
+    "locationType": "Type",
+    "address": "Address",
+    "zone": "Zone",
+    "mainLocationNote": "A business can have exactly one MAIN location.",
+    "empty": "You are not a member of any business yet."
+  },
+  "operator": {
+    "title": "Operator profile",
+    "createTitle": "Create your operator profile",
+    "fullName": "Full name",
+    "displayName": "Display / business name",
+    "phones": "Additional phones (comma separated)",
+    "status": "Status",
+    "noProfile": "You do not have an operator profile yet.",
+    "haveProfile": "Your operator profile is set up."
+  },
+  "groups": {
+    "title": "Operator groups",
+    "createTitle": "Create a group",
+    "groupName": "Group name",
+    "groupType": "Group type",
+    "assignmentMode": "Assignment mode",
+    "yourRole": "Your role",
+    "members": "Members",
+    "addMember": "Add a member",
+    "memberOperatorId": "Operator id",
+    "needProfile": "Create an operator profile before forming a group.",
+    "empty": "You are not a member of any group yet."
+  },
+  "locations": {
+    "title": "Operating locations",
+    "createTitle": "Add an operating location",
+    "name": "Name",
+    "type": "Type",
+    "landmark": "Landmark",
+    "zone": "Zone",
+    "empty": "No operating locations yet."
+  }
+}

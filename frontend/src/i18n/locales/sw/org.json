@@ -1,0 +1,77 @@
+{
+  "nav": {
+    "businesses": "Biashara",
+    "operator": "Opereta",
+    "groups": "Vikundi",
+    "locations": "Vituo vya kazi"
+  },
+  "common": {
+    "create": "Unda",
+    "save": "Hifadhi mabadiliko",
+    "cancel": "Ghairi",
+    "add": "Ongeza",
+    "remove": "Ondoa",
+    "edit": "Hariri",
+    "back": "Rudi",
+    "role": "Jukumu",
+    "status": "Hali",
+    "name": "Jina",
+    "type": "Aina",
+    "phone": "Simu",
+    "none": "Hakuna kitu bado."
+  },
+  "business": {
+    "title": "Biashara",
+    "createTitle": "Sajili biashara",
+    "tradingName": "Jina la biashara",
+    "contactName": "Mtu wa mawasiliano",
+    "contactPhone": "Simu ya mawasiliano",
+    "contactEmail": "Barua pepe ya mawasiliano",
+    "category": "Aina ya biashara",
+    "yourRole": "Jukumu lako",
+    "standing": "Hadhi",
+    "members": "Wanachama",
+    "addMember": "Ongeza mwanachama",
+    "memberPhone": "Nambari ya simu ya mwanachama",
+    "locations": "Vituo",
+    "addLocation": "Ongeza kituo",
+    "locationLabel": "Lebo",
+    "locationType": "Aina",
+    "address": "Anwani",
+    "zone": "Eneo",
+    "mainLocationNote": "Biashara inaweza kuwa na kituo kimoja tu cha MSINGI.",
+    "empty": "Bado hujawa mwanachama wa biashara yoyote."
+  },
+  "operator": {
+    "title": "Wasifu wa opereta",
+    "createTitle": "Unda wasifu wako wa opereta",
+    "fullName": "Jina kamili",
+    "displayName": "Jina la kuonyeshwa / la biashara",
+    "phones": "Simu za ziada (tenganisha kwa koma)",
+    "status": "Hali",
+    "noProfile": "Bado huna wasifu wa opereta.",
+    "haveProfile": "Wasifu wako wa opereta umewekwa."
+  },
+  "groups": {
+    "title": "Vikundi vya waendeshaji",
+    "createTitle": "Unda kikundi",
+    "groupName": "Jina la kikundi",
+    "groupType": "Aina ya kikundi",
+    "assignmentMode": "Mtindo wa kupangiwa",
+    "yourRole": "Jukumu lako",
+    "members": "Wanachama",
+    "addMember": "Ongeza mwanachama",
+    "memberOperatorId": "Kitambulisho cha opereta",
+    "needProfile": "Unda wasifu wa opereta kabla ya kuunda kikundi.",
+    "empty": "Bado hujawa mwanachama wa kikundi chochote."
+  },
+  "locations": {
+    "title": "Vituo vya kazi",
+    "createTitle": "Ongeza kituo cha kazi",
+    "name": "Jina",
+    "type": "Aina",
+    "landmark": "Alama ya eneo",
+    "zone": "Eneo",
+    "empty": "Hakuna vituo vya kazi bado."
+  }
+}
