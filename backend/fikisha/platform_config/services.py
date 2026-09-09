@@ -62,6 +62,17 @@ def get(path: str, default: Any = None) -> Any:
     return node
 
 
+def vehicle_class_codes(*, active_only: bool = True) -> list[str]:
+    """The vehicle-class machine identifiers (the `config_vehicle_class` table
+    is authoritative — ADR-2C-01)."""
+    from fikisha.platform_config.models import VehicleClass
+
+    qs = VehicleClass.objects.all()
+    if active_only:
+        qs = qs.filter(active=True)
+    return list(qs.order_by("sort_order", "code").values_list("code", flat=True))
+
+
 def current_version() -> int:
     cfg = (
         PlatformConfig.objects.select_related("current_version").filter(pk=1).first()

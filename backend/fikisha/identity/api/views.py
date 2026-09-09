@@ -230,7 +230,7 @@ class ConfigPublicView(APIView):
                 "brand": data.get("brand"),
                 "locales": data.get("locales"),
                 "pilot": data.get("pilot"),
-                "vehicle_types": data.get("vehicle_types"),
+                "vehicle_types": config.vehicle_class_codes(),
                 "cargo_categories": data.get("cargo_categories"),
                 "value_bands": data.get("value_bands"),
                 "feature_flags": data.get("feature_flags"),

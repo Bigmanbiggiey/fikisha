@@ -40,17 +40,31 @@ DEFAULT_CONFIG: dict[str, Any] = {
         {"band": "VERY_HIGH", "max_declared_value_kes": None, "min_trust_level": "L3"},
     ],
     # ─── Enumerations (admin-extensible later) ──────────────────────
-    "vehicle_types": [
-        "MOTORCYCLE",
-        "PICKUP",
-        "CANTER",
-        "TIPPER",
-        "LORRY",
-        "SEMI_TRUCK",
-        "TRAILER",
-        "OTHER",
+    # Vehicle classes moved to the `config_vehicle_class` lookup table in
+    # Phase 2C (ADR-2C-01); `ConfigService`/`ConfigPublicView` expose the codes.
+    "heavy_class_tare_kg": 3048,  # informational; the heavy flag lives on VehicleClass
+    # ─── Verification (Phase 1 verification-architecture) ───────────
+    "verification": {
+        "good_conduct_recheck_months": 12,
+        "expiry_lead_days": 30,  # "expiring soon" window (notifications are a later phase)
+    },
+    # Which verification domains are mandatory per subject type. `heavy_only`
+    # domains apply only when the vehicle's class is `heavy` (config-driven —
+    # no vehicle-class literals in application code).
+    "verification_requirements": [
+        {"subject_type": "OPERATOR", "domain": "IDENTITY", "mandatory": True},
+        {"subject_type": "OPERATOR", "domain": "LICENCE", "mandatory": True},
+        {"subject_type": "OPERATOR", "domain": "GOOD_CONDUCT", "mandatory": True},
+        {"subject_type": "VEHICLE", "domain": "VEHICLE", "mandatory": True},
+        {"subject_type": "VEHICLE", "domain": "ASSOCIATION", "mandatory": True},
+        {
+            "subject_type": "VEHICLE",
+            "domain": "HEAVY_CLASS_COMPLIANCE",
+            "mandatory": True,
+            "heavy_only": True,
+        },
+        {"subject_type": "BASE", "domain": "BASE", "mandatory": True},
     ],
-    "heavy_class_tare_kg": 3048,
     "cargo_categories": [
         "GENERAL",
         "CONSTRUCTION_MATERIALS",
@@ -95,10 +109,11 @@ DEFAULT_CONFIG: dict[str, Any] = {
             "trust.change.propose",
             "audit.view.scoped",
             "export.request",
-            # Review (read-only) access to organisations — FR-ADM-1.
+            # Review (read-only) access to organisations + vehicles — FR-ADM-1.
             "business.read",
             "operator.read",
             "group.read",
+            "vehicle.read",
         ],
     },
     # ─── Retention windows (proposed; REQUIRES VALIDATION — legal-scope §7) ─
@@ -127,10 +142,10 @@ _REQUIRED_TOP_LEVEL = {
     "commission",
     "value_bands",
     "high_value_threshold_kes",
-    "vehicle_types",
     "role_permissions",
     "timeouts",
     "retention_windows",
+    "verification_requirements",
 }
 
 

@@ -29,6 +29,33 @@ class Zone(TimestampedModel):
         return self.code
 
 
+class VehicleClass(TimestampedModel):
+    """Vehicle class as configuration/domain data (Phase 1 database-design §4.15 —
+    ``vehicle_type`` is an admin-extensible lookup table, not a migration).
+
+    ``code`` is the stable machine identifier; ``name_en`` / ``name_sw`` are the
+    human-readable names. ``heavy`` marks classes that need the
+    HEAVY_CLASS_COMPLIANCE verification domain (config-driven, so no
+    ``if vehicle.code == "LORRY"`` anywhere in the code — ADR-2C-01).
+    """
+
+    code = models.CharField(max_length=40, unique=True)
+    name_en = models.CharField(max_length=80)
+    name_sw = models.CharField(max_length=80)
+    heavy = models.BooleanField(
+        default=False, help_text="Requires HEAVY_CLASS_COMPLIANCE verification."
+    )
+    active = models.BooleanField(default=True)
+    sort_order = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        db_table = "config_vehicle_class"
+        ordering = ["sort_order", "code"]
+
+    def __str__(self) -> str:
+        return self.code
+
+
 class PlatformConfigVersion(AppendOnlyModel):
     """An immutable snapshot of the whole config at a point in time."""
 
