@@ -36,6 +36,12 @@ export function TopBar(): JSX.Element {
             <NavLink to="/groups" className={linkClass}>
               {t('org:nav.groups')}
             </NavLink>
+            <NavLink to="/vehicles" className={linkClass}>
+              {t('org:nav.vehicles')}
+            </NavLink>
+            <NavLink to="/verification" className={linkClass}>
+              {t('org:nav.verification')}
+            </NavLink>
             <NavLink to="/operating-locations" className={linkClass}>
               {t('org:nav.locations')}
             </NavLink>

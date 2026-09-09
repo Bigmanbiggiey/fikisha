@@ -9,6 +9,7 @@ import { Field } from '@/components/Field';
 import { Input } from '@/components/Input';
 import { PageLoader } from '@/components/PageLoader';
 import { StatusBadge } from '@/components/StatusBadge';
+import { VerificationPanel } from '@/features/verification/VerificationPanel';
 import { ApiError } from '@/services/problem';
 import { localizeError } from '@/services/errorMessage';
 
@@ -47,17 +48,20 @@ export function OperatorProfilePage(): JSX.Element {
       <h1 className="text-xl font-semibold text-slate-900">{t('org:operator.title')}</h1>
 
       {profile.isSuccess ? (
-        <Card>
-          <div className="flex items-center justify-between">
-            <span className="font-medium text-slate-900">{profile.data.full_name}</span>
-            <StatusBadge
-              tone={profile.data.status === 'ACTIVE' ? 'positive' : 'neutral'}
-              label={profile.data.status}
-            />
-          </div>
-          <p className="mt-1 text-sm text-slate-500">{profile.data.user_phone}</p>
-          <Alert tone="success">{t('org:operator.haveProfile')}</Alert>
-        </Card>
+        <>
+          <Card>
+            <div className="flex items-center justify-between">
+              <span className="font-medium text-slate-900">{profile.data.full_name}</span>
+              <StatusBadge
+                tone={profile.data.status === 'ACTIVE' ? 'positive' : 'neutral'}
+                label={profile.data.status}
+              />
+            </div>
+            <p className="mt-1 text-sm text-slate-500">{profile.data.user_phone}</p>
+            <Alert tone="success">{t('org:operator.haveProfile')}</Alert>
+          </Card>
+          <VerificationPanel subjectType="OPERATOR" subjectId={profile.data.id} />
+        </>
       ) : missing ? (
         <Card>
           <h2 className="text-sm font-medium text-slate-700">{t('org:operator.createTitle')}</h2>

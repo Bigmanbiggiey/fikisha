@@ -10,6 +10,10 @@ import { GroupDetailPage } from '@/features/org/GroupDetailPage';
 import { GroupsPage } from '@/features/org/GroupsPage';
 import { OperatingLocationsPage } from '@/features/org/OperatingLocationsPage';
 import { OperatorProfilePage } from '@/features/org/OperatorProfilePage';
+import { VehicleDetailPage } from '@/features/vehicles/VehicleDetailPage';
+import { VehiclesPage } from '@/features/vehicles/VehiclesPage';
+import { VerificationQueuePage } from '@/features/verification/VerificationQueuePage';
+import { VerificationRecordPage } from '@/features/verification/VerificationRecordPage';
 import { AppShell } from '@/shell/AppShell';
 
 export function AppRoutes(): JSX.Element {
@@ -30,6 +34,10 @@ export function AppRoutes(): JSX.Element {
         <Route path="groups" element={<GroupsPage />} />
         <Route path="groups/:groupId" element={<GroupDetailPage />} />
         <Route path="operating-locations" element={<OperatingLocationsPage />} />
+        <Route path="vehicles" element={<VehiclesPage />} />
+        <Route path="vehicles/:vehicleId" element={<VehicleDetailPage />} />
+        <Route path="verification" element={<VerificationQueuePage />} />
+        <Route path="verification/:recordId" element={<VerificationRecordPage />} />
         <Route path="diagnostics" element={<DiagnosticsPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

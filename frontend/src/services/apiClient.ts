@@ -79,9 +79,10 @@ export async function apiRequest<T = unknown>(
   options: RequestOptions = {},
 ): Promise<T> {
   const { method = 'GET', body, auth = true, retryOnUnauthorized = true, signal } = options;
+  const isForm = typeof FormData !== 'undefined' && body instanceof FormData;
 
   const headers: Record<string, string> = { Accept: 'application/json' };
-  if (body !== undefined) headers['Content-Type'] = 'application/json';
+  if (body !== undefined && !isForm) headers['Content-Type'] = 'application/json';
   if (auth && accessToken) headers.Authorization = `Bearer ${accessToken}`;
 
   let response: Response;
@@ -90,7 +91,7 @@ export async function apiRequest<T = unknown>(
       method,
       headers,
       credentials: 'include',
-      body: body !== undefined ? JSON.stringify(body) : undefined,
+      body: body === undefined ? undefined : isForm ? (body as FormData) : JSON.stringify(body),
       signal,
     });
   } catch (cause) {
@@ -113,4 +114,26 @@ export async function apiRequest<T = unknown>(
   }
 
   return parsed as T;
+}
+
+/** Fetch a binary response (e.g. verification evidence) as a Blob, with auth. */
+export async function fetchBlob(path: string): Promise<Blob> {
+  const headers: Record<string, string> = {};
+  if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
+  let response = await fetch(`${env.apiBaseUrl}${path}`, {
+    headers,
+    credentials: 'include',
+  });
+  if (response.status === 401 && (await refreshSession())) {
+    const retryHeaders: Record<string, string> = {};
+    if (accessToken) retryHeaders.Authorization = `Bearer ${accessToken}`;
+    response = await fetch(`${env.apiBaseUrl}${path}`, {
+      headers: retryHeaders,
+      credentials: 'include',
+    });
+  }
+  if (!response.ok) {
+    throw new ApiError(undefined, response.status, `Download failed (${response.status})`);
+  }
+  return response.blob();
 }
