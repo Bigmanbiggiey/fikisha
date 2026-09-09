@@ -3,7 +3,30 @@ from __future__ import annotations
 from django.conf import settings
 from django.db import models
 
-from fikisha.common.models import AppendOnlyModel, AppendOnlyQuerySet
+from fikisha.common.models import AppendOnlyModel, AppendOnlyQuerySet, TimestampedModel
+
+
+class Zone(TimestampedModel):
+    """A named geographic operating area (Phase 1 domain-architecture: zones are
+    part of Platform Configuration; ``config.zones``).
+
+    Phase 2B seeds a single ``KITENGELA`` zone — the founder's zone breakdown is
+    deferred (D-PIL-5), so the pilot area is one zone until it is supplied.
+    Admin-extensible; polygon geometry is a later concern (no GIS in 2B).
+    """
+
+    code = models.CharField(max_length=40, unique=True)
+    name_en = models.CharField(max_length=120)
+    name_sw = models.CharField(max_length=120)
+    active = models.BooleanField(default=True)
+    sort_order = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        db_table = "config_zone"
+        ordering = ["sort_order", "code"]
+
+    def __str__(self) -> str:
+        return self.code
 
 
 class PlatformConfigVersion(AppendOnlyModel):
