@@ -55,6 +55,10 @@ LOCAL_APPS = [
     "fikisha.business",
     "fikisha.operators",
     "fikisha.groups",
+    # Phase 2C — vehicles & verification.
+    "fikisha.evidence",
+    "fikisha.vehicles",
+    "fikisha.verification",
 ]
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 

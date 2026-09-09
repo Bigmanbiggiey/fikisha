@@ -33,6 +33,9 @@ urlpatterns = [
     path("", include("fikisha.business.api.urls")),
     path("", include("fikisha.operators.api.urls")),
     path("", include("fikisha.groups.api.urls")),
+    # Phase 2C — vehicles & verification.
+    path("", include("fikisha.vehicles.api.urls")),
+    path("", include("fikisha.verification.api.urls")),
 ]
 
 if settings.DEBUG:
