@@ -25,6 +25,8 @@ eTIMS integration have been implemented.
 
 ## Documents
 
+### Phase 2A — Foundation
+
 | File | Contents |
 | --- | --- |
 | [`technology-versions.md`](technology-versions.md) | Every pinned language, framework, and library version, with the reason for each choice |
@@ -34,6 +36,22 @@ eTIMS integration have been implemented.
 | [`testing-foundation.md`](testing-foundation.md) | Test layout, what is covered, how to run tests, the required security tests |
 | [`phase-2a-decisions.md`](phase-2a-decisions.md) | ADRs made during implementation and any deviations from Phase 1 |
 | [`phase-2a-summary.md`](phase-2a-summary.md) | The Phase 2A completion report (with exact reproduction commands) |
+
+### Phase 2B — Identity & Organization Domain
+
+The first business-domain phase — the actors and organisational structures a
+future Job depends on (Business + members + locations, Operator profiles,
+minimal Operator Groups + membership, first-class Operating Locations). Still
+**no** Jobs, negotiation, assignment, vehicles, verification, trust, custody,
+commission, disputes, ratings, or provider integrations.
+
+| File | Contents |
+| --- | --- |
+| [`identity-and-organizations.md`](identity-and-organizations.md) | The 2B domain model (every entity + field), services, API endpoint list, events, audit |
+| [`organization-authorization.md`](organization-authorization.md) | Organisation-level authorization: actions, rules, the IDOR/BOLA test matrix, service invariants |
+| [`operating-locations.md`](operating-locations.md) | Stage/base/yard as a first-class place; presence vs. formal membership; `Zone`, no GIS |
+| [`phase-2b-decisions.md`](phase-2b-decisions.md) | ADR-2B-01…10 and the four documented deviations from Phase 1 (none touching a product decision) |
+| [`phase-2b-summary.md`](phase-2b-summary.md) | The Phase 2B completion report (with exact reproduction commands) |
 
 ## Guardrails honoured
 
