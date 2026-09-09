@@ -74,3 +74,28 @@ def admin_client(api: APIClient, platform_admin: Any) -> APIClient:
     issued = auth_service.start_session(user=platform_admin, device_label="pytest-admin")
     api.credentials(HTTP_AUTHORIZATION=f"Bearer {issued.access_token}")
     return api
+
+
+@pytest.fixture
+def make_user(db: Any) -> Any:
+    """Factory: ``make_user("+254712000001")`` -> a fresh User."""
+    from fikisha.identity.models import User
+
+    def _make(phone: str) -> Any:
+        return User.objects.create_user(phone=phone)
+
+    return _make
+
+
+@pytest.fixture
+def client_for() -> Any:
+    """Factory: ``client_for(user)`` -> an APIClient carrying that user's bearer token."""
+    from fikisha.identity.services import auth as auth_service
+
+    def _make(user: Any) -> APIClient:
+        client = APIClient()
+        issued = auth_service.start_session(user=user, device_label="pytest")
+        client.credentials(HTTP_AUTHORIZATION=f"Bearer {issued.access_token}")
+        return client
+
+    return _make

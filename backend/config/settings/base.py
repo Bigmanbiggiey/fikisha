@@ -34,14 +34,17 @@ DJANGO_APPS = [
     "django.contrib.messages",
     "django.contrib.admin",
     "django.contrib.sessions",
+    "django.contrib.postgres",  # ArrayField lookups/validators (operators.OperatorProfile.phones)
 ]
 THIRD_PARTY_APPS = [
     "rest_framework",
     "corsheaders",
     "drf_spectacular",
 ]
-# Fikisha bounded modules — Phase 2A foundation set only.
-# (Jobs / Negotiation / Operators / etc. are NOT created yet — see Phase 2A brief §3.)
+# Fikisha bounded modules.
+#   Phase 2A foundation: common, audit, outbox, platform_config, identity, storage.
+#   Phase 2B identity/organisation domain: business, operators, groups.
+# (Jobs / Negotiation / Vehicles / Verification / Trust / etc. are NOT created yet.)
 LOCAL_APPS = [
     "fikisha.common",
     "fikisha.audit",
@@ -49,6 +52,9 @@ LOCAL_APPS = [
     "fikisha.platform_config",
     "fikisha.identity",
     "fikisha.storage",
+    "fikisha.business",
+    "fikisha.operators",
+    "fikisha.groups",
 ]
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 

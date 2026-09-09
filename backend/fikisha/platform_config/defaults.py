@@ -95,6 +95,10 @@ DEFAULT_CONFIG: dict[str, Any] = {
             "trust.change.propose",
             "audit.view.scoped",
             "export.request",
+            # Review (read-only) access to organisations — FR-ADM-1.
+            "business.read",
+            "operator.read",
+            "group.read",
         ],
     },
     # ─── Retention windows (proposed; REQUIRES VALIDATION — legal-scope §7) ─

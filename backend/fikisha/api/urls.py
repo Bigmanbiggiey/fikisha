@@ -29,6 +29,10 @@ urlpatterns = [
     path("health/", ApiHealthView.as_view(), name="api-health"),
     path("schema/", SpectacularAPIView.as_view(), name="schema"),
     path("", include("fikisha.identity.api.urls")),
+    # Phase 2B — identity & organisation domain.
+    path("", include("fikisha.business.api.urls")),
+    path("", include("fikisha.operators.api.urls")),
+    path("", include("fikisha.groups.api.urls")),
 ]
 
 if settings.DEBUG:
