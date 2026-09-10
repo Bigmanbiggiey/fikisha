@@ -1,7 +1,18 @@
 # FIKISHA — Design Phase 4 — Visual System & Design Tokens
 
-**Status:** DRAFT — AWAITING FOUNDER REVIEW
+**Status:** APPROVED — VISUAL SYSTEM BASELINE (Founder approval + targeted amendment 2026-09-10)
 **Design track:** Phase 4 (visual language & design-token specification)
+**Amendment log:** 2026-09-10 — Founder approved the Phase 4 visual direction and
+design-system architecture as the baseline, subject to a **targeted amendment**:
+(1) the Operator/Driver responsive rule is changed from a hard 480 px column at
+every viewport to **contextual adaptation** — Driver stays focused/action-
+dominant on every screen (§21.2), Operator may expand into a workspace layout on
+larger screens where it genuinely aids coordination (§21.3, §25); (2) the **final
+brand palette is explicitly deferred to a Founder Brand Palette Approval Gate**
+that the Phase 5 kickoff must clear before any production token values reach
+frontend source (§6, §32-Q2). Q7 (`RESUME_PRIOR` preconditions) and Q8
+(rating/reputation) remain open/deferred. No product or architecture decision
+changed.
 **Depends on / authoritative (in order):** `CLAUDE.md` · `docs/team-skills-policy.md` ·
 `docs/design-brief.md` (Design Phase 0) · `docs/design-phase-1-ia.md` (Phase 1) ·
 `docs/design-phase-2-user-flows.md` (Phase 2) · `docs/design-phase-3-wireframes.md`
@@ -181,15 +192,30 @@ Base unit **4 px**. Systematic scale (no arbitrary values):
 
 | Role | App frame | Content max-width | Grid |
 | --- | --- | --- | --- |
-| **Operator / Driver** | centred single column at every size; bottom nav always | **480 px** | 1-col; cards stack |
+| **Driver** | centred, focused single column at every size; bottom nav always | reading column **~480 px**; the frame may sit in more whitespace on desktop but the Current-Job content stays a single focused column | 1-col; cards stack |
+| **Operator** | mobile: bottom nav + single column. Tablet-landscape / laptop / desktop: the workspace **may expand** — a persistent list/detail split, a filter rail, or a 2-col Job detail — **where it genuinely improves coordination** | mobile 1-col; tablet selective 2-col; desktop workspace layout to ~1120 px where justified | 1-col → selective 2-col → workspace grid |
 | **Business** | ≤ `lg`: bottom nav + single column; ≥ `lg`: 240 px sidebar + content | reading views **720 px**; list/grid views to ~1120 px | 12-col at ≥ `lg`; card grid 1 / 2 / 3 by breakpoint |
 | **Operations / Admin** | left nav 220 px + optional per-section top tab row; content fluid | fluid to **1600 px** | 12-col; three-pane where useful |
 | **Recipient** | centred card, **max 400 px**, on any screen | 400 px | single card |
 
 Mobile gutter 16, desktop gutter 24, admin table gutter 16. **Form inputs stay
-single-column, max 480 px wide even on desktop.** **Desktop ≠ stretched mobile:**
-operator/driver keep the 480 column; business *adds* a sidebar and columns; admin
-*adds* density and panes.
+single-column, max 480 px wide even on desktop.**
+
+**Desktop is contextual adaptation, not proportional scaling** (§25). Two failure
+modes to avoid on Operator/Driver:
+
+- *stretched mobile* — the same phone cards blown wider with nothing added;
+- *phone-trapped* — a hard 480 px cap that wastes a laptop screen when more
+  context would genuinely help an Operator coordinate.
+
+**Driver** stays intentionally focused on every screen (see §21). **Operator**
+may use additional horizontal space on larger screens for Job discovery, filters,
+Job detail, negotiation, assignment, driver/vehicle information, verification
+facts, and operational context — via appropriate responsive *transformations*
+(list/detail split, filter rail, selective 2-col), never by stretching cards, and
+never adding density just because the space exists. In every case the information
+hierarchy, the one obvious primary action, the interaction behaviour, the
+accessibility, and the product rules are unchanged.
 
 ## 5.4 Border radius
 
@@ -260,12 +286,33 @@ never a shadow. A surface that floats over content or is transient uses a
 
 # 6. Colour system
 
-**All hex values are `[PROVISIONAL]`** — starting points consistent with
-design-brief §6.2 ("saturated, grounded, non-corporate hue that survives
-sunlight"; teal `#0f766e` is a *placeholder to replace*). Final palette follows
-the brand/KIPI process and founder sign-off. What is **not** provisional: the
-**semantic structure**, the **two-tier token model**, and the **never
-colour-alone** rule.
+> ## ⚑ Founder Brand Palette Approval Gate (2026-09-10)
+>
+> The Founder approves the colour **direction** below —
+> *warm stone / neutral ground + near-black text + a grounded teal action colour
+> + a Kajiado-clay identity accent + strict, brand-independent semantic status
+> colours*.
+>
+> **The final brand palette is NOT YET APPROVED.** Every hex value in §6.1–§6.4
+> is `[PROVISIONAL]` and is a *visual direction*, not a brand value. Its presence
+> in this document does **not** make it final.
+>
+> **Before any production token values are committed to frontend source, the
+> Phase 5 kickoff MUST include a Founder Brand Palette Approval Gate** at which
+> the Founder explicitly approves: the primary brand colour · the
+> secondary/accent colour · the Kajiado-clay treatment · the neutral palette ·
+> the semantic status palette · the light-theme surface hierarchy · any final
+> contrast adjustments. Phase 5 may **not** assume the provisional palette is
+> final; it may **not** silently finalise these values.
+>
+> What **is** approved and not provisional: the **semantic structure**, the
+> **two-tier token model** (primitive → semantic → component), the **status =
+> colour + icon/shape + text** rule, semantic status colours staying
+> **independent of the brand colour**, and **mandatory** WCAG 2.2 AA contrast.
+
+Starting points are consistent with design-brief §6.2 ("saturated, grounded,
+non-corporate hue that survives sunlight"; teal `#0f766e` is a *placeholder to
+replace*).
 
 Colour is **meaning, not decoration.** Brand colour = *action/identity*. Semantic
 colours = *state*. Neutrals = *structure*.
@@ -774,11 +821,14 @@ action is **never** shown as succeeded before the server confirms.
 # 21. Mobile driver & operator visual system (highest priority)
 
 For small screens, one-handed use, patchy data, sunlight, high attention cost,
-minimal typing.
+minimal typing. **The mobile experience is the reference.** Larger screens adapt
+it (§21.3), they do not replace it.
+
+## 21.1 Shared mobile rules
 
 | Aspect | Rule |
 | --- | --- |
-| **Layout** | centred **480 px** column; generous vertical rhythm; bottom nav always |
+| **Layout (mobile)** | centred **~480 px** reading column; generous vertical rhythm; bottom nav always |
 | **The next action** | on the current-Job / action screen the `⌘` is `component.button.driver` (56 px, full-width, `brand.600`, 17/700) in a **visually dominant block** (~30 % viewport height with padding), near the top; everything else scrolls under it |
 | **Bottom action area** (multi-field screens) | sticky, `surface.card`, `shadow.1` top edge, safe-area padding; holds only the primary (+ optional back) |
 | **Card density** | low — one thing per card; 16 px min body; icons ≥ 24 with labels |
@@ -787,6 +837,33 @@ minimal typing.
 | **Status visibility** | connectivity indicator **and** Job state visible without scrolling |
 | **Confirmation** | `[server]` → "Confirming…" (width-locked) → confirmed state + focus moved; offline → specific inline message + the safe sub-part (e.g. goods photo) still proceeds |
 | **Swahili** | SW label first / larger on the primary action; both languages shipped |
+
+## 21.2 Driver — focused on every screen
+
+The Driver **Current Job** experience stays intentionally constrained/focused
+**even on desktop** — it is not turned into a dense desktop dashboard. The
+frame may sit in more surrounding whitespace on a laptop, and secondary
+material (full Job detail, contacts, notes) may open beside the focused column,
+but the Current-Job content itself remains a single column prioritising:
+**current Job · current state · next action · pickup/destination · proof ·
+custody · delivery.** The 56 px dominant `⌘` and the "one obvious next action"
+rule hold at every width.
+
+## 21.3 Operator — may expand where it helps coordination
+
+| Breakpoint | Operator layout |
+| --- | --- |
+| Mobile | single-column, action-focused (as §21.1) |
+| Tablet (esp. landscape) | selective **two-column**: e.g. Work list + opportunity preview; Job detail summary + timeline |
+| Laptop / desktop | a **workspace layout where justified** — persistent list/detail split for Work & My Jobs, a filter rail, a 2-col Job detail, side-by-side eligibility + assignment, negotiation thread + Job-facts rail |
+
+The Operator workspace may use the extra width for: Job discovery · filters ·
+Job detail · negotiation · assignment · driver/vehicle information ·
+verification facts · operational context. **Do not** stretch mobile cards; use
+responsive *transformations*. **Do not** add density purely because space
+exists. The information hierarchy, the single obvious primary action, the
+interaction behaviour, the accessibility, and the product rules are identical to
+the mobile view.
 
 ```
 ┌──────────────────────────────┐
@@ -866,6 +943,13 @@ workspace.
 
 # 25. Responsive visual rules
 
+> **Responsive design is not proportional scaling. It is contextual adaptation.**
+> The same workflow may change layout with available space while keeping the same
+> information hierarchy, the same primary action, the same interaction behaviour,
+> the same accessibility, and the same product rules. Desktop is neither
+> "mobile UI stretched wider" nor "mobile UI trapped in a phone-sized container".
+> This applies to every role — including Operator/Driver (§21.2–21.3).
+
 Breakpoints (`[PROVISIONAL]`, mobile-first):
 
 | Token | min-width | Target |
@@ -882,9 +966,10 @@ scroll**:
 | Component | < `md` | `md`–`lg` | ≥ `lg` |
 | --- | --- | --- | --- |
 | App shell (Business) | bottom nav, single column | bottom nav / rail | 240 px sidebar + columns |
-| App shell (Operator / Driver) | bottom nav, 480 col | same | same (centred 480, **not** stretched) |
-| Job card list | 1-col cards | 2-col | 3-col (Business only) |
-| Job detail | single column | single / 2-col | 2–3 col + pinned next-action |
+| App shell (**Driver**) | bottom nav, ~480 focused column | same | focused column, more surrounding whitespace; secondary detail may open beside it — **never** a dense dashboard (§21.2) |
+| App shell (**Operator**) | bottom nav, single column | selective 2-col (list + preview) | workspace layout where justified — list/detail split, filter rail, 2-col Job detail (§21.3); **not** stretched cards, **not** added density |
+| Job card list | 1-col cards | 2-col | 3-col (Business); list/detail split (Operator) |
+| Job detail | single column | single / 2-col | 2–3 col + pinned next-action (Business & Operator) |
 | Timeline | single-line rows | columnar rows | + raw-event drawer (admin) |
 | Admin / Business list | **cards** | **table** (scrolls in its own `overflow-x:auto`) | table, more columns |
 | Filters | "Filters (n)" → sheet | chip row | chip row + saved filters |
@@ -1027,13 +1112,17 @@ StatusBadge, PageLoader, EmptyState, ErrorState).
 ### 30.1 App shell
 - **Anatomy:** app bar (back / `h1` / language + connectivity) · content region ·
   role nav (bottom bar or sidebar) · toast layer · sheet/dialog layer.
-- **Variants:** operator/driver (480 col, bottom bar) · business (sidebar ≥ `lg`)
-  · console (left nav, `surface.nav.console`) · recipient (no nav, 400 card).
+- **Variants:** **driver** (focused ~480 column + bottom bar at every width;
+  §21.2) · **operator** (bottom bar; may become a workspace layout ≥ `lg` where
+  it aids coordination; §21.3) · business (sidebar ≥ `lg`) · console (left nav,
+  `surface.nav.console`) · recipient (no nav, 400 card).
 - **States:** online / offline / syncing / sync-issue reflected in the app bar.
-- **Responsive:** §25.
+- **Responsive:** §25 (contextual adaptation, not proportional scaling).
 - **A11y:** landmarks; skip link; focus → `h1` on navigation.
 - **Usage:** every authenticated screen. **Anti-patterns:** hiding the
-  connectivity indicator; a stretched desktop operator layout.
+  connectivity indicator; stretching mobile cards on desktop; a hard 480 px cap
+  that phone-traps an Operator on a laptop; adding density purely because space
+  exists; turning the Driver Current-Job screen into a dashboard.
 
 ### 30.2 Navigation (bottom bar / sidebar)
 - **Anatomy:** items (icon + label) · active indicator · badges.
@@ -1312,7 +1401,7 @@ change product/architecture are flagged **STOP** and left for the founder.
 | # | Question | Type | Disposition |
 | --- | --- | --- | --- |
 | Q1 | **Brand teal vs. success green legibility.** They must stay visibly distinct on a cheap LCD in sunlight. | Visual | Mitigated in-doc (warmer success hue + mandatory `✓` + trust device uses `accent`, not success). Final hexes must be contrast-and-hue-checked in Phase 5. |
-| Q2 | **Final brand palette + wordmark + app-icon system.** | Visual / brand process | `[PROVISIONAL]` teal + clay + stone here; final follows the brand/KIPI process + founder sign-off (design-brief §2, §6, §12.1–12.3). |
+| Q2 | **Final brand palette + wordmark + app-icon system.** | Visual / brand process | **Direction approved** (warm stone + near-black text + grounded teal action + Kajiado-clay accent + brand-independent semantic status). **Final values NOT approved** — every hex in §6.1–§6.4 is `[PROVISIONAL]`. A **Founder Brand Palette Approval Gate** (§6) must be cleared at the Phase 5 kickoff — covering primary brand · accent · clay treatment · neutrals · semantic status · light-theme surface hierarchy · final contrast adjustments — **before** production token values are committed to frontend source. Phase 5 may **not** treat the provisional palette as final. Also follows the brand/KIPI process + founder sign-off (design-brief §2, §6, §12.1–12.3). |
 | Q3 | **Trust-level metaphor** — 3-pip clay ladder (proposed) vs. tiered badge vs. a track. Must read as earned standing, never a person-rating. | Visual | Proposed provisionally (§16.2); founder steer wanted (design-brief §12.4). |
 | Q4 | **Recipient page branding balance** — how much Fikisha identity vs. deliberate plainness for a first-time doorstep viewer. | Visual | Leaning plain (small wordmark + one accent line). Founder steer wanted (design-brief §12.5). |
 | Q5 | **Console surface tint** — `surface.nav.console` cooler tint as the only "back-office" signal vs. identical to the app. | Visual | Proposed: same language, `stone-50` nav. Confirm with founder (design-brief §12.6). |
@@ -1370,9 +1459,21 @@ Phase 4 is complete when — **all met by this document:**
 - [x] no architecture changed — verified in §34
 - [x] no application code changed — this is a documentation artifact only
 
-Upon founder approval, the next deliverable is **Design Phase 5** (translate this
-system into a real Tailwind config + token file + component implementation).
-**Phase 5 is not started. Frontend implementation is not started.**
+**Founder-approved 2026-09-10 as the visual-system baseline**, with two items
+carried into the Phase 5 kickoff:
+
+1. the **Founder Brand Palette Approval Gate** (§6) — final brand values are
+   **not** approved and must not be finalised silently; and
+2. Operator/Driver responsive **contextual adaptation** (§21.2–21.3, §25) — not
+   a hard 480 px column.
+
+Q7 (`RESUME_PRIOR` preconditions) and Q8 (rating/reputation) remain open/deferred
+product decisions (§32).
+
+Upon explicit Founder instruction, the next deliverable is **Design Phase 5**
+(translate this system into a real Tailwind config + token file + component
+implementation) — beginning with the Brand Palette Approval Gate. **Phase 5 is
+not started. Frontend implementation is not started.**
 
 ---
 
@@ -1416,13 +1517,33 @@ behaviour. The only project change is this documentation artifact.
 
 # 36. Approval gate
 
-**DESIGN PHASE 4 — AWAITING FOUNDER REVIEW.** Approval should confirm: the visual
-direction reads as Fikisha; the token architecture and semantic mapping are
-sound; the Job / timeline / negotiation / trust / verification / evidence /
-incident visual languages are faithful to Phases 1–3; the per-role systems and
-the responsive + accessibility + motion + EN-SW rules are sufficient; the
-provisional palette, wordmark, and Swahili terms are acceptable **as
-provisional**; and no product or architecture decision was changed (Q7
-`RESUME_PRIOR` and Q8 rating remain open product decisions). On approval, the
-next deliverable is **Design Phase 5** — implementation of the system. **Frontend
-implementation has not started.**
+**DESIGN PHASE 4 — APPROVED — VISUAL SYSTEM BASELINE** (Founder approval +
+targeted amendment, 2026-09-10).
+
+Approved as the design baseline: the visual direction, brand-personality
+translation, typography / spacing / layout / shape / elevation foundations, the
+semantic two-tier colour architecture, interaction states, buttons, forms,
+navigation, the Job / status / timeline / negotiation / trust / verification /
+evidence / incident visual languages, notifications & feedback, loading / empty /
+error / offline, the per-role systems, accessibility, restrained motion, EN-SW
+handling, and the primitive → semantic → component token architecture.
+
+Carried into the Phase 5 kickoff (do not skip):
+
+- **Founder Brand Palette Approval Gate (§6).** The final brand palette is **not**
+  approved. Every hex here is `[PROVISIONAL]`. Phase 5 must not treat it as final
+  and must clear the gate — primary brand · accent · Kajiado-clay · neutrals ·
+  semantic status · light-theme surface hierarchy · final contrast — **before**
+  any production token values reach frontend source.
+- **Operator/Driver responsive contextual adaptation (§21.2–21.3, §25).** Driver
+  stays focused/action-dominant at every width; Operator may expand into a
+  workspace layout on larger screens where it aids coordination — never a hard
+  480 px cap, never stretched cards, never gratuitous density.
+- **Q7 `RESUME_PRIOR` preconditions** — open product/architecture decision; only
+  the approved admin shell is styled.
+- **Q8 rating / reputation** — deferred; no stars, scores, ranking,
+  recommendation, or thresholds designed.
+
+On explicit Founder instruction, the next deliverable is **Design Phase 5** —
+implementation of the system, beginning with the Brand Palette Approval Gate.
+**Design Phase 5 has not started. Frontend implementation has not started.**
