@@ -57,41 +57,44 @@ export function GroupDetailPage(): JSX.Element {
 
   return (
     <div className="space-y-5">
-      <Link to="/groups" className="text-sm text-brand-700">
+      <Link to="/groups" className="text-body-sm text-action-secondary-text">
         &larr; {t('org:common.back')}
       </Link>
 
       <Card>
         <div className="flex items-center justify-between gap-3">
-          <h1 className="text-xl font-semibold text-slate-900">{group.data.name}</h1>
-          <span className="flex gap-2">
-            {group.data.my_role && <StatusBadge label={group.data.my_role} />}
+          <h1 className="text-h1 text-fg">{group.data.name}</h1>
+          <span className="flex flex-wrap gap-2">
+            {group.data.my_role && <StatusBadge tone="brand" label={group.data.my_role} />}
             <StatusBadge
-              tone={group.data.standing === 'GOOD' ? 'positive' : 'negative'}
+              tone={group.data.standing === 'GOOD' ? 'success' : 'danger'}
+              icon={group.data.standing === 'GOOD' ? 'check' : 'alert'}
               label={group.data.standing}
             />
           </span>
         </div>
-        <p className="mt-1 text-sm text-slate-500">
+        <p className="mt-1 text-body-sm text-fg-muted">
           {group.data.type} · {group.data.assignment_mode}
         </p>
       </Card>
 
       <Card>
-        <h2 className="text-sm font-medium text-slate-700">{t('org:groups.members')}</h2>
-        <ul className="mt-2 divide-y divide-slate-100 text-sm">
+        <h2 className="text-label text-fg-secondary">{t('org:groups.members')}</h2>
+        <ul className="mt-2 divide-y divide-line text-body-sm">
           {(members.data?.data ?? []).map((m) => (
             <li key={m.id} className="flex items-center justify-between py-2">
               <span>{m.operator_name}</span>
               <span className="flex items-center gap-2">
-                <StatusBadge label={m.role} />
+                <StatusBadge tone="brand" label={m.role} />
                 <StatusBadge
-                  tone={m.status === 'ACTIVE' ? 'positive' : 'negative'}
+                  tone={m.status === 'ACTIVE' ? 'success' : 'neutral'}
+                  icon={m.status === 'ACTIVE' ? 'check' : undefined}
                   label={m.status}
                 />
                 {canManage && m.status === 'ACTIVE' && m.role !== 'OWNER' && (
                   <Button
-                    variant="ghost"
+                    variant="destructive"
+                    size="compact"
                     onClick={() =>
                       orgApi
                         .removeGroupMember(groupId, m.id)
@@ -129,7 +132,7 @@ export function GroupDetailPage(): JSX.Element {
               </Field>
             </div>
             <select
-              className="rounded-lg border border-slate-300 px-2 py-2 text-sm"
+              className="min-h-target rounded-md border border-line-strong bg-surface-input px-2 text-body-sm text-fg"
               value={role}
               onChange={(e) => setRole(e.target.value)}
             >
@@ -146,7 +149,7 @@ export function GroupDetailPage(): JSX.Element {
         )}
         {error && (
           <div className="mt-2">
-            <Alert tone="error">{error}</Alert>
+            <Alert tone="danger">{error}</Alert>
           </div>
         )}
       </Card>

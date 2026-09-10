@@ -41,10 +41,10 @@ export function BusinessesPage(): JSX.Element {
 
   return (
     <div className="space-y-5">
-      <h1 className="text-xl font-semibold text-slate-900">{t('org:business.title')}</h1>
+      <h1 className="text-h1 text-fg">{t('org:business.title')}</h1>
 
       <Card>
-        <h2 className="text-sm font-medium text-slate-700">{t('org:business.createTitle')}</h2>
+        <h2 className="text-label text-fg-secondary">{t('org:business.createTitle')}</h2>
         <form className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-end" onSubmit={submit}>
           <div className="flex-1">
             <Field label={t('org:business.tradingName')}>
@@ -64,7 +64,7 @@ export function BusinessesPage(): JSX.Element {
         </form>
         {formError && (
           <div className="mt-3">
-            <Alert tone="error">{formError}</Alert>
+            <Alert tone="danger">{formError}</Alert>
           </div>
         )}
       </Card>
@@ -77,14 +77,15 @@ export function BusinessesPage(): JSX.Element {
         <ul className="space-y-2">
           {list.data.data.map((b) => (
             <li key={b.id}>
-              <Link to={`/businesses/${b.id}`} className="block">
-                <Card className="transition hover:border-brand-300">
+              <Link to={`/businesses/${b.id}`} className="block rounded-md">
+                <Card interactive>
                   <div className="flex items-center justify-between gap-3">
-                    <span className="font-medium text-slate-900">{b.trading_name}</span>
+                    <span className="font-semibold text-fg">{b.trading_name}</span>
                     <span className="flex items-center gap-2">
-                      {b.my_role && <StatusBadge label={b.my_role} />}
+                      {b.my_role && <StatusBadge tone="brand" label={b.my_role} />}
                       <StatusBadge
-                        tone={b.standing === 'GOOD' ? 'positive' : 'negative'}
+                        tone={b.standing === 'GOOD' ? 'success' : 'danger'}
+                        icon={b.standing === 'GOOD' ? 'check' : 'alert'}
                         label={b.standing}
                       />
                     </span>

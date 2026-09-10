@@ -39,11 +39,11 @@ export function GroupsPage(): JSX.Element {
 
   return (
     <div className="space-y-5">
-      <h1 className="text-xl font-semibold text-slate-900">{t('org:groups.title')}</h1>
+      <h1 className="text-h1 text-fg">{t('org:groups.title')}</h1>
 
       <Card>
-        <h2 className="text-sm font-medium text-slate-700">{t('org:groups.createTitle')}</h2>
-        <p className="mt-1 text-xs text-slate-500">{t('org:groups.needProfile')}</p>
+        <h2 className="text-label text-fg-secondary">{t('org:groups.createTitle')}</h2>
+        <p className="mt-1 text-caption text-fg-muted">{t('org:groups.needProfile')}</p>
         <form
           className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-end"
           onSubmit={(e: FormEvent) => {
@@ -59,7 +59,7 @@ export function GroupsPage(): JSX.Element {
             </Field>
           </div>
           <select
-            className="rounded-lg border border-slate-300 px-2 py-2 text-sm"
+            className="min-h-target rounded-md border border-line-strong bg-surface-input px-2 text-body-sm text-fg"
             value={type}
             onChange={(e) => setType(e.target.value)}
           >
@@ -75,7 +75,7 @@ export function GroupsPage(): JSX.Element {
         </form>
         {error && (
           <div className="mt-2">
-            <Alert tone="error">{error}</Alert>
+            <Alert tone="danger">{error}</Alert>
           </div>
         )}
       </Card>
@@ -88,10 +88,10 @@ export function GroupsPage(): JSX.Element {
         <ul className="space-y-2">
           {list.data.data.map((g) => (
             <li key={g.id}>
-              <Link to={`/groups/${g.id}`} className="block">
-                <Card className="transition hover:border-brand-300">
+              <Link to={`/groups/${g.id}`} className="block rounded-md">
+                <Card interactive>
                   <div className="flex items-center justify-between gap-3">
-                    <span className="font-medium text-slate-900">{g.name}</span>
+                    <span className="font-semibold text-fg">{g.name}</span>
                     <span className="flex gap-2">
                       {g.my_role && <StatusBadge label={g.my_role} />}
                       <StatusBadge label={g.type} />

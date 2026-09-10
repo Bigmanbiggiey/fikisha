@@ -45,27 +45,28 @@ export function OperatorProfilePage(): JSX.Element {
 
   return (
     <div className="space-y-5">
-      <h1 className="text-xl font-semibold text-slate-900">{t('org:operator.title')}</h1>
+      <h1 className="text-h1 text-fg">{t('org:operator.title')}</h1>
 
       {profile.isSuccess ? (
         <>
           <Card>
             <div className="flex items-center justify-between">
-              <span className="font-medium text-slate-900">{profile.data.full_name}</span>
+              <span className="font-semibold text-fg">{profile.data.full_name}</span>
               <StatusBadge
-                tone={profile.data.status === 'ACTIVE' ? 'positive' : 'neutral'}
+                tone={profile.data.status === 'ACTIVE' ? 'success' : 'neutral'}
+                icon={profile.data.status === 'ACTIVE' ? 'check' : undefined}
                 label={profile.data.status}
               />
             </div>
-            <p className="mt-1 text-sm text-slate-500">{profile.data.user_phone}</p>
+            <p className="mt-1 text-body-sm text-fg-muted">{profile.data.user_phone}</p>
             <Alert tone="success">{t('org:operator.haveProfile')}</Alert>
           </Card>
           <VerificationPanel subjectType="OPERATOR" subjectId={profile.data.id} />
         </>
       ) : missing ? (
         <Card>
-          <h2 className="text-sm font-medium text-slate-700">{t('org:operator.createTitle')}</h2>
-          <p className="mt-1 text-sm text-slate-500">{t('org:operator.noProfile')}</p>
+          <h2 className="text-label text-fg-secondary">{t('org:operator.createTitle')}</h2>
+          <p className="mt-1 text-body-sm text-fg-muted">{t('org:operator.noProfile')}</p>
           <form
             className="mt-3 space-y-3"
             onSubmit={(e: FormEvent) => {
@@ -90,11 +91,11 @@ export function OperatorProfilePage(): JSX.Element {
             <Button type="submit" loading={create.isPending} disabled={!fullName.trim()}>
               {t('org:common.create')}
             </Button>
-            {error && <Alert tone="error">{error}</Alert>}
+            {error && <Alert tone="danger">{error}</Alert>}
           </form>
         </Card>
       ) : (
-        <Alert tone="error">{localizeError(profile.error, t)}</Alert>
+        <Alert tone="danger">{localizeError(profile.error, t)}</Alert>
       )}
     </div>
   );

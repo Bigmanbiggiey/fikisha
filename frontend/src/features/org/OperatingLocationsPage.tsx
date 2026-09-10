@@ -50,10 +50,10 @@ export function OperatingLocationsPage(): JSX.Element {
 
   return (
     <div className="space-y-5">
-      <h1 className="text-xl font-semibold text-slate-900">{t('org:locations.title')}</h1>
+      <h1 className="text-h1 text-fg">{t('org:locations.title')}</h1>
 
       <Card>
-        <h2 className="text-sm font-medium text-slate-700">{t('org:locations.createTitle')}</h2>
+        <h2 className="text-label text-fg-secondary">{t('org:locations.createTitle')}</h2>
         <form
           className="mt-3 space-y-3"
           onSubmit={(e: FormEvent) => {
@@ -68,9 +68,9 @@ export function OperatingLocationsPage(): JSX.Element {
           </Field>
           <div className="flex gap-3">
             <label className="text-sm">
-              <span className="mb-1 block font-medium text-slate-700">{t('org:locations.type')}</span>
+              <span className="mb-1 block font-medium text-fg-secondary">{t('org:locations.type')}</span>
               <select
-                className="rounded-lg border border-slate-300 px-2 py-2 text-sm"
+                className="min-h-target rounded-md border border-line-strong bg-surface-input px-2 text-body-sm text-fg"
                 value={type}
                 onChange={(e) => setType(e.target.value)}
               >
@@ -92,7 +92,7 @@ export function OperatingLocationsPage(): JSX.Element {
           <Button type="submit" loading={create.isPending} disabled={!name.trim()}>
             {t('org:common.create')}
           </Button>
-          {error && <Alert tone="error">{error}</Alert>}
+          {error && <Alert tone="danger">{error}</Alert>}
         </form>
       </Card>
 
@@ -106,10 +106,10 @@ export function OperatingLocationsPage(): JSX.Element {
             <li key={b.id}>
               <Card>
                 <div className="flex items-center justify-between">
-                  <span className="font-medium text-slate-900">{b.name}</span>
+                  <span className="font-semibold text-fg">{b.name}</span>
                   <StatusBadge label={b.type} />
                 </div>
-                {b.landmark && <p className="mt-1 text-sm text-slate-500">{b.landmark}</p>}
+                {b.landmark && <p className="mt-1 text-body-sm text-fg-muted">{b.landmark}</p>}
               </Card>
             </li>
           ))}

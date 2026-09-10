@@ -84,29 +84,30 @@ export function BusinessDetailPage(): JSX.Element {
 
   return (
     <div className="space-y-5">
-      <Link to="/businesses" className="text-sm text-brand-700">
+      <Link to="/businesses" className="text-body-sm text-action-secondary-text">
         &larr; {t('org:common.back')}
       </Link>
 
       <Card>
         <div className="flex items-center justify-between gap-3">
-          <h1 className="text-xl font-semibold text-slate-900">{biz.data.trading_name}</h1>
-          <span className="flex gap-2">
-            {biz.data.my_role && <StatusBadge label={biz.data.my_role} />}
+          <h1 className="text-h1 text-fg">{biz.data.trading_name}</h1>
+          <span className="flex flex-wrap gap-2">
+            {biz.data.my_role && <StatusBadge tone="brand" label={biz.data.my_role} />}
             <StatusBadge
-              tone={biz.data.standing === 'GOOD' ? 'positive' : 'negative'}
+              tone={biz.data.standing === 'GOOD' ? 'success' : 'danger'}
+              icon={biz.data.standing === 'GOOD' ? 'check' : 'alert'}
               label={biz.data.standing}
             />
           </span>
         </div>
-        <dl className="mt-3 space-y-1 text-sm">
+        <dl className="mt-3 space-y-1 text-body-sm">
           <Row label={t('org:business.contactPhone')} value={biz.data.contact_phone || '—'} />
           <Row label={t('org:business.contactEmail')} value={biz.data.contact_email || '—'} />
         </dl>
 
         {isOwner && (
           <form
-            className="mt-4 flex flex-col gap-3 border-t border-slate-100 pt-4 sm:flex-row sm:items-end"
+            className="mt-4 flex flex-col gap-3 border-t border-line pt-4 sm:flex-row sm:items-end"
             onSubmit={(e: FormEvent) => {
               e.preventDefault();
               if (contactPhone.trim()) saveProfile.mutate();
@@ -132,20 +133,22 @@ export function BusinessDetailPage(): JSX.Element {
       </Card>
 
       <Card>
-        <h2 className="text-sm font-medium text-slate-700">{t('org:business.members')}</h2>
-        <ul className="mt-2 divide-y divide-slate-100 text-sm">
+        <h2 className="text-label text-fg-secondary">{t('org:business.members')}</h2>
+        <ul className="mt-2 divide-y divide-line text-body-sm">
           {(members.data?.data ?? []).map((m) => (
             <li key={m.id} className="flex items-center justify-between py-2">
               <span>{m.user_display_name || m.user_phone}</span>
               <span className="flex items-center gap-2">
-                <StatusBadge label={m.role} />
+                <StatusBadge tone="brand" label={m.role} />
                 <StatusBadge
-                  tone={m.status === 'ACTIVE' ? 'positive' : 'negative'}
+                  tone={m.status === 'ACTIVE' ? 'success' : 'neutral'}
+                  icon={m.status === 'ACTIVE' ? 'check' : undefined}
                   label={m.status}
                 />
                 {isOwner && m.status === 'ACTIVE' && (
                   <Button
-                    variant="ghost"
+                    variant="destructive"
+                    size="compact"
                     onClick={() =>
                       orgApi
                         .removeMember(businessId, m.id)
@@ -183,7 +186,7 @@ export function BusinessDetailPage(): JSX.Element {
               </Field>
             </div>
             <select
-              className="rounded-lg border border-slate-300 px-2 py-2 text-sm"
+              className="min-h-target rounded-md border border-line-strong bg-surface-input px-2 text-body-sm text-fg"
               value={memberRole}
               onChange={(e) => setMemberRole(e.target.value)}
             >
@@ -200,15 +203,15 @@ export function BusinessDetailPage(): JSX.Element {
         )}
         {memberError && (
           <div className="mt-2">
-            <Alert tone="error">{memberError}</Alert>
+            <Alert tone="danger">{memberError}</Alert>
           </div>
         )}
       </Card>
 
       <Card>
-        <h2 className="text-sm font-medium text-slate-700">{t('org:business.locations')}</h2>
-        <p className="mt-1 text-xs text-slate-500">{t('org:business.mainLocationNote')}</p>
-        <ul className="mt-2 divide-y divide-slate-100 text-sm">
+        <h2 className="text-label text-fg-secondary">{t('org:business.locations')}</h2>
+        <p className="mt-1 text-caption text-fg-muted">{t('org:business.mainLocationNote')}</p>
+        <ul className="mt-2 divide-y divide-line text-body-sm">
           {(locations.data?.data ?? []).map((l) => (
             <li key={l.id} className="flex items-center justify-between py-2">
               <span>
@@ -216,10 +219,15 @@ export function BusinessDetailPage(): JSX.Element {
                 {l.zone_code ? ` · ${l.zone_code}` : ''}
               </span>
               <span className="flex items-center gap-2">
-                <StatusBadge tone={l.type === 'MAIN' ? 'positive' : 'neutral'} label={l.type} />
+                <StatusBadge
+                  tone={l.type === 'MAIN' ? 'success' : 'neutral'}
+                  icon={l.type === 'MAIN' ? 'check' : undefined}
+                  label={l.type}
+                />
                 {canManageLocations && (
                   <Button
-                    variant="ghost"
+                    variant="destructive"
+                    size="compact"
                     onClick={() =>
                       orgApi
                         .removeLocation(businessId, l.id)
@@ -255,7 +263,7 @@ export function BusinessDetailPage(): JSX.Element {
               </Field>
             </div>
             <select
-              className="rounded-lg border border-slate-300 px-2 py-2 text-sm"
+              className="min-h-target rounded-md border border-line-strong bg-surface-input px-2 text-body-sm text-fg"
               value={locType}
               onChange={(e) => setLocType(e.target.value)}
             >
@@ -272,7 +280,7 @@ export function BusinessDetailPage(): JSX.Element {
         )}
         {locError && (
           <div className="mt-2">
-            <Alert tone="error">{locError}</Alert>
+            <Alert tone="danger">{locError}</Alert>
           </div>
         )}
       </Card>
@@ -283,8 +291,8 @@ export function BusinessDetailPage(): JSX.Element {
 function Row({ label, value }: { label: string; value: string }): JSX.Element {
   return (
     <div className="flex justify-between">
-      <dt className="text-slate-500">{label}</dt>
-      <dd className="font-medium text-slate-800">{value}</dd>
+      <dt className="text-fg-muted">{label}</dt>
+      <dd className="font-medium text-fg">{value}</dd>
     </div>
   );
 }
