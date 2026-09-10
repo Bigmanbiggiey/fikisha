@@ -2,8 +2,58 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * Fikisha visual foundation — Design Phase 5B.
+ * Palette: "Stage & Yard" (Option A), Founder-approved 2026-09-10.
+ *
+ * These custom properties mirror src/design/tokens.ts (the source of truth) and
+ * the Tailwind theme. Components use Tailwind semantic utilities; these vars are
+ * for the handful of cases that need a raw value in plain CSS.
+ * Light theme is authoritative. A future dark theme would re-declare the
+ * SEMANTIC block only.
+ */
 :root {
   color-scheme: light;
+
+  /* ── primitives ── */
+  --fk-brand-600: #0c7a6c;
+  --fk-brand-700: #0a6459;
+  --fk-accent-600: #9e561f;
+  --fk-stone-50: #f7f5f1;
+  --fk-stone-100: #eeebe4;
+  --fk-stone-200: #e0dbd1;
+  --fk-stone-300: #c9c3b6;
+  --fk-stone-500: #7a7365;
+  --fk-stone-600: #59534a;
+  --fk-stone-900: #1a1712;
+
+  /* ── semantic ── */
+  --fk-surface-page: var(--fk-stone-50);
+  --fk-surface-card: #ffffff;
+  --fk-surface-sunken: var(--fk-stone-100);
+  --fk-surface-overlay: rgba(26, 23, 18, 0.55);
+  --fk-text-primary: var(--fk-stone-900);
+  --fk-text-secondary: var(--fk-stone-600);
+  --fk-text-muted: var(--fk-stone-500);
+  --fk-line-default: var(--fk-stone-200);
+  --fk-line-strong: var(--fk-stone-300);
+  --fk-focus-ring: var(--fk-brand-600);
+  --fk-action-primary: var(--fk-brand-600);
+  --fk-action-primary-strong: var(--fk-brand-700);
+
+  /* ── status (colour is always paired with an icon/shape + text in the UI) ── */
+  --fk-status-success: #177a33;
+  --fk-status-warning: #8a4a10;
+  --fk-status-danger: #c22b22;
+  --fk-status-info: #2a5d93;
+  --fk-status-neutral: var(--fk-stone-600);
+
+  /* ── motion ── */
+  --fk-motion-fast: 120ms;
+  --fk-motion-base: 200ms;
+  --fk-motion-slow: 280ms;
+  --fk-ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --fk-ease-exit: cubic-bezier(0.4, 0, 1, 1);
 }
 
 html,
@@ -13,7 +63,32 @@ body,
 }
 
 body {
-  @apply bg-slate-50 font-sans text-slate-900 antialiased;
+  @apply bg-surface-page font-sans text-fg antialiased;
+}
+
+/* Consistent, always-visible keyboard focus on every interactive element. */
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--fk-focus-ring);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* Tabular, aligned digits for money / weights / OTP / counts / timestamps. */
+.fk-numeric {
+  font-feature-settings: 'tnum' 1, 'lnum' 1;
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+/* Respect the user's reduced-motion preference everywhere. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 .sr-only {
@@ -26,4 +101,8 @@ body {
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border: 0;
+}
+
+[hidden] {
+  display: none !important;
 }
