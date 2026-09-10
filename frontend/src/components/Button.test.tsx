@@ -25,4 +25,28 @@ describe('Button', () => {
     await userEvent.click(button);
     expect(onClick).not.toHaveBeenCalled();
   });
+
+  it('renders a 56px min target for the driver size', () => {
+    render(
+      <Button size="driver">
+        Confirm pickup
+      </Button>,
+    );
+    expect(screen.getByRole('button')).toHaveClass('min-h-target-driver');
+  });
+
+  it('renders a 44px min target for the default size', () => {
+    render(<Button>Save</Button>);
+    expect(screen.getByRole('button')).toHaveClass('min-h-target');
+  });
+
+  it('keeps the legacy "ghost" variant working', () => {
+    render(<Button variant="ghost">Cancel</Button>);
+    expect(screen.getByRole('button', { name: 'Cancel' })).toBeInTheDocument();
+  });
+
+  it('defaults to type="button"', () => {
+    render(<Button>x</Button>);
+    expect(screen.getByRole('button')).toHaveAttribute('type', 'button');
+  });
 });

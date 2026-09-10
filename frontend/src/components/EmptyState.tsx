@@ -1,5 +1,9 @@
 import type { ReactNode } from 'react';
 
+/**
+ * EmptyState — Design Phase 5B. What is empty + why + the one relevant action.
+ * Never "No data."
+ */
 export function EmptyState({
   title,
   description,
@@ -10,10 +14,10 @@ export function EmptyState({
   action?: ReactNode;
 }): JSX.Element {
   return (
-    <div className="rounded-xl border border-dashed border-slate-300 p-8 text-center">
-      <p className="text-sm font-medium text-slate-700">{title}</p>
-      {description && <p className="mt-1 text-sm text-slate-500">{description}</p>}
-      {action && <div className="mt-4">{action}</div>}
+    <div className="rounded-md border border-dashed border-line-strong bg-surface-card p-8 text-center">
+      <p className="text-h3 text-fg">{title}</p>
+      {description && <p className="mt-1 text-body-sm text-fg-secondary">{description}</p>}
+      {action && <div className="mt-4 flex justify-center">{action}</div>}
     </div>
   );
 }
