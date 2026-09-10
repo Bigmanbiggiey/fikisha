@@ -618,6 +618,31 @@ new code; **security and invariant tests are not optional**.
   `jobs.selectors.{get_job, job_for_update}` and never write `job.status` except
   via `JobLifecycleService.transition`. This is the concrete read/write boundary
   the module-layout rule (§4) asks for.
+- **ADR-2D-14** *(Increment 3 — Assignment)* — assignment eligibility is
+  evaluated **only** against the specific assigned driver + vehicle carried in
+  the transition context, never the operator/group alone. New guard
+  `DriverAssignmentAllowed` (added to the `CONFIRMED → ASSIGNED` rule): the
+  driver must be the confirmed solo operator, or an **active member** of the
+  confirmed group whose `standing != SUSPENDED` (trust-architecture.md §2 — a
+  group's standing can only *reduce* what it may do). `VehicleEligible` now also
+  checks the vehicle is controlled by the confirmed party
+  (`owner_operator`/`owner_group`), meets `min_payload_kg` / `min_volume_m3` /
+  `required_features`, and passes `verification.required_domains_for_subject`
+  (VEHICLE + ASSOCIATION, plus HEAVY_CLASS_COMPLIANCE when
+  `VehicleClass.heavy`). `DriverVerificationCurrent` uses the same config-driven
+  mandatory-domain set for the driver (IDENTITY + LICENCE + GOOD_CONDUCT) — group
+  membership never substitutes for it. `admin_override_reason` relaxes **only**
+  `DriverTrustCeilingCoversValue`; verification / vehicle / membership /
+  high-value gates still run. High-value approval is a real pre-assignment
+  mechanism (`jobs.high_value.decide_high_value`): Ops Officer may decide a HIGH
+  job, only a Platform Admin may decide a VERY_HIGH job, one immutable decision
+  per job; the `HighValueApproved` guard independently re-checks the VERY_HIGH
+  Platform-Admin condition, so there is no assignment path around it.
+- **ADR-2D-14a** *(correctness fix surfaced during Increment 3 review)* —
+  `negotiation._mistype_warning` no longer orders `negotiation_entry` rows by
+  `created_at` (unreliable at Windows clock granularity for same-transaction
+  entries); it compares the new figure against the standing offer / posted price
+  passed in by the caller. No behaviour change; removes a latent flaky path.
 
 ---
 

@@ -109,6 +109,7 @@ ALLOWED_TRANSITIONS: dict[tuple[str, str], Rule] = {
         initiators=("OPERATOR_PARTY", "GROUP_MANAGER", "ADMIN"),
         guards=(
             "RequesterIsNotProvider",
+            "DriverAssignmentAllowed",
             "VehicleEligible",
             "DriverVerificationCurrent",
             "DriverTrustCeilingCoversValue",

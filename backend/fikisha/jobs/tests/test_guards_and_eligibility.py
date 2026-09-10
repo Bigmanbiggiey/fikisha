@@ -119,7 +119,16 @@ def test_mutual_acceptance_exists() -> None:
 
 
 def test_requester_is_not_provider() -> None:
-    job = SimpleNamespace(created_by_id="u1")
+    # solo-operator agreement; the requester (u1) is a different person to the operator (u9)
+    job = SimpleNamespace(
+        created_by_id="u1",
+        agreement=SimpleNamespace(
+            operator_party="OPERATOR",
+            operator_id="op1",
+            group_id=None,
+            operator=SimpleNamespace(user_id="u9"),
+        ),
+    )
     guards.GUARDS["RequesterIsNotProvider"](
         job, None, {"driver_profile": SimpleNamespace(user_id="u2")}
     )

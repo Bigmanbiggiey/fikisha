@@ -41,3 +41,22 @@ def _job_create(actor: Any, _action: str, _resource: Any) -> Decision:
 def _job_transition(actor: Any, _action: str, _resource: Any) -> Decision:
     """Coarse gate only — the allowed-initiator match happens in the service."""
     return _authed_or_system(actor)
+
+
+@policy("job.assign")
+def _job_assign(actor: Any, _action: str, _resource: Any) -> Decision:
+    """Coarse gate — the operator/group-manager/driver-self/admin resolution and
+    the eligibility guards run in :mod:`fikisha.jobs.assignment` / the service."""
+    return ALLOW if getattr(actor, "is_authenticated", False) else deny("authz.unauthenticated")
+
+
+@policy("highvalue.approve")
+def _highvalue_approve(actor: Any, _action: str, _resource: Any) -> Decision:
+    """Coarse gate — HIGH vs VERY_HIGH admin-tier resolution is in
+    :func:`fikisha.jobs.high_value.decide_high_value`."""
+    if not getattr(actor, "is_authenticated", False):
+        return deny("authz.unauthenticated")
+    roles = {str(r) for r in (getattr(actor, "roles", None) or [])}
+    if roles & {"PLATFORM_ADMIN", "OPERATIONS_OFFICER"} or getattr(actor, "is_admin", False):
+        return ALLOW
+    return deny("authz.forbidden", "A high-value decision requires an admin role.")

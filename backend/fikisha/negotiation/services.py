@@ -75,17 +75,12 @@ def _validate_amount(amount_kes: Any) -> int:
     return amount_kes
 
 
-def _mistype_warning(thread: NegotiationThread, amount_kes: int) -> str | None:
-    prev = (
-        NegotiationEntry.objects.filter(thread=thread, type__in=list(OFFER_TYPES))
-        .exclude(amount_kes=None)
-        .order_by("-created_at")
-        .values_list("amount_kes", flat=True)
-        .first()
-    )
-    if prev and (amount_kes >= prev * 10 or amount_kes * 10 <= prev):
+def _mistype_warning(baseline_kes: int | None, amount_kes: int) -> str | None:
+    """A non-blocking nudge when the new figure is >=10x or <=1/10 the figure it
+    is responding to. Never a rejection (pricing-and-negotiation.md §6)."""
+    if baseline_kes and (amount_kes >= baseline_kes * 10 or amount_kes * 10 <= baseline_kes):
         return (
-            "This amount is an order of magnitude from the previous offer — "
+            "This amount is an order of magnitude from the previous offer - "
             "please double-check it. The platform does not reject prices."
         )
     return None
@@ -308,7 +303,9 @@ def propose(
     if thread.status != ThreadStatus.ACTIVE:
         raise ThreadNotActive()
 
-    warning = _mistype_warning(thread, amount_kes)
+    _current = standing_offer(thread)
+    baseline = _current.amount_kes if _current is not None else job.proposed_price_kes
+    warning = _mistype_warning(baseline, amount_kes)
     _write_entry(
         thread=thread,
         job=job,
@@ -339,8 +336,8 @@ def counter(*, actor: Any, thread_id: Any, amount_kes: int, note: str = "") -> d
     if thread.status != ThreadStatus.ACTIVE:
         raise ThreadNotActive()
 
-    warning = _mistype_warning(thread, amount_kes)
     current = standing_offer(thread)
+    warning = _mistype_warning(current.amount_kes if current is not None else None, amount_kes)
     _write_entry(
         thread=thread,
         job=job,

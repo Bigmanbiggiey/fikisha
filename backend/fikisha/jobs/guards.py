@@ -14,7 +14,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from datetime import timedelta
-from typing import Any
+from typing import Any, NoReturn
 
 from django.utils import timezone
 
@@ -33,7 +33,7 @@ from fikisha.jobs.errors import (
 Guard = Callable[[Any, Any, dict[str, Any]], None]
 
 
-def _fail(code: str, detail: str) -> None:
+def _fail(code: str, detail: str) -> NoReturn:
     raise GuardFailed(detail, code=code)
 
 
@@ -105,11 +105,77 @@ def mutual_acceptance_exists(job: Any, actor: Any, ctx: dict[str, Any]) -> None:
         )
 
 
-# ── assign ───────────────────────────────────────────────────────────
+# ── assign (job-state-machine.md §4, plan §9) ────────────────────────
+#
+# Every assignment guard is evaluated against the **specific assigned driver and
+# vehicle** carried in ``ctx`` — never merely the operator or group. Group
+# membership is a *fact* checked here; it never substitutes for the driver's own
+# verification, which ``driver_verification_current`` checks on the driver
+# profile directly. ``admin_override_reason`` relaxes **only** the trust-ceiling
+# guard; verification, vehicle, membership and high-value gates still run.
+
+
+def _agreement_party(job: Any) -> tuple[str, Any, Any]:
+    """``(party, operator_id, group_id)`` from the frozen ``Agreement``."""
+    agreement = getattr(job, "agreement", None)
+    if agreement is None:
+        _fail("no_agreement", "The job has no confirmed agreement to assign against.")
+    return agreement.operator_party, agreement.operator_id, agreement.group_id
+
+
 def requester_is_not_provider(job: Any, actor: Any, ctx: dict[str, Any]) -> None:
     driver = ctx.get("driver_profile")
     if driver is not None and getattr(driver, "user_id", None) == job.created_by_id:
         _fail("requester_is_provider", "The requester may not be the assigned driver.")
+
+    _party, operator_id, group_id = _agreement_party(job)
+    if operator_id is not None:
+        agreement = job.agreement
+        if getattr(agreement.operator, "user_id", None) == job.created_by_id:
+            _fail("requester_is_provider", "The requester controls the assigned operator.")
+    if group_id is not None:
+        from fikisha.groups.models import GroupMemberRole, GroupMembership, GroupMembershipStatus
+
+        controls_group = GroupMembership.objects.filter(
+            group_id=group_id,
+            operator__user_id=job.created_by_id,
+            role__in=[GroupMemberRole.OWNER, GroupMemberRole.MANAGER],
+            status=GroupMembershipStatus.ACTIVE,
+        ).exists()
+        if controls_group:
+            _fail("requester_is_provider", "The requester controls the assigned group.")
+
+
+def driver_assignment_allowed(job: Any, actor: Any, ctx: dict[str, Any]) -> None:
+    """The driver is legitimately the provider for this job: the confirmed solo
+    operator, or an **active member** of the confirmed group whose standing is
+    not SUSPENDED (trust-architecture.md §2 — a group's standing can only reduce
+    what it may do)."""
+    driver = ctx.get("driver_profile")
+    if driver is None:
+        raise DriverNotEligible("No driver supplied for assignment.")
+    _party, operator_id, group_id = _agreement_party(job)
+
+    if operator_id is not None:
+        if str(driver.id) != str(operator_id):
+            raise DriverNotEligible("A solo-operator job is driven by the confirmed operator.")
+        return
+
+    from fikisha.groups.models import (
+        GroupMembership,
+        GroupMembershipStatus,
+        GroupStanding,
+        OperatorGroup,
+    )
+
+    group = OperatorGroup.objects.filter(id=group_id).first()
+    if group is None or group.standing == GroupStanding.SUSPENDED:
+        raise DriverNotEligible("The confirmed group is suspended and cannot be assigned work.")
+    is_member = GroupMembership.objects.filter(
+        group_id=group_id, operator_id=driver.id, status=GroupMembershipStatus.ACTIVE
+    ).exists()
+    if not is_member:
+        raise DriverNotEligible("The assigned driver is not an active member of the group.")
 
 
 def vehicle_eligible(job: Any, actor: Any, ctx: dict[str, Any]) -> None:
@@ -117,30 +183,59 @@ def vehicle_eligible(job: Any, actor: Any, ctx: dict[str, Any]) -> None:
     if vehicle is None:
         raise VehicleNotEligible("No vehicle supplied for assignment.")
     if not vehicle.is_active:
-        raise VehicleNotEligible("Vehicle is not active.")
-    req = job.vehicle_requirement
-    if req and req.required_vehicle_class_codes:
-        code = getattr(vehicle.vehicle_class, "code", None)
-        if code not in req.required_vehicle_class_codes:
-            raise VehicleNotEligible("Vehicle class does not match the requirement.")
-    if getattr(vehicle.vehicle_class, "heavy", False):
-        from fikisha.verification.models import Domain
-        from fikisha.verification.services import subject_meets
+        raise VehicleNotEligible("The vehicle is not active.")
 
-        if not subject_meets(vehicle, [Domain.HEAVY_CLASS_COMPLIANCE, Domain.VEHICLE]):
-            raise VehicleNotEligible("Heavy-class compliance is not verified for this vehicle.")
+    _party, operator_id, group_id = _agreement_party(job)
+    if operator_id is not None and str(vehicle.owner_operator_id) != str(operator_id):
+        raise VehicleNotEligible("The vehicle is not controlled by the confirmed operator.")
+    if group_id is not None and str(vehicle.owner_group_id) != str(group_id):
+        raise VehicleNotEligible("The vehicle is not controlled by the confirmed group.")
+
+    req = job.vehicle_requirement
+    if req is not None:
+        if req.required_vehicle_class_codes:
+            code = getattr(vehicle.vehicle_class, "code", None)
+            if code not in req.required_vehicle_class_codes:
+                raise VehicleNotEligible("The vehicle class does not match the requirement.")
+        payload_kg = _capacity_kg(vehicle)
+        if req.min_payload_kg and payload_kg is not None and payload_kg < req.min_payload_kg:
+            raise VehicleNotEligible("The vehicle payload is below the requirement.")
+        if req.min_volume_m3 is not None:
+            if vehicle.volume_m3 is None or vehicle.volume_m3 < req.min_volume_m3:
+                raise VehicleNotEligible("The vehicle load volume is below the requirement.")
+        required_features = set(req.required_features or [])
+        if required_features and not required_features.issubset(set(vehicle.feature_tags or [])):
+            raise VehicleNotEligible("The vehicle is missing a required feature.")
+
+    from fikisha.verification.requirements import required_domains_for_subject
+    from fikisha.verification.services import subject_meets
+
+    domains = required_domains_for_subject(vehicle)  # incl. HEAVY_CLASS_COMPLIANCE when heavy
+    if not subject_meets(vehicle, domains):
+        raise VehicleNotEligible(
+            "The vehicle's registration / association / heavy-class verification is not current."
+        )
+
+
+def _capacity_kg(vehicle: Any) -> float | None:
+    value = getattr(vehicle, "capacity_value", None)
+    if value is None:
+        return None
+    unit = str(getattr(vehicle, "capacity_unit", "KG") or "KG")
+    return float(value) * (1000.0 if unit == "TONNES" else 1.0)
 
 
 def driver_verification_current(job: Any, actor: Any, ctx: dict[str, Any]) -> None:
     driver = ctx.get("driver_profile")
     if driver is None:
         raise DriverNotEligible("No driver supplied for assignment.")
-    from fikisha.verification.models import Domain
+    from fikisha.verification.requirements import required_domains_for_subject
     from fikisha.verification.services import subject_meets
 
-    if not subject_meets(driver, [Domain.IDENTITY, Domain.LICENCE, Domain.GOOD_CONDUCT]):
+    domains = required_domains_for_subject(driver)  # IDENTITY + LICENCE + GOOD_CONDUCT (config)
+    if not subject_meets(driver, domains):
         raise DriverNotEligible(
-            "Driver identity, licence, and good-conduct verification must be current."
+            "The driver's identity, licence and good-conduct verification must all be current."
         )
 
 
@@ -328,6 +423,7 @@ GUARDS: dict[str, Guard] = {
     "NoRacingConfirm": no_racing_confirm,
     "MutualAcceptanceExists": mutual_acceptance_exists,
     "RequesterIsNotProvider": requester_is_not_provider,
+    "DriverAssignmentAllowed": driver_assignment_allowed,
     "VehicleEligible": vehicle_eligible,
     "DriverVerificationCurrent": driver_verification_current,
     "DriverTrustCeilingCoversValue": driver_trust_ceiling_covers_value,

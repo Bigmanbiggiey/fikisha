@@ -59,6 +59,23 @@ class HighValueApprovalRequired(GuardFailed):
     default_code = "high_value_approval_required"
 
 
+class NotAHighValueJob(DomainError):
+    default_code = "not_a_high_value_job"
+    status_code = status.HTTP_422_UNPROCESSABLE_ENTITY
+    default_detail = "This job is not in a high-value band; no approval applies."
+
+
+class HighValueAlreadyDecided(ConflictError):
+    default_code = "high_value_already_decided"
+    default_detail = "A high-value decision has already been recorded for this job."
+
+
+class NotAuthorisedToAssign(DomainError):
+    default_code = "not_authorised_to_assign"
+    status_code = status.HTTP_403_FORBIDDEN
+    default_detail = "You may not assign a driver and vehicle to this job."
+
+
 class NotImplementedInThisIncrement(DomainError):
     """Raised by transition paths whose initiating service is not built yet
     (Phase 2D increment 1 covers the lifecycle engine + pure-jobs transitions;

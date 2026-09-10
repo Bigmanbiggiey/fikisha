@@ -188,6 +188,7 @@ def _bypass_assignment_guards(monkeypatch: pytest.MonkeyPatch) -> None:
     from fikisha.jobs import guards
 
     for name in (
+        "DriverAssignmentAllowed",
         "VehicleEligible",
         "DriverVerificationCurrent",
         "DriverTrustCeilingCoversValue",
