@@ -352,9 +352,22 @@ def transition(
         return view
 
 
+def peek_idempotent(*, actor: Any, job_id: Any, idempotency_key: str) -> dict[str, Any] | None:
+    """Return a previously stored transition response for ``(actor, job, key)``,
+    or ``None``. Lets a calling service short-circuit a retried multi-step
+    operation (e.g. ``negotiation.accept``) before it re-does its own writes."""
+    if not idempotency_key:
+        return None
+    row = JobTransitionIdempotency.objects.filter(
+        actor_key=_actor_key(actor), job_id=job_id, idempotency_key=idempotency_key
+    ).first()
+    return dict(row.stored_response) if row is not None else None
+
+
 class JobLifecycleService:
     """Namespace wrapper (job-state-machine.md §2 spells the call
     ``JobLifecycleService.transition(...)``)."""
 
     transition = staticmethod(transition)
+    peek_idempotent = staticmethod(peek_idempotent)
     TransitionContext = TransitionContext

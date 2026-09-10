@@ -587,6 +587,37 @@ new code; **security and invariant tests are not optional**.
   ADR-2B-04 (business/operator locations are already plain lat/lng, no PostGIS in
   the stack). `GEOGRAPHY(POINT,4326)` in `database-design.md` becomes plain
   decimals; distance is informational. *(Confirm at the gate — see E-4 / Q-4.)*
+- **ADR-2D-11** *(Increment 2)* — **`negotiation_entry` is truly immutable; its
+  ACTIVE/SUPERSEDED/EXPIRED status is derived, not stored.** The plan (§5) and
+  `negotiation-architecture.md §7.1` mandate `negotiation_entry` as a hard
+  `AppendOnlyModel` + `BEFORE UPDATE/DELETE` trigger ("INSERT, SELECT only; an
+  attempted UPDATE/DELETE raises"). That is incompatible with a mutable `status`
+  column updated by the confirm txn / an `expire_stale_offers` sweep (as
+  `database-design.md §4.8` and `negotiation-architecture.md §4` describe). We
+  reconcile in favour of the stronger immutability statement: an entry row is
+  never written after INSERT, and `selectors.effective_entry_status` folds in the
+  thread status, `expires_at`, and later same-side offers at read time — exactly
+  the `VerificationRecord.effective_state()` precedent (CLAUDE.md §4). The stored
+  `status` column and the `IX(status, expires_at)` sweep index in
+  `database-design.md §4.8` are dropped; no `expire_stale_offers` beat job is
+  needed (it was not part of the approved Q-5 sweep set either). No product
+  behaviour changes — an expired offer still cannot be accepted; superseded
+  offers still stay visible in the history with their timestamps.
+- **ADR-2D-12** *(Increment 2)* — **thread bookkeeping on confirm lives in the
+  Negotiation Service, in the confirming transaction.** `job-state-machine.md`
+  §3.1 and ADR-007 require "close winning thread; SUPERSEDE siblings" *inside*
+  the CONFIRM transaction, but the `jobs`-app `apply_fns` may not import
+  `negotiation` models. So `NegotiationService.accept` wraps
+  `JobLifecycleService.transition(job, CONFIRMED, …)` in its own
+  `transaction.atomic()` and, in that same transaction, sets the winning
+  `negotiation_thread → CLOSED` and its siblings `→ SUPERSEDED` (thread status is
+  mutable; entries are untouched — their effective status flips by derivation).
+  If the transition raises (e.g. `NoRacingConfirm` → 409), the whole thing rolls
+  back and no thread is altered.
+- **ADR-2D-13** *(Increment 2)* — sibling apps read a Job through
+  `jobs.selectors.{get_job, job_for_update}` and never write `job.status` except
+  via `JobLifecycleService.transition`. This is the concrete read/write boundary
+  the module-layout rule (§4) asks for.
 
 ---
 
