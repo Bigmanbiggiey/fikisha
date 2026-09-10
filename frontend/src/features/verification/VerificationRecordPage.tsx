@@ -9,7 +9,8 @@ import { Card } from '@/components/Card';
 import { ErrorState } from '@/components/ErrorState';
 import { Input } from '@/components/Input';
 import { PageLoader } from '@/components/PageLoader';
-import { StatusBadge } from '@/components/StatusBadge';
+import { VerificationPill } from '@/components/VerificationPill';
+import type { VerificationState } from '@/design/tokens';
 import { useAuth } from '@/features/auth/useAuth';
 import { localizeError } from '@/services/errorMessage';
 
@@ -61,32 +62,36 @@ export function VerificationRecordPage(): JSX.Element {
 
   return (
     <div className="space-y-5">
-      <Link to="/verification" className="text-sm text-brand-700">
+      <Link to="/verification" className="text-body-sm text-action-secondary-text">
         &larr; {t('org:common.back')}
       </Link>
 
       <Card>
         <div className="flex items-center justify-between gap-3">
-          <h1 className="text-lg font-semibold text-slate-900">
+          <h1 className="text-h2 text-fg">
             {r.subject_type} · {r.domain}
           </h1>
-          <span className="flex gap-2">
-            <StatusBadge label={r.state} />
+          <span className="flex flex-wrap gap-2">
+            <VerificationPill state={r.state as VerificationState} hideDomain />
             {r.effective_state !== r.state && (
-              <StatusBadge tone="negative" label={r.effective_state} />
+              <VerificationPill
+                state={r.effective_state as VerificationState}
+                hideDomain
+                groupLabel={`Now: ${r.effective_state}`}
+              />
             )}
           </span>
         </div>
         {r.expires_at && (
-          <p className="mt-1 text-sm text-slate-500">
+          <p className="mt-1 text-body-sm text-fg-muted">
             {t('org:verification.expiresAt')}: {new Date(r.expires_at).toLocaleDateString()}
           </p>
         )}
       </Card>
 
       <Card>
-        <h2 className="text-sm font-medium text-slate-700">{t('org:verification.evidence')}</h2>
-        <ul className="mt-2 divide-y divide-slate-100 text-sm">
+        <h2 className="text-label text-fg-secondary">{t('org:verification.evidence')}</h2>
+        <ul className="mt-2 divide-y divide-line text-body-sm">
           {(r.evidence ?? []).map((e) => (
             <li key={e.id} className="flex items-center justify-between py-2">
               <span>
@@ -104,7 +109,7 @@ export function VerificationRecordPage(): JSX.Element {
 
       {isReviewer && (
         <Card>
-          <h2 className="text-sm font-medium text-slate-700">Review</h2>
+          <h2 className="text-label text-fg-secondary">Review</h2>
           <div className="mt-2 space-y-2">
             {r.state === 'SUBMITTED' || r.state === 'INFO_REQUESTED' ? (
               <Button
@@ -154,23 +159,23 @@ export function VerificationRecordPage(): JSX.Element {
                 </Button>
               </>
             ) : (
-              <p className="text-sm text-slate-500">No review action available in this state.</p>
+              <p className="text-body-sm text-fg-muted">No review action available in this state.</p>
             )}
           </div>
-          {error && <Alert tone="error">{error}</Alert>}
+          {error && <Alert tone="danger">{error}</Alert>}
         </Card>
       )}
 
       <Card>
-        <h2 className="text-sm font-medium text-slate-700">{t('org:verification.history')}</h2>
-        <ul className="mt-2 space-y-1 text-sm">
+        <h2 className="text-label text-fg-secondary">{t('org:verification.history')}</h2>
+        <ul className="mt-2 space-y-1 text-body-sm">
           {(r.decisions ?? []).map((d) => (
             <li key={d.id} className="flex justify-between">
-              <span className="font-medium text-slate-800">
+              <span className="font-medium text-fg">
                 {d.action}
                 {d.actor_role ? ` · ${d.actor_role}` : ''}
               </span>
-              <span className="text-slate-500">{new Date(d.created_at).toLocaleString()}</span>
+              <span className="text-fg-muted">{new Date(d.created_at).toLocaleString()}</span>
             </li>
           ))}
         </ul>

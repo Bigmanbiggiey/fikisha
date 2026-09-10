@@ -19,6 +19,7 @@ export { VerificationPill } from './VerificationPill';
 export { TrustLevel } from './TrustLevel';
 export { TrustFacts } from './TrustFacts';
 export { VehicleCard } from './VehicleCard';
+export { vehicleStatusBadge, type VehicleStatus } from './vehicleStatus';
 export { IdentityCard } from './IdentityCard';
 export { ConnectivityIndicator } from './ConnectivityIndicator';
 export { Modal } from './Modal';

@@ -18,18 +18,27 @@ export function VerificationPill({
   state,
   group,
   groupLabel,
+  hideDomain = false,
 }: {
   /** human domain name, e.g. "Identity", "Driving licence" */
-  domain: string;
+  domain?: string;
   /** the authoritative state (mapped to a group) … */
   state?: VerificationState;
   /** … or pass the group directly */
   group?: VerificationGroup;
   groupLabel?: string;
+  /** show only the group (when the domain is already labelled nearby) */
+  hideDomain?: boolean;
 }): JSX.Element {
   const g: VerificationGroup = group ?? (state ? VERIFICATION_GROUP_OF[state] : 'required');
   const v = VERIFICATION_GROUP_VISUAL[g];
+  const text = groupLabel ?? v.labelEn;
   return (
-    <StatusBadge tone={v.tone} variant="soft" icon={v.icon} label={`${domain} · ${groupLabel ?? v.labelEn}`} />
+    <StatusBadge
+      tone={v.tone}
+      variant="soft"
+      icon={v.icon}
+      label={hideDomain || !domain ? text : `${domain} · ${text}`}
+    />
   );
 }

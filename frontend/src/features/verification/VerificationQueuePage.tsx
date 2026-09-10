@@ -6,7 +6,8 @@ import { Card } from '@/components/Card';
 import { EmptyState } from '@/components/EmptyState';
 import { ErrorState } from '@/components/ErrorState';
 import { PageLoader } from '@/components/PageLoader';
-import { StatusBadge } from '@/components/StatusBadge';
+import { VerificationPill } from '@/components/VerificationPill';
+import type { VerificationState } from '@/design/tokens';
 import { localizeError } from '@/services/errorMessage';
 
 import { verificationApi } from './verificationApi';
@@ -21,7 +22,7 @@ export function VerificationQueuePage(): JSX.Element {
 
   return (
     <div className="space-y-5">
-      <h1 className="text-xl font-semibold text-slate-900">{t('org:verification.queueTitle')}</h1>
+      <h1 className="text-h1 text-fg">{t('org:verification.queueTitle')}</h1>
 
       {queue.isLoading ? (
         <PageLoader />
@@ -31,13 +32,13 @@ export function VerificationQueuePage(): JSX.Element {
         <ul className="space-y-2">
           {queue.data.data.map((r) => (
             <li key={r.id}>
-              <Link to={`/verification/${r.id}`} className="block">
-                <Card className="transition hover:border-brand-300">
+              <Link to={`/verification/${r.id}`} className="block rounded-md">
+                <Card interactive>
                   <div className="flex items-center justify-between gap-3">
-                    <span className="font-medium text-slate-900">
+                    <span className="font-semibold text-fg">
                       {r.subject_type} · {r.domain}
                     </span>
-                    <StatusBadge label={r.state} />
+                    <VerificationPill state={r.state as VerificationState} hideDomain />
                   </div>
                 </Card>
               </Link>

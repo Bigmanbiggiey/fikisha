@@ -12,6 +12,7 @@ import { Field } from '@/components/Field';
 import { Input } from '@/components/Input';
 import { PageLoader } from '@/components/PageLoader';
 import { StatusBadge } from '@/components/StatusBadge';
+import { vehicleStatusBadge } from '@/components/vehicleStatus';
 import { orgApi } from '@/features/org/orgApi';
 import { localizeError } from '@/services/errorMessage';
 
@@ -60,10 +61,10 @@ export function VehiclesPage(): JSX.Element {
 
   return (
     <div className="space-y-5">
-      <h1 className="text-xl font-semibold text-slate-900">{t('org:vehicles.title')}</h1>
+      <h1 className="text-h1 text-fg">{t('org:vehicles.title')}</h1>
 
       <Card>
-        <h2 className="text-sm font-medium text-slate-700">{t('org:vehicles.createTitle')}</h2>
+        <h2 className="text-label text-fg-secondary">{t('org:vehicles.createTitle')}</h2>
         {!me.data && (
           <div className="mt-2">
             <Alert tone="warning">{t('org:groups.needProfile')}</Alert>
@@ -76,10 +77,10 @@ export function VehiclesPage(): JSX.Element {
             if (canCreate) create.mutate();
           }}
         >
-          <label className="text-sm">
-            <span className="mb-1 block font-medium text-slate-700">{t('org:vehicles.class')}</span>
+          <label className="text-body-sm">
+            <span className="mb-1 block font-medium text-fg-secondary">{t('org:vehicles.class')}</span>
             <select
-              className="w-full rounded-lg border border-slate-300 px-2 py-2 text-sm"
+              className="min-h-target w-full rounded-md border border-line-strong bg-surface-input px-2 text-body-sm text-fg"
               value={vehicleClass}
               onChange={(e) => setVehicleClass(e.target.value)}
             >
@@ -111,10 +112,10 @@ export function VehiclesPage(): JSX.Element {
               />
             )}
           </Field>
-          <label className="text-sm">
-            <span className="mb-1 block font-medium text-slate-700">{t('org:vehicles.unit')}</span>
+          <label className="text-body-sm">
+            <span className="mb-1 block font-medium text-fg-secondary">{t('org:vehicles.unit')}</span>
             <select
-              className="w-full rounded-lg border border-slate-300 px-2 py-2 text-sm"
+              className="min-h-target w-full rounded-md border border-line-strong bg-surface-input px-2 text-body-sm text-fg"
               value={unit}
               onChange={(e) => setUnit(e.target.value)}
             >
@@ -126,12 +127,12 @@ export function VehiclesPage(): JSX.Element {
             </select>
           </label>
           {manageableGroups.length > 0 && (
-            <label className="text-sm sm:col-span-2">
-              <span className="mb-1 block font-medium text-slate-700">
+            <label className="text-body-sm sm:col-span-2">
+              <span className="mb-1 block font-medium text-fg-secondary">
                 {t('org:vehicles.toGroup')}
               </span>
               <select
-                className="w-full rounded-lg border border-slate-300 px-2 py-2 text-sm"
+                className="min-h-target w-full rounded-md border border-line-strong bg-surface-input px-2 text-body-sm text-fg"
                 value={groupId}
                 onChange={(e) => setGroupId(e.target.value)}
               >
@@ -152,7 +153,7 @@ export function VehiclesPage(): JSX.Element {
         </form>
         {error && (
           <div className="mt-3">
-            <Alert tone="error">{error}</Alert>
+            <Alert tone="danger">{error}</Alert>
           </div>
         )}
       </Card>
@@ -165,21 +166,18 @@ export function VehiclesPage(): JSX.Element {
         <ul className="space-y-2">
           {list.data.data.map((v) => (
             <li key={v.id}>
-              <Link to={`/vehicles/${v.id}`} className="block">
-                <Card className="transition hover:border-brand-300">
+              <Link to={`/vehicles/${v.id}`} className="block rounded-md">
+                <Card interactive>
                   <div className="flex items-center justify-between gap-3">
-                    <span className="font-medium text-slate-900">
+                    <span className="font-semibold text-fg">
                       {v.registration} · {v.vehicle_class}
                     </span>
                     <span className="flex items-center gap-2">
                       {v.vehicle_class_heavy && (
-                        <StatusBadge label={t('org:vehicles.heavy')} />
+                        <StatusBadge tone="brand" label={t('org:vehicles.heavy')} />
                       )}
                       <StatusBadge label={v.controller_kind} />
-                      <StatusBadge
-                        tone={v.status === 'ACTIVE' ? 'positive' : 'neutral'}
-                        label={v.status}
-                      />
+                      <StatusBadge {...vehicleStatusBadge(v.status)} />
                     </span>
                   </div>
                 </Card>

@@ -8,6 +8,7 @@ import { Card } from '@/components/Card';
 import { ErrorState } from '@/components/ErrorState';
 import { PageLoader } from '@/components/PageLoader';
 import { StatusBadge } from '@/components/StatusBadge';
+import { vehicleStatusBadge } from '@/components/vehicleStatus';
 import { VerificationPanel } from '@/features/verification/VerificationPanel';
 import { localizeError } from '@/services/errorMessage';
 
@@ -39,22 +40,21 @@ export function VehicleDetailPage(): JSX.Element {
 
   return (
     <div className="space-y-5">
-      <Link to="/vehicles" className="text-sm text-brand-700">
+      <Link to="/vehicles" className="text-body-sm text-action-secondary-text">
         &larr; {t('org:common.back')}
       </Link>
 
       <Card>
         <div className="flex items-center justify-between gap-3">
-          <h1 className="text-xl font-semibold text-slate-900">{v.registration}</h1>
-          <span className="flex gap-2">
-            {v.vehicle_class_heavy && <StatusBadge label={t('org:vehicles.heavy')} />}
-            <StatusBadge
-              tone={v.status === 'ACTIVE' ? 'positive' : 'neutral'}
-              label={v.status}
-            />
+          <h1 className="text-h1 text-fg">{v.registration}</h1>
+          <span className="flex flex-wrap gap-2">
+            {v.vehicle_class_heavy && (
+              <StatusBadge tone="brand" label={t('org:vehicles.heavy')} />
+            )}
+            <StatusBadge {...vehicleStatusBadge(v.status)} />
           </span>
         </div>
-        <dl className="mt-3 space-y-1 text-sm">
+        <dl className="mt-3 space-y-1 text-body-sm">
           <Row label={t('org:vehicles.class')} value={v.vehicle_class} />
           <Row label={t('org:vehicles.capacity')} value={`${v.capacity_value} ${v.capacity_unit}`} />
           <Row label={t('org:vehicles.controller')} value={v.controller_kind} />
@@ -68,7 +68,7 @@ export function VehicleDetailPage(): JSX.Element {
             </Alert>
           </div>
         ) : (
-          <div className="mt-4 flex flex-wrap gap-2 border-t border-slate-100 pt-4">
+          <div className="mt-4 flex flex-wrap gap-2 border-t border-line pt-4">
             {OPERATOR_STATUSES.map((s) => (
               <Button
                 key={s}
@@ -91,8 +91,8 @@ export function VehicleDetailPage(): JSX.Element {
 function Row({ label, value }: { label: string; value: string }): JSX.Element {
   return (
     <div className="flex justify-between">
-      <dt className="text-slate-500">{label}</dt>
-      <dd className="font-medium text-slate-800">{value}</dd>
+      <dt className="text-fg-muted">{label}</dt>
+      <dd className="font-medium text-fg">{value}</dd>
     </div>
   );
 }

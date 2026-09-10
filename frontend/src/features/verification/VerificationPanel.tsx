@@ -7,18 +7,11 @@ import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { PageLoader } from '@/components/PageLoader';
 import { StatusBadge } from '@/components/StatusBadge';
+import { VerificationPill } from '@/components/VerificationPill';
+import type { VerificationState } from '@/design/tokens';
 import { localizeError } from '@/services/errorMessage';
 
 import { EVIDENCE_KINDS, verificationApi, type SubjectType } from './verificationApi';
-
-const OK_STATES = new Set(['VERIFIED']);
-const PENDING_STATES = new Set(['SUBMITTED', 'IN_REVIEW', 'INFO_REQUESTED']);
-
-function tone(state: string): 'positive' | 'negative' | 'neutral' {
-  if (OK_STATES.has(state)) return 'positive';
-  if (PENDING_STATES.has(state)) return 'neutral';
-  return 'negative';
-}
 
 export function VerificationPanel({
   subjectType,
@@ -59,27 +52,28 @@ export function VerificationPanel({
 
   if (status.isLoading) return <PageLoader />;
   if (status.isError || !status.data) {
-    return <Alert tone="error">{localizeError(status.error, t)}</Alert>;
+    return <Alert tone="danger">{localizeError(status.error, t)}</Alert>;
   }
 
   return (
     <Card>
-      <h2 className="text-sm font-medium text-slate-700">{t('org:verification.title')}</h2>
-      <ul className="mt-3 divide-y divide-slate-100 text-sm">
+      <h2 className="text-label text-fg-secondary">{t('org:verification.title')}</h2>
+      <ul className="mt-3 divide-y divide-line text-body-sm">
         {status.data.requirements.map((r) => (
           <li key={r.domain} className="py-2">
-            <div className="flex items-center justify-between gap-2">
+            <div className="flex flex-wrap items-center justify-between gap-2">
               <span className="flex items-center gap-2">
-                <span className="font-medium text-slate-800">{r.domain}</span>
+                <span className="font-semibold text-fg">{r.domain}</span>
                 <StatusBadge
-                  tone={r.mandatory ? 'neutral' : 'neutral'}
+                  tone="neutral"
                   label={r.mandatory ? t('org:verification.required') : t('org:verification.optional')}
                 />
               </span>
               <span className="flex items-center gap-2">
-                <StatusBadge tone={tone(r.state)} label={r.state} />
+                <VerificationPill state={r.state as VerificationState} hideDomain />
                 <Button
                   variant="ghost"
+                  size="compact"
                   onClick={() => setOpenDomain(openDomain === r.domain ? null : r.domain)}
                 >
                   {t('org:verification.submitEvidence')}
@@ -88,18 +82,18 @@ export function VerificationPanel({
             </div>
             {openDomain === r.domain && (
               <form
-                className="mt-2 flex flex-col gap-2 rounded-lg bg-slate-50 p-3 sm:flex-row sm:items-end"
+                className="mt-2 flex flex-col gap-2 rounded-md bg-surface-sunken p-3 sm:flex-row sm:items-end"
                 onSubmit={(e: FormEvent) => {
                   e.preventDefault();
                   if (file) submit.mutate(r.domain);
                 }}
               >
-                <label className="text-xs">
-                  <span className="mb-1 block font-medium text-slate-600">
+                <label className="text-caption">
+                  <span className="mb-1 block font-medium text-fg-secondary">
                     {t('org:verification.evidenceKind')}
                   </span>
                   <select
-                    className="rounded-md border border-slate-300 px-2 py-1 text-sm"
+                    className="min-h-target rounded-md border border-line-strong bg-surface-input px-2 text-body-sm text-fg"
                     value={kind}
                     onChange={(e) => setKind(e.target.value)}
                   >
@@ -110,15 +104,15 @@ export function VerificationPanel({
                     ))}
                   </select>
                 </label>
-                <label className="flex-1 text-xs">
-                  <span className="mb-1 block font-medium text-slate-600">
+                <label className="flex-1 text-caption">
+                  <span className="mb-1 block font-medium text-fg-secondary">
                     {t('org:verification.file')}
                   </span>
                   <input
                     type="file"
                     accept="image/jpeg,image/png,application/pdf"
                     onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-                    className="text-sm"
+                    className="text-body-sm text-fg-secondary file:mr-2 file:min-h-target file:rounded-md file:border file:border-line-strong file:bg-surface-card file:px-3 file:text-body-sm"
                   />
                 </label>
                 <Button type="submit" loading={submit.isPending} disabled={!file}>
@@ -131,7 +125,7 @@ export function VerificationPanel({
       </ul>
       {error && (
         <div className="mt-2">
-          <Alert tone="error">{error}</Alert>
+          <Alert tone="danger">{error}</Alert>
         </div>
       )}
     </Card>

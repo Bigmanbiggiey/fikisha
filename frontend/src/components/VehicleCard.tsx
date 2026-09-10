@@ -1,15 +1,9 @@
 import { Card } from './Card';
 import { Icon } from '@/design/Icon';
-import { StatusBadge, type BadgeTone } from './StatusBadge';
+import { StatusBadge } from './StatusBadge';
 import { VerificationPill } from './VerificationPill';
+import { vehicleStatusBadge } from './vehicleStatus';
 import type { VerificationState } from '@/design/tokens';
-
-const STATUS_TONE: Record<string, BadgeTone> = {
-  ACTIVE: 'success',
-  UNDER_REPAIR: 'warning',
-  SUSPENDED: 'danger',
-  INACTIVE: 'neutral',
-};
 
 /**
  * VehicleCard — Design Phase 4 §30.10. Class + plate + status + verification
@@ -43,7 +37,10 @@ export function VehicleCard({
             <p className="fk-numeric text-body-sm text-fg-secondary">{registration}</p>
           </div>
         </div>
-        <StatusBadge tone={STATUS_TONE[status]} label={statusLabel ?? status.replace('_', ' ')} />
+        <StatusBadge
+          {...vehicleStatusBadge(status)}
+          label={statusLabel ?? vehicleStatusBadge(status).label}
+        />
       </div>
       {capacity && <p className="mt-2 text-body-sm text-fg-secondary">{capacity}</p>}
       {verification && (
