@@ -328,6 +328,8 @@ the role-specific navigation and the Operator workspace / Driver focus layouts
 
 **Do not begin Phase 5C without explicit Founder instruction.**
 
+**Update (2026-09-10):** Phase 5C has run — see `docs/design-phase-5c-screen-migration.md`. All 15 existing screens migrated; the Phase 3 Job/workspace screens are blocked (no backend) and escalated.
+
 ---
 
 ## 13. Changelog
