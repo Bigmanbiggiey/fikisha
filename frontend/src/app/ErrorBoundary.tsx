@@ -27,12 +27,13 @@ export class ErrorBoundary extends Component<Props, State> {
     if (this.state.error) {
       return (
         <div className="mx-auto max-w-md px-4 py-16 text-center">
-          <h1 className="text-lg font-semibold text-slate-900">Something went wrong</h1>
-          <p className="mt-2 text-sm text-slate-500">
+          <h1 className="text-h2 text-fg">Something went wrong</h1>
+          <p className="mt-2 text-body-sm text-fg-muted">
             Please reload the page. / Tafadhali pakia upya ukurasa.
           </p>
           <button
-            className="mt-4 rounded-lg bg-brand-700 px-4 py-2 text-sm font-medium text-white"
+            type="button"
+            className="mt-4 inline-flex min-h-target items-center justify-center rounded-md bg-action-primary px-4 text-body font-semibold text-action-on-primary"
             onClick={() => window.location.reload()}
           >
             Reload

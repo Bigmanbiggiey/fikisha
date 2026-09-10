@@ -68,12 +68,12 @@ export function LoginPage(): JSX.Element {
   return (
     <div className="mx-auto flex min-h-[70vh] max-w-md flex-col justify-center px-4">
       <Card>
-        <h1 className="text-lg font-semibold text-slate-900">{t('auth:login.title')}</h1>
-        <p className="mt-1 text-sm text-slate-500">{t('auth:login.subtitle')}</p>
+        <h1 className="text-h1 text-fg">{t('auth:login.title')}</h1>
+        <p className="mt-1 text-body-sm text-fg-muted">{t('auth:login.subtitle')}</p>
 
         {error && (
           <div className="mt-4">
-            <Alert tone="error">{error}</Alert>
+            <Alert tone="danger">{error}</Alert>
           </div>
         )}
 
@@ -99,7 +99,7 @@ export function LoginPage(): JSX.Element {
           </form>
         ) : (
           <form className="mt-5 space-y-4" onSubmit={onVerify}>
-            <p className="text-sm text-slate-600">
+            <p className="text-body-sm text-fg-secondary">
               {t('auth:login.codeSentTo', { phone: phone.trim() })}
             </p>
             {devCode && (

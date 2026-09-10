@@ -26,23 +26,23 @@ export function DiagnosticsPage(): JSX.Element {
 
   return (
     <div className="space-y-5">
-      <h1 className="text-xl font-semibold text-slate-900">{t('common:diagnostics.title')}</h1>
+      <h1 className="text-h1 text-fg">{t('common:diagnostics.title')}</h1>
 
       <Card>
         <div className="flex items-center justify-between">
-          <span className="text-sm font-medium text-slate-700">{t('common:diagnostics.apiHealth')}</span>
+          <span className="text-label text-fg-secondary">{t('common:diagnostics.apiHealth')}</span>
           {health.isLoading ? (
             <PageLoader />
           ) : health.isError || health.data?.status !== 'ok' ? (
-            <StatusBadge tone="negative" label={t('common:diagnostics.unreachable')} />
+            <StatusBadge tone="danger" icon="alert" label={t('common:diagnostics.unreachable')} />
           ) : (
-            <StatusBadge tone="positive" label={t('common:diagnostics.healthy')} />
+            <StatusBadge tone="success" icon="check" label={t('common:diagnostics.healthy')} />
           )}
         </div>
       </Card>
 
       <Card>
-        <span className="text-sm font-medium text-slate-700">{t('common:diagnostics.reference')}</span>
+        <span className="text-label text-fg-secondary">{t('common:diagnostics.reference')}</span>
         {reference.isLoading ? (
           <PageLoader />
         ) : reference.isError ? (
@@ -53,20 +53,20 @@ export function DiagnosticsPage(): JSX.Element {
             />
           </div>
         ) : reference.data ? (
-          <dl className="mt-3 space-y-2 text-sm">
+          <dl className="mt-3 space-y-2 text-body-sm">
             <div className="flex justify-between">
-              <dt className="text-slate-500">{t('common:diagnostics.configVersion')}</dt>
-              <dd className="font-medium text-slate-800">{reference.data.config_version}</dd>
+              <dt className="text-fg-muted">{t('common:diagnostics.configVersion')}</dt>
+              <dd className="font-medium text-fg">{reference.data.config_version}</dd>
             </div>
             <div className="flex justify-between">
-              <dt className="text-slate-500">{t('common:diagnostics.supportedLocales')}</dt>
-              <dd className="font-medium text-slate-800">
+              <dt className="text-fg-muted">{t('common:diagnostics.supportedLocales')}</dt>
+              <dd className="font-medium text-fg">
                 {reference.data.locales.supported.join(', ')}
               </dd>
             </div>
             <div className="flex justify-between gap-4">
-              <dt className="text-slate-500">{t('common:diagnostics.vehicleTypes')}</dt>
-              <dd className="text-right font-medium text-slate-800">
+              <dt className="text-fg-muted">{t('common:diagnostics.vehicleTypes')}</dt>
+              <dd className="text-right font-medium text-fg">
                 {reference.data.vehicle_types.join(', ')}
               </dd>
             </div>
