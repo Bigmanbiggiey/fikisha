@@ -2,28 +2,38 @@ import { useTranslation } from 'react-i18next';
 import { NavLink } from 'react-router-dom';
 
 import { Button } from '@/components/Button';
+import { ConnectivityIndicator } from '@/components/ConnectivityIndicator';
 import { cn } from '@/components/cn';
 import { useAuth } from '@/features/auth/useAuth';
+import { useOnline } from '@/design/useOnline';
 
 import { LanguageSwitcher } from './LanguageSwitcher';
 
+/**
+ * TopBar — Design Phase 5B retone. IA / links unchanged from Phase 2A. The
+ * language switcher and the connectivity indicator sit on the right, per
+ * Phase 4 §10.3.
+ */
 export function TopBar(): JSX.Element {
   const { t } = useTranslation(['common', 'org']);
   const { status, logout } = useAuth();
+  const online = useOnline();
 
   const linkClass = ({ isActive }: { isActive: boolean }): string =>
     cn(
-      'rounded-md px-2 py-1 text-sm font-medium',
-      isActive ? 'bg-brand-50 text-brand-800' : 'text-slate-600 hover:text-slate-900',
+      'rounded-md px-2 py-1 text-label',
+      isActive
+        ? 'bg-surface-brand-tint text-action-primary-hover'
+        : 'text-fg-secondary hover:text-fg',
     );
 
   return (
-    <header className="border-b border-slate-200 bg-white">
+    <header className="border-b border-line bg-surface-nav">
       <div className="mx-auto flex max-w-3xl flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3">
-        <span className="text-base font-semibold text-brand-700">{t('common:appName')}</span>
+        <span className="text-h3 font-bold text-action-primary">{t('common:appName')}</span>
 
         {status === 'authenticated' && (
-          <nav className="flex flex-wrap items-center gap-1">
+          <nav className="flex flex-wrap items-center gap-1" aria-label={t('common:appName')}>
             <NavLink to="/" end className={linkClass}>
               {t('common:nav.home')}
             </NavLink>
@@ -52,9 +62,10 @@ export function TopBar(): JSX.Element {
         )}
 
         <div className="ml-auto flex items-center gap-3">
+          <ConnectivityIndicator state={online ? 'online' : 'offline'} />
           <LanguageSwitcher />
           {status === 'authenticated' && (
-            <Button variant="ghost" onClick={() => void logout()}>
+            <Button variant="tertiary" size="compact" onClick={() => void logout()}>
               {t('common:nav.signOut')}
             </Button>
           )}
