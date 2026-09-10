@@ -1,7 +1,15 @@
 # FIKISHA — Design Phase 3 — Wireframes & Interaction Structure
 
-**Status:** DRAFT — AWAITING FOUNDER REVIEW
+**Status:** APPROVED — DOCUMENTATION BASELINE (Founder approval + amendment 2026-09-10)
 **Design track:** Phase 3 (the formal wireframe & interaction deliverable)
+**Amendment log:** 2026-09-10 — Founder approved Phase 3 subject to explicit
+amendments: **O-P2** (business in-app pickup confirmation) confirmed
+**in-scope** and specified (§6.6, §6.4 table, §9.3, §11 preamble); **O-P1**
+(`RESUME_PRIOR` preconditions) **remains open**; **O-P3** (rating/reputation)
+**remains deferred**; **O-P4** resolved as the **minimum-necessary-disclosure**
+principle for the recipient page (§20.0); driver-critical journey review
+recorded (§10.3); Business ↔ Driver pickup consistency review recorded (§9.3).
+No product/architecture decision changed.
 **Depends on / authoritative sources (in order):** `CLAUDE.md` ·
 `docs/team-skills-policy.md` · `docs/design-brief.md` (Design Phase 0) ·
 `docs/design-phase-1-ia.md` (Design Phase 1) · `docs/design-phase-2-user-flows.md`
@@ -395,9 +403,11 @@ with the same, plus Staff / Locations / Statements under a collapsible group.
   | Requested | — (Cancel request under `·`) | waiting for operators |
   | Negotiating | Review offers | → Messages / offer cards |
   | Confirmed | — | monitoring; Cancel under `·` (late-cancel rules apply once Assigned) |
-  | Assigned … At destination | — | monitoring; Report an issue under `·` |
+  | Assigned | — | monitoring; Report an issue under `·` |
+  | **At pickup — *and* a business pickup confirmation is pending** | **Confirm pickup** | → B-PickupConfirm (§6.6). Shown **only** when the driver has requested business-side confirmation (or the OTP path is unavailable); otherwise no `⌘` here. Applies to **every** band — it is one of the two always-valid pickup proofs (§3, §11). |
+  | At pickup (no confirmation pending) … At destination | — | monitoring; Report an issue under `·` |
   | Delivered | Confirm completion | → B-Complete |
-  | Completed | Rate operator | if within rating window |
+  | Completed | Rate operator | minimal placeholder only — detailed rating is a later reputation design phase (§26 O-P3); shown if the approved Job flow's rating window applies |
   | Cancelled / Couldn't complete | View summary | read-only |
   | Under dispute | View dispute | status + what the business can do |
 
@@ -495,6 +505,113 @@ with the same, plus Staff / Locations / Statements under a collapsible group.
 - **Account / Settings** — Profile · Language (EN | SW) · Notifications ·
   Security (MFA enrol/challenge) · Help. Business-specific settings live here;
   operator/admin settings do not leak in.
+
+### 6.6 Business pickup confirmation — "Confirm the goods were collected"
+
+**Founder-approved / in-scope** (amendment 2026-09-10, resolves §26 O-P2). This
+is the **business-side** rendering of one of the two always-valid pickup proofs
+in the approved matrix ("Business in-app confirmation"); it is not a new
+lifecycle or a second transition mechanism — the same underlying pickup/custody
+event and the same `JobLifecycleService.transition()` writer apply from either
+side (§9.3 cross-check).
+
+- **Purpose.** Let an authorised business user record the business-side
+  acknowledgement that the goods have been handed to the operator/driver at
+  pickup, so `AT_PICKUP → PICKED_UP` can proceed when the pickup-contact OTP path
+  is not used or not available.
+- **Primary user.** Business **owner or dispatcher** (never VIEWER — the control
+  is not shown to VIEWER; server-side authorization is authoritative and the UI
+  mirrors it, it does not substitute for it).
+- **Entry points.** (1) Business Job Detail (§6.4) `⌘ Confirm pickup` when a
+  confirmation is **pending** for a Job at `AT_PICKUP`; (2) a push / in-app
+  notification "The driver is at pickup — confirm the goods were collected",
+  deep-linking here; (3) Home "Needs your action". The `⌘` and the notification
+  are the only ways in — **opening or viewing the Job never confirms anything**.
+- **Information hierarchy.**
+  1. **What you're confirming** — one plain sentence: "Confirm that **[cargo
+     summary]** for Job **[FK-####]** has been handed to the driver at
+     **[pickup location]**."
+  2. **Who** — driver name + vehicle class + plate, so the user knows who is
+     collecting.
+  3. **When / where** — the driver marked "at pickup" at HH:MM (EAT) at the
+     pickup address.
+  4. **Consequence line** — "This records your side of the handover. The delivery
+     then moves to *Picked up*." For a STANDARD Job where the driver reached
+     here via the operator-attested route, add: "Your confirmation replaces the
+     unverified pickup — the delivery is no longer capped at Standard for this
+     reason."
+  5. **Primary action** — a deliberate control (see below).
+- **Primary action.** `⌘ Confirm pickup` `[server]` — a full-width button that
+  requires a deliberate tap; on desktop it sits behind a lightweight
+  confirm step ("Yes, confirm pickup for FK-1042") so a stray click cannot fire
+  it. It is **disabled until the user has scrolled past / acknowledged the
+  "what you're confirming" block** on small screens.
+- **Secondary actions.** `· Not the right goods / not ready` → routes to Report
+  an issue (§17.1), pre-tagged `WRONG_PICKUP` / `DELAY`; `· Message operator`;
+  `· Call the driver`.
+- **State(s) represented.** Job `AT_PICKUP` with a pending business
+  confirmation. If the pickup-contact OTP is entered on the driver side first,
+  this screen flips to a read-only "Pickup already confirmed by code — nothing
+  needed" before the user acts.
+- **Success.** `[server]` acknowledgement → Job `PICKED_UP`; the business sees
+  the Job Detail advance, the timeline gains a **custody event** marked
+  **"Verified pickup — confirmed by sender in app"** (not operator-attested), and
+  a toast "Pickup confirmed". The driver's Current Job advances in parallel.
+- **Exception states.**
+  - *Confirmed by OTP first (race):* "The driver already confirmed pickup with
+    the code — nothing needed from you." Read-only.
+  - *Job moved on / no longer at pickup:* "This Job has moved on — here's the
+    latest" → refresh; the `⌘` disappears.
+  - *Network failure on submit:* the screen stays, banner "Not confirmed — check
+    your connection", `⌘` becomes `Retry`; nothing is recorded until the server
+    acknowledges.
+  - *Unauthorised (VIEWER or a non-member opens the deep link):* "You don't have
+    permission to confirm pickup — ask an owner or dispatcher." No control shown.
+  - *Duplicate tap:* idempotent — "Already confirmed".
+  - *Under dispute in the meantime:* the action is withdrawn and replaced by
+    "This Job is under review".
+- **Offline behaviour.** `⌘ Confirm pickup` is **`[server]`** — offline it shows
+  a *specific* message: "You need a connection to confirm pickup. The driver can
+  also confirm with the pickup code." The "what you're confirming" context is
+  readable from cache with `as of HH:MM`. There is no local/queued confirm for
+  this action — a custody/money/identity moment is always server-confirmed
+  (§23.2 rule 6).
+- **Responsive.** *Small mobile:* full-screen; context block above the fold;
+  sticky `⌘` enabled only after the block is seen. *Mobile:* same. *Tablet /
+  desktop:* a centred card / modal over the Job Detail, with the explicit
+  "Yes, confirm" second step; never a bare one-click action in a dense list.
+- **Accessibility.** [a11y: `<h1>` "Confirm pickup — FK-1042"]. [a11y: the "what
+  you're confirming" text is in DOM order before the `⌘` and is `role="note"`].
+  [a11y: `⌘` label is the full outcome "Confirm pickup for FK-1042", ≥ 44 px, and
+  is `aria-disabled` with a stated reason until the context is acknowledged].
+  [a11y: on success, focus moves to the `role="status"` confirmation]. [a11y: the
+  desktop confirm step is a focus-trapped dialog restating action + Job]. Status
+  and the verified-pickup marker are icon + text, never colour-only.
+
+```
+┌──────────────────────────────────────┐
+│ ←  Confirm pickup · FK-1042           │
+│ ────────────────────────────────────  │
+│ Confirm that 8 cartons · Electronics  │
+│ for FK-1042 has been handed to the    │
+│ driver at Kitengela (Shop 4, Stage    │
+│ Rd).                                   │
+│                                       │
+│ Driver   S. Kiptoo                    │
+│ Vehicle  Pickup · KDG 123A            │
+│ At pickup since 14:19                 │
+│                                       │
+│ This records your side of the         │
+│ handover. The delivery then moves     │
+│ to “Picked up”.                       │
+│                                       │
+│ ┌──────────────────────────────────┐  │
+│ │ ⌘  Confirm pickup for FK-1042    │  │
+│ └──────────────────────────────────┘  │
+│ · Not the right goods / not ready     │
+│ · Message operator   · Call driver    │
+└──────────────────────────────────────┘
+```
 
 ---
 
@@ -802,6 +919,26 @@ net; shown once `COMPLETED`, links to the statement).
 └──────────────────────────────────────┘
 ```
 
+### 9.3 Business ↔ Driver pickup — consistency cross-check (amendment 2026-09-10)
+
+Result of the focused review required by the Founder amendment §9. **Finding:
+consistent — one product model, two role renderings.**
+
+| Concern | Driver side | Business side | Same underlying behaviour? |
+| --- | --- | --- | --- |
+| Where pickup proof lives | §10.1 `⌘ Confirm pickup` → §11 proof screen | §6.4 `⌘ Confirm pickup` (at `AT_PICKUP`, when pending) → §6.6 | — |
+| Accepted proofs | pickup-contact OTP · in-app business confirmation · (STANDARD only) operator-attested fallback | in-app business confirmation (this screen **is** that path) | **Yes** — same approved matrix (§3, §11.2, §11.3); no side adds or removes a path |
+| Band rules | STANDARD has the operator-attested fallback; ELEVATED+ does not | not applicable to the business action (it is itself a full-band proof); the STANDARD "upgrade from unverified" note appears where relevant | **Yes** — bands unchanged |
+| State transition | `AT_PICKUP → PICKED_UP` via `JobLifecycleService.transition()` | `AT_PICKUP → PICKED_UP` via the **same** writer | **Yes** — one lifecycle, one writer; no second transition mechanism |
+| Custody event | one custody event, marked verified / operator-attested | the **same** event; marked "Verified pickup — confirmed by sender in app" | **Yes** — a single event, whichever side triggers it |
+| Server confirmation | `[server]`; offline shows a specific message | `[server]`; offline shows a specific message; no local/queued confirm | **Yes** — custody moment is always server-confirmed (§23.2 rule 6) |
+| Race handling | if the business confirms first, the driver screen flips to "Confirmed by sender" | if the OTP is entered first, this screen flips to "already confirmed by code" | **Yes** — first valid proof wins; the other side goes read-only, never double-records |
+| Authorization | server-side; the driver's controls mirror it | server-side; VIEWER never sees the control; the UI mirrors, it does not enforce | **Yes** — hiding a control is never the authorization |
+
+No second pickup lifecycle, no duplicate status-transition mechanism, no new
+fallback. The screens differ substantially by role; the product behaviour does
+not.
+
 ---
 
 ## 10. Driver screens
@@ -906,12 +1043,50 @@ prominent]. Minimal interaction while moving (§13, §18).
 - **A11y.** [a11y: map link opens in a new context and is labelled "Open pickup
   address in maps"].
 
+### 10.3 Driver-critical journey — usability consistency review (amendment 2026-09-10)
+
+Result of the focused review required by the Founder amendment §8, over
+`ASSIGNED → Current Job → Go to pickup → AT_PICKUP → Pickup proof → Custody
+confirmation → PICKED_UP → IN_TRANSIT → AT_DESTINATION → Delivery proof →
+DELIVERED → COMPLETED`. **Not** a redesign — a consistency check. **Finding:
+the journey holds; no change required beyond the O-P2 addition, which is
+consistent with it.**
+
+| Criterion | Check | Where enforced in this doc |
+| --- | --- | --- |
+| **Mobile-first** | Every driver screen is specified mobile-first; desktop is a narrow centred column, never a stretched layout. | §10.1 responsive, §24.1 |
+| **Action-dominant** | Exactly one `⌘` per step, ~30 % of viewport height, high contrast, thumb-reachable; everything else scrolls under it. | §10.1, §10.2, §11, §12, §13 |
+| **Low typing** | The only text entry on the whole spine is the 6-digit OTP (and, STANDARD-fallback only, a contact name). Everything else is tap / camera / signature. | §11.1–11.3, §15 delivery proof |
+| **Low cognitive load** | One decision per screen; band context stated in one line; no dashboards; progressive disclosure for detail. | §2 principles, §10.1, §11.1 |
+| **Small-screen usable** | 320 px baseline; single column; sticky primary; progress as a 3-dot strip, not a 14-state list. | §10.1 wireframe, §24.1 |
+| **Outdoor usable** | High contrast; status = icon + shape + text (never colour-only); ≥ 56 px driver-critical targets; system fonts; minimal motion. | §25.1, §25.2, §28 |
+| **Next action always clear** | Each state maps to one labelled `⌘` in the §10.1 table; when there is nothing to do the screen says so. | §10.1 state table |
+| **Explicit server confirmation** | Every state-advancing `⌘` on the spine is `[server]`; interim shows "recorded on this phone — syncing", visually distinct from a confirmed ✓; specific offline messages, not generic errors. | §10.1 offline, §12.1, §23.1–23.3 |
+| **Safe against accidental transitions** | No optimistic state changes on the spine; OTP `⌘ Confirm handover` enabled only when a valid proof path is complete; ELEVATED+ has no bypass; "I'm at pickup"/"I've arrived" are declared events but idempotent and reversible only by a real subsequent step; the new business `⌘ Confirm pickup` (§6.6) needs a deliberate tap + desktop confirm step + acknowledged context. | §11.1, §11.3, §6.6, §10.2 |
+| **Report-an-issue always reachable** | `· Report an issue` is present on Current Job and every transit/destination screen without leaving the Job. | §10.1, §13.1, §13.2, §17.1 |
+| **Bilingual, SW prominent** | Driver screens marked `[SW prominent]`; the §10.1 wireframe shows SW first on the primary action; custody/OTP wording flagged for professional review. | §2.9, §10, §25.1 |
+
+Residual watch-items (design-track, non-blocking): final SW verb choices for the
+custody steps (§26 #1); the exact 3-dot progress affordance vs. the full timeline
+on the smallest screens (§26 #2); whether "I'm at pickup" needs a light
+"are you there?" confirm on very cheap devices where mis-taps are common
+(§26 #8-adjacent — evidence/interaction placement).
+
 ---
 
 ## 11. Pickup proof matrix (critical interaction)
 
 The screen implements the **approved band-dependent rules exactly** (Design
 Phase 2 §39; `docs/phase-1/chain-of-custody.md`). No new fallback is invented.
+
+> **Two-sided proof, one model.** "In-app business confirmation" below is the
+> **same** proof as the business-side screen in §6.6 — the business taps
+> `⌘ Confirm pickup`, the server validates it as a permitted proof, and the
+> driver's screen reflects it. Whichever side acts, it is the **same**
+> pickup/custody event and the **same** `AT_PICKUP → PICKED_UP` transition
+> through the single lifecycle writer. There is no second pickup lifecycle and no
+> second transition mechanism (§9.3 cross-check). The screens differ by role; the
+> product behaviour does not.
 
 ### 11.1 Shared structure
 
@@ -937,7 +1112,7 @@ Phase 2 §39; `docs/phase-1/chain-of-custody.md`). No new fallback is invented.
 ```
 Accepted proof (either):
   • Pickup-contact OTP        → driver enters the 6-digit code the sender reads out
-  • In-app business confirmation → the business confirms in their app; driver sees it flip to "Confirmed by sender"
+  • In-app business confirmation → the business confirms in their app (§6.6); driver's screen flips to "Confirmed by sender"
 
 If the OTP can't be delivered/used:
   Operator-attested fallback (STANDARD only):
@@ -962,7 +1137,7 @@ If the OTP can't be delivered/used:
 ```
 Accepted proof (either):
   • Pickup-contact OTP
-  • In-app business confirmation
+  • In-app business confirmation (§6.6)
 No operator-attested fallback.
 If neither can be obtained → the handover cannot be confirmed. The transition does not proceed.
 ```
@@ -1261,19 +1436,30 @@ If neither can be obtained → the handover cannot be confirmed. The transition 
 - **Principle.** **Verified ≠ trusted ≠ recommended.** Show concrete,
   evidence-backed facts. Never an absolute endorsement ("Trusted Driver ✓" as a
   standalone claim is prohibited).
+- **Disclosure principle (founder-adopted 2026-09-10 — resolves §26 O-P4):**
+  **minimum necessary disclosure.** Each audience sees only the identity /
+  verification facts it needs for its task. Personal details (full names, phone
+  numbers), internal organisational information, verification documents, and
+  trust/reputation internals are **not** exposed beyond the audience that needs
+  them. This does not change the identity model — it constrains what each screen
+  renders.
 - **Where trust/verified facts appear:**
   - **Business evaluating an operator's response / assignment:** a short
     fact list — "Identity verified · Driving licence verified (Pickup) ·
     Vehicle verified" — plus, where relevant, the operator's **level** phrased as
     earned standing ("Level 2 — established") with a one-line "what this means"
-    (the value band they're cleared for). No stars on the person.
+    (the value band they're cleared for). No stars on the person. No verification
+    documents; no other operators' data.
   - **Operator evaluating a Job:** "This is an Elevated delivery — it needs
     Level 2." Their own standing shown as fact, with the path to the next level
-    described without promises.
-  - **Recipient:** minimal — "Driver: S. Kiptoo · Vehicle: KDG 123A (Pickup) ·
-    Operator identity verified." Nothing more.
+    described without promises. Business-staff personal details are not shown.
+  - **Recipient:** the **minimum** to trust the person at the door —
+    "Driver: S. Kiptoo · Vehicle: Pickup · KDG 123A · Operator identity
+    verified." **No phone numbers, no operator/business staff details, no
+    verification documents, no trust internals, no location history.** (See §20.)
   - **Operations / Admin:** full verification + trust context, including
-    domain-by-domain state and history.
+    domain-by-domain state and history — the only audience with this depth,
+    every access authorised and (for HIGH-PII) logged.
 - **Visual device.** Level shown as a small **tiered badge / pips** that reads as
   "earned standing that grows", never as a 1–5 rating. Provisional; final metaphor
   is an open question for design + founder (§26 / design-brief §12.4).
@@ -1486,7 +1672,28 @@ changes (versioned; shows the new version + diff); trust-level confirmation
 
 Extremely lightweight. One-tap **EN | SW** toggle. No login, no signup, no
 dashboard, no marketplace, no unrelated Jobs, no platform settings, no
-unrestricted evidence browsing. The link **is** the navigation.
+unrestricted evidence browsing. The link **is** the navigation. The recipient
+model is unchanged: **no account + scoped + time-limited Job access.**
+
+### 20.0 Recipient disclosure principle — *minimum necessary*
+
+**Founder-adopted 2026-09-10 (resolves §26 O-P4).** The scoped-link experience
+exposes **only** what the recipient needs to (a) identify the delivery, (b)
+understand the relevant delivery context, (c) confirm receipt, and (d) report a
+problem. Specifically:
+
+| Shown | Not shown |
+| --- | --- |
+| Delivery reference (FK-####) | Business staff names / roles / contacts |
+| Recipient's **first name + last initial** (the name the sender entered), for "is this for me?" | Recipient's full name, address history, or other Jobs |
+| Cargo **summary** (e.g. "8 cartons · Electronics") | Declared value, price, commission, negotiation |
+| Current delivery **status** + the driver's **first name** and **vehicle class + plate** | Driver/operator phone numbers, personal details, home base, trust internals, verification documents |
+| "Operator identity verified" as a plain fact | Any other verification/trust detail, level, or score |
+| The confirm / report actions and short terms | Internal organisational information, location history, evidence browsing |
+
+No new recipient identity model is introduced. Where a value above needs
+founder/legal confirmation (exact name form), it is noted in §26 as a
+design-track detail, not a blocker.
 
 ### 20.1 Scoped-link shell
 
@@ -1494,10 +1701,11 @@ unrestricted evidence browsing. The link **is** the navigation.
   receiving the goods; feel safe and obvious to someone who has never seen
   Fikisha.
 - **Entry point.** SMS / WhatsApp link (token-scoped, time-limited).
-- **Information hierarchy.** Small Fikisha mark + "Delivery for [recipient
-  name]" → status line ("On the way" / "Driver has arrived") → what's coming
-  (cargo summary) → who's bringing it (driver name, vehicle class + plate,
-  "operator identity verified") → the action area → short terms link.
+- **Information hierarchy.** Small Fikisha mark + "Delivery for [first name +
+  last initial]" → status line ("On the way" / "Driver has arrived") → what's
+  coming (cargo **summary**) → who's bringing it (driver **first name**, vehicle
+  class + plate, "operator identity verified") → the action area → short terms
+  link. Nothing beyond the §20.0 "shown" column.
 - **Primary action.** State-dependent: while en route → none (just status);
   on arrival → `⌘ Confirm receipt` **or** `· Report a problem`.
 - **State(s).** Mirrors the Job: en route / arrived / delivered / (link
@@ -1521,11 +1729,11 @@ unrestricted evidence browsing. The link **is** the navigation.
 ┌──────────────────────────────────────┐
 │ fikisha            EN | ᴥ SW          │
 │ ────────────────────────────────────  │
-│ Delivery for J. Mwangi                │
+│ Delivery for John M.                  │
 │ ● The driver has arrived              │
 │                                       │
 │ Coming: 8 cartons · Electronics       │
-│ Driver: S. Kiptoo                     │
+│ Driver: Samuel                        │
 │ Vehicle: Pickup · KDG 123A            │
 │ Operator identity verified            │
 │ ────────────────────────────────────  │
@@ -1751,9 +1959,49 @@ AA** as the floor, higher on operator critical flows.
 ## 26. Open design / product questions
 
 Recorded, not decided. Anything here that touches product/architecture is for the
-**founder** to decide.
+**founder** to decide. Founder dispositions from the 2026-09-10 amendment are
+recorded inline below.
 
-### Design questions (for the design track)
+### Product / architecture items — founder disposition (amendment 2026-09-10)
+
+- **O-P1 · `RESUME_PRIOR` preconditions — REMAINS OPEN.** Founder re-affirmed:
+  do **not** invent or finalise the conditions under which `DISPUTED → RESUME`
+  is allowed (Design Phase 2 §59; `docs/phase-1/job-state-machine.md §5.4`). The
+  Phase 3 UX provides **only** the approved Platform-Admin action shell —
+  Platform-Admin-only · reason required · appropriate MFA · audit trail ·
+  explicit indication that the system permits the action · target = the
+  pre-dispute state. **No** precondition logic, **no** undocumented automatic
+  resume behaviour. *Affected screens:* §17.3, §19.2. This stays an explicit open
+  product/architecture decision for the founder + architecture before the Jobs
+  build phase.
+- **O-P2 · Business in-app pickup confirmation — RESOLVED: FOUNDER-APPROVED /
+  IN-SCOPE.** The business-side "Confirm pickup" interaction is part of the MVP
+  UX. It is the business-side rendering of the already-approved proof
+  "in-app business confirmation" — valid on **every** band alongside the
+  pickup-contact OTP; the operator-attested fallback remains **STANDARD only**.
+  Specified in **§6.6**, wired into the §6.4 Business action table at
+  `AT_PICKUP` (shown only when a confirmation is pending), cross-referenced from
+  §11, and consistency-checked against the driver side in **§9.3** and the §11
+  preamble.
+  It creates **no** new lifecycle and **no** second transition mechanism — the
+  same pickup/custody event and the same single lifecycle writer apply from
+  either side.
+- **O-P3 · Rating / reputation — REMAINS DEFERRED.** Founder re-affirmed: do not
+  design a detailed rating/reputation system — no rating algorithms, score
+  calculations, public star ratings, ranking, recommendation logic, or reputation
+  thresholds. Phase 3 keeps only the **minimal placeholder** action the approved
+  Job flow already references ("Rate operator" after `COMPLETED`); there is **no**
+  rating-display surface. Detailed behaviour is a later reputation design phase.
+- **O-P4 · Recipient PII — RESOLVED: principle adopted =
+  *minimum necessary disclosure*.** The scoped-link page exposes only what the
+  recipient needs to identify the delivery, understand the context, confirm
+  receipt, and report a problem. Specified in **§20.0** (shown / not-shown
+  table) and applied in §20.1 and §16. Default name form on the page = **first
+  name + last initial**; the exact name form is a design-track detail for
+  founder/legal confirmation (below), **not** a blocker, and does **not** change
+  the recipient identity model (no-account + scoped + time-limited).
+
+### Design questions (for the design track — do not trigger product/architecture change)
 
 1. **Job-state vocabulary (final EN + SW labels).** The map in §3 is a working
    set. Which exact human labels for all 14 states, especially `FAILED`
@@ -1768,50 +2016,22 @@ Recorded, not decided. Anything here that touches product/architecture is for th
    (design-brief §12.4).
 5. **Recipient page branding balance.** How much Fikisha identity vs. deliberate
    plainness for a first-time viewer at a doorstep (design-brief §12.5).
-6. **Location entry for the pilot.** Easiest Kitengela-friendly way to set
+6. **Recipient name form.** First name + last initial (adopted default) vs. first
+   name only vs. initials — founder/legal to confirm; page copy adapts, model
+   unchanged.
+7. **Location entry for the pilot.** Easiest Kitengela-friendly way to set
    pickup/destination (saved places + landmark text + optional pin?) — needs
    field validation.
-7. **Evidence capture placement.** Inline vs. dedicated screen, per flow
+8. **Evidence capture placement.** Inline vs. dedicated screen, per flow
    (pickup proof, incident, verification).
-8. **Admin console skin.** Same visual language at higher density vs. a distinct
+9. **Admin console skin.** Same visual language at higher density vs. a distinct
    back-office skin (recommendation: same language, tuned density —
    design-brief §12.6).
-9. **Vehicle-class icons.** Bespoke set must be distinguishable at ~24 px in
-   sunlight (8 classes).
-10. **"As of HH:MM" and sync-tray vocabulary.** The exact words for cached /
+10. **Vehicle-class icons.** Bespoke set must be distinguishable at ~24 px in
+    sunlight (8 classes).
+11. **"As of HH:MM" and sync-tray vocabulary.** The exact words for cached /
     queued / not sent / sync issue, in EN + SW, unambiguous to a low-literacy
     user.
-
-### Open **product / architecture** questions (founder decides — do not design around a guess)
-
-- **O-P1 · `RESUME_PRIOR` preconditions.** `DISPUTED → RESUME` is
-  Platform-Admin-only, but the *conditions under which a resume is allowed*
-  remain an open Phase-0/architecture item (Design Phase 2 §59;
-  `docs/phase-1/job-state-machine.md §5.4`). Wireframes provide the **shell**
-  (target = pre-dispute state, mandatory reason, audit, "when the system
-  permits") and **no** precondition logic. *Affected screens:* §17.3, §19.2.
-  *Options:* (a) admin free-form with server guard TBD; (b) a checklist of
-  conditions defined later; (c) tie to incident/resolution type. *Recommendation:*
-  keep the shell; the founder + architecture define the rule before the Jobs
-  build phase.
-- **O-P2 · In-app business confirmation as a pickup path — UX ownership.** The
-  proof matrix names "in-app business confirmation" as an accepted pickup proof
-  for all bands. The **business-side** screen for that confirmation (where the
-  dispatcher taps "Yes, the goods were collected") is implied by
-  `chain-of-custody.md` but not spelled out in Design Phase 2. *Affected
-  screens:* Business Job Detail (§6.4) needs a `⌘ Confirm pickup` when the
-  driver is at pickup and requests it. *Recommendation:* add it as a Business
-  next-action for state `AT_PICKUP` when a confirmation is pending — flagged here
-  because it slightly extends the Business action table; founder to confirm it's
-  in scope for Phase 3 wireframes vs. deferred.
-- **O-P3 · Rating window & visibility.** Design Phase 2 defers rating
-  anti-manipulation/visibility to the reputation phase. The wireframes show a
-  "Rate operator" action after `COMPLETED` but **no** rating-display surface.
-  *Recommendation:* keep it minimal until the reputation phase defines the rules.
-- **O-P4 · Recipient identity on the scoped page.** How much recipient PII
-  (full name vs. first name) to show on the link page, given it may be opened by
-  someone other than the intended recipient. *Affected:* §20.1. *Recommendation:*
-  first name + last initial by default; founder/legal to confirm.
 
 ---
 
@@ -1831,7 +2051,9 @@ Design Phase 3 is complete when:
   screens, with "Needs attention" = `INFO_REQUESTED` + `REJECTED` + effective
   `EXPIRED`;
 - the **pickup proof matrix** (STANDARD with operator-attested fallback;
-  ELEVATED+ with none) is specified exactly, with no invented fallback;
+  ELEVATED+ with none) is specified exactly, with no invented fallback, and the
+  **business-side in-app pickup confirmation** (O-P2, founder-approved) is
+  specified (§6.6) and consistency-checked against the driver side (§9.3);
 - the **delivery proof matrix** (STANDARD: OTP/SIGNATURE/PHOTO; ELEVATED+:
   OTP+PHOTO) is specified, shown before the final action;
 - **custody transfer** has an unambiguous confirmation screen with the
@@ -1851,8 +2073,14 @@ Design Phase 3 is complete when:
   bilingual `lang`;
 - a **provisional visual direction** (§28 below) and a **component / interaction
   inventory** (§29 below) exist, with provisional items marked;
+- the **minimum-necessary-disclosure** principle for the recipient page (O-P4,
+  founder-adopted) is recorded (§20.0) and applied (§20.1, §16);
+- **O-P1** (`RESUME_PRIOR` preconditions) is preserved as **open**, and **O-P3**
+  (rating/reputation) as **deferred** (§26);
+- the **driver-critical journey review** (§10.3) and the **Business ↔ Driver
+  pickup consistency review** (§9.3) are recorded;
 - **no approved product or architecture decision has been changed**, and every
-  such tension is logged in §26 as an open question;
+  remaining tension is logged in §26;
 - **no application code, API, model, migration, auth, authz, commission,
   lifecycle, trust, verification, or custody rule** has been touched.
 
@@ -1971,13 +2199,35 @@ brushed against a product/architecture rule it is logged in §26.
 
 ## 31. Approval gate
 
-**DESIGN PHASE 3 — AWAITING FOUNDER REVIEW.** Approval should confirm: the
-primary journeys and role workspaces are right; the 14-state and 7-state
-treatments are faithful; the pickup and delivery proof matrices match the
-approved rules exactly; Platform-Admin-only boundaries are correct and
-`RESUME_PRIOR` preconditions are left open; exception, offline, responsive, and
-accessibility coverage is sufficient; the provisional visual direction and
-component inventory are acceptable as *provisional*; and no product or
-architecture decision was changed. On approval, the next deliverable is **Design
+**DESIGN PHASE 3 — APPROVED, DOCUMENTATION BASELINE** (Founder approval +
+amendment, 2026-09-10). The amendment is folded in:
+
+- **O-P2 — resolved, in-scope:** business in-app pickup confirmation specified
+  (§6.6), wired into the Business action table at `AT_PICKUP` (§6.4),
+  consistency-checked against the driver side (§9.3), cross-referenced from §11.
+  No new lifecycle, no second transition mechanism, no new fallback.
+- **O-P1 — remains open:** `RESUME_PRIOR` preconditions are not invented; only
+  the approved Platform-Admin action shell is provided (§17.3, §19.2).
+- **O-P3 — remains deferred:** minimal "Rate operator" placeholder only; no
+  rating/reputation system designed.
+- **O-P4 — resolved:** minimum-necessary-disclosure principle for the recipient
+  page (§20.0), applied in §20.1 and §16; recipient model unchanged.
+- Driver-critical journey review (§10.3) and Business ↔ Driver pickup
+  consistency review (§9.3) recorded.
+
+Status carried forward:
+
+```
+Design Phase 3          APPROVED  (documentation baseline)
+Application implementation   NOT STARTED
+Design Phase 4               NOT STARTED
+Architecture changes        NONE
+Product changes             O-P2 explicitly confirmed in-scope
+Open product decisions      O-P1 RESUME_PRIOR
+                            O-P3 rating / deferred reputation behaviour
+```
+
+On explicit founder approval to proceed, the next deliverable is **Design
 Phase 4 — Visual system & design tokens**. **Frontend implementation has not
-started and does not start at Phase 4.**
+started and does not start at Phase 4.** Remaining items in §26 are design-track
+details that do not trigger product or architecture change.
