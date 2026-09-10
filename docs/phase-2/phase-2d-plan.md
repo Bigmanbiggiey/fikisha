@@ -1,8 +1,72 @@
 # FIKISHA — Phase 2D — Jobs & Core Coordination Backend — ARCHITECTURE & PLAN
 
-**Status:** PLAN — **AWAITING FOUNDER GATE** (brief §38 Step 3). No Phase 2D
-implementation has started.
+**Status:** **FOUNDER-APPROVED WITH AMENDMENT (2026-09-10)** — implementation
+authorized per §19. Not merged; second Founder gate required before merge.
 **Branch:** `feat/phase-2c-vehicles-verification` @ `e58e3aa` · working tree clean.
+
+---
+
+## 0. Founder Gate — DECISIONS (2026-09-10)
+
+The Founder reviewed this plan and **approved it to proceed to implementation**,
+with the decisions and the one required amendment below.
+
+| Ref | Decision |
+| --- | --- |
+| §4 module layout, §5 schema | **APPROVED** (subject to the amendment). Do not modify Phase 2A–2C models or semantics. |
+| **E-1 `RESUME_PRIOR`** | **APPROVED — NOT implemented in 2D.** Persist `pre_dispute_status` only. **No** resume endpoint / service / algorithm / implicit auto-resumption. The only dispute resolutions built are `DISPUTED → {COMPLETED, FAILED, CANCELLED}`. |
+| **E-2 trust ceiling** | **APPROVED — ADR-2D-05 Option (b).** Conservative deterministic interim rule from approved verification facts + `config.value_bands[].min_trust_level`. **No** Trust score/level engine, ratings, stars, ranking, recommendation, or opaque scoring. Assigned-driver eligibility is the authoritative basis for assignment. HIGH/VERY_HIGH still require `high_value_approval`. Documented as **interim, pending the dedicated Trust phase**. |
+| **E-3 SMS/WhatsApp provider** | **APPROVED.** Implement OTP generation + verification + challenge state + provider-neutral outbox events. **Do NOT** select/purchase/configure/wire any commercial SMS or WhatsApp provider. WhatsApp remains a channel, not the system of record. |
+| **E-4 location storage** | **APPROVED.** Plain `DecimalField` lat/lng + `geo_state`. **No** PostGIS, **no** routing/distance optimization. Recorded as an **approved Phase 2D deviation** from the PostGIS-oriented Phase 1 schema (not "verbatim" — see §5, ADR-2D-10). |
+| **Q-5 scheduled sweeps** | **APPROVED.** `request_expiry` and `DELIVERED → COMPLETED` auto-complete may be beat-wired (authoritative lifecycle behaviour). Post-completion-window close stays command-driven. **Every** scheduled job calls `JobLifecycleService.transition()` — it must not become a competing writer. |
+| **Q-6 `CONFIRMED → ASSIGNED`** | **APPROVED.** Keep confirmation and assignment **separate** in 2D. Do **not** build the combined convenience path. |
+| **Q-7 RLS** | **APPROVED — deferred to hardening.** Application `authorize()` is the primary control in 2D and must be comprehensively tested. Add the `SET LOCAL app.actor_id` seam so RLS can be added later without a schema redesign. |
+
+### REQUIRED AMENDMENT — recipient access-link uniqueness
+
+The plan's proposed partial-unique predicate
+`UNIQUE(job_id) WHERE revoked_at IS NULL AND expires_at > now()` **must not be
+implemented** — PostgreSQL cannot use `now()` (a non-`IMMUTABLE` expression) in a
+partial-index predicate, and "active" is a request-time evaluation, not an index
+condition.
+
+**Approved replacement (supersedes §5 / §11 / ADR-2D-06 for `recipient_access_link`):**
+
+- **`UNIQUE(job_id)`** — a plain, immutable uniqueness rule: **at most one
+  recipient-link record per Job at a time.**
+- Keep `expires_at` and `revoked_at` columns.
+- **Request-time authorization** for a recipient token explicitly verifies, in
+  order: (1) token resolves (via `token_lookup` HMAC) to a link row; (2)
+  `link.job_id == requested job`; (3) `revoked_at IS NULL`; (4) `now() <
+  expires_at`; (5) the requested action ∈ `allowed_actions`. Any failure →
+  `403`/`410`, no data.
+- **Replacement after expiry or on re-issue:** within a single transaction under
+  `SELECT … FOR UPDATE` on the `job` row (and the existing link row if present),
+  **explicitly set `revoked_at = now()` (+ `revoke_reason`) on the current link,
+  then `DELETE` it** (so `UNIQUE(job_id)` allows the new insert) **or** — if an
+  immutable history of links is wanted — move to an explicit
+  `recipient_access_link` + `recipient_link_event` split with the unique on a
+  `superseded_at IS NULL` immutable flag (no time expression). **2D takes the
+  simpler path: one row per job, revoke-then-replace under lock.** Concurrent
+  issuance is serialised by the job-row lock.
+- Tests required (added to §13): valid unexpired link · expired link · revoked
+  link · replacement after expiry · replacement after explicit revocation ·
+  concurrent replacement attempts (job-row lock serialises; exactly one live
+  link) · `token_lookup` · `token_hash` verification · wrong-job token · token
+  reuse (after `used_at`) · action outside `allowed_actions` · expired/revoked
+  link cannot access the Job. Fresh-DB migration test.
+
+### Delivery-proof (and pickup-proof) — reconcile against the authoritative sources
+
+Before implementing the proof service, the exact band-specific proof
+requirements are reconciled **directly** against `docs/phase-0/trust-and-safety.md`,
+`docs/phase-1/chain-of-custody.md §3–4`, `docs/phase-1/trust-architecture.md`
+(D-TRU-5), and `docs/design-phase-2-user-flows.md §39/§44` — not from the
+shorthand in this plan. Encode exactly; invent nothing; weaken nothing. (§10
+carries the reconciled matrix; the proof service tests assert against the
+authoritative combinations.)
+
+---
 **Authoritative sources reconciled:** `CLAUDE.md`, `docs/team-skills-policy.md`,
 `docs/phase-0/` (job-lifecycle, trust-and-safety, pricing-and-negotiation,
 users-and-roles, mvp-scope, decisions, decision-memo, business-model,
