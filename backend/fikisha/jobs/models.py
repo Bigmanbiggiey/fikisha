@@ -38,6 +38,7 @@ from fikisha.jobs.constants import (
     PenaltyClass,
     ProofCapturedBy,
     ProofKind,
+    RecipientIssueCategory,
     TrustLevel,
     ValueBand,
 )
@@ -507,6 +508,34 @@ class RecipientOtpChallenge(OtpChallengeBase):
 
     class Meta:
         db_table = "recipient_otp_challenge"
+
+
+class RecipientReportedIssue(AppendOnlyModel):
+    """The recipient-issue-reporting **boundary** (recipient-access.md §4.2,
+    FR-D-2) — append-only capture only. It does **not** move ``job.status`` and
+    is not the ``incident`` model: triage, severity, SLA timers, and the
+    progression-blocking ``* → DISPUTED`` path are the Incidents app (plan §19
+    Step 8, not built). This row is what that later app will read to promote a
+    recipient report into a full incident. ADR-2D-17."""
+
+    job = models.ForeignKey(Job, on_delete=models.PROTECT, related_name="recipient_issues")
+    # Plain UUID, not a FK: the amended link lifecycle (§0 amendment) deletes a
+    # superseded link row on reissue. A FK here — PROTECT blocks the delete;
+    # SET_NULL needs Django's delete-collector to call .update(), which
+    # AppendOnlyQuerySet refuses even for a cascade. A plain id keeps this
+    # append-only report immune to the link's own lifecycle; ``job`` is the
+    # real, permanent correlation key.
+    reported_via_link_id = models.UUIDField()
+    category = models.CharField(max_length=20, choices=RecipientIssueCategory.choices)
+    other_label = models.CharField(max_length=80, blank=True, default="")
+    description = models.TextField(blank=True, default="")
+    photo_evidence_ids = models.JSONField(default=list, blank=True)
+
+    objects = AppendOnlyQuerySet.as_manager()
+
+    class Meta:
+        db_table = "recipient_reported_issue"
+        indexes = [models.Index(fields=["job", "created_at"], name="ix_recipient_issue_job")]
 
 
 class HighValueApproval(AppendOnlyModel):

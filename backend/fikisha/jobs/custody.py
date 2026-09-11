@@ -93,7 +93,11 @@ def arrive_at_destination(
         data={"initiator_tokens": [], "geo": _geo(geo)},
         idempotency_key=idempotency_key,
     )
-    return {**view, "recipient_otp": data.get("_dev_otp_RECIPIENT_VERIFY")}
+    return {
+        **view,
+        "recipient_otp": data.get("_dev_otp_RECIPIENT_VERIFY"),
+        "recipient_link_token": data.get("_dev_recipient_link_token"),
+    }
 
 
 # ─── pickup proof (AT_PICKUP -> PICKED_UP) ──────────────────────────

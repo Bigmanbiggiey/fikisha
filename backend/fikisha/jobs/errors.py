@@ -100,6 +100,31 @@ class OtpLocked(DomainError):
     default_detail = "Too many attempts. Request a new code."
 
 
+class RecipientLinkNotFound(DomainError):
+    """The token does not resolve to any link. ``404``, not ``403`` — deliberately
+    indistinguishable from "never existed" so nothing about token validity is
+    revealed (recipient-access.md §5)."""
+
+    default_code = "recipient_link_not_found"
+    status_code = status.HTTP_404_NOT_FOUND
+    default_detail = "Not found."
+
+
+class RecipientLinkInactive(DomainError):
+    """The token resolves, but the link is expired or revoked. ``410`` — the
+    resource existed but is gone; still no further detail."""
+
+    default_code = "recipient_link_inactive"
+    status_code = status.HTTP_410_GONE
+    default_detail = "This link is no longer active."
+
+
+class RecipientActionNotAllowed(DomainError):
+    default_code = "recipient_action_not_allowed"
+    status_code = status.HTTP_403_FORBIDDEN
+    default_detail = "This action is not available on this link."
+
+
 class NotImplementedInThisIncrement(DomainError):
     """Raised by transition paths whose initiating service is not built yet
     (Phase 2D increment 1 covers the lifecycle engine + pure-jobs transitions;

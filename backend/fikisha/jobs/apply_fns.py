@@ -162,6 +162,16 @@ def arrive_pickup(job: Any, actor: Any, ctx: dict[str, Any]) -> None:
 
 def arrive_destination(job: Any, actor: Any, ctx: dict[str, Any]) -> None:
     _issue_step_otp(job, actor, ctx, purpose="RECIPIENT_VERIFY", phone=job.recipient_phone or "")
+    # the recipient access link — job row is already FOR-UPDATE-locked by the
+    # transition, so the amended revoke-then-replace runs in this same txn
+    # (plan §19 Step 7, ADR-2D-18). Boundary only: no delivery of the link here.
+    from django.conf import settings
+
+    from fikisha.jobs import recipient as recipient_service
+
+    _link, raw_token = recipient_service.issue_or_refresh_link_locked(job=job, actor=actor)
+    if settings.AUTH_CONFIG.get("OTP_DEV_EXPOSE"):
+        ctx["_dev_recipient_link_token"] = raw_token
 
 
 # ── publish ──────────────────────────────────────────────────────────

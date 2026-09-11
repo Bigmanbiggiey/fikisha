@@ -667,6 +667,37 @@ new code; **security and invariant tests are not optional**.
   `consume_otp()` (called by the apply fn once the transition's other guards
   have passed) — so a driver who enters the right code but forgets a required
   photo does not have to ask the recipient/pickup-contact for a fresh one.
+- **ADR-2D-17** *(Increment 5 — Recipient Access)* — `RecipientReportedIssue`
+  is the recipient issue-report **boundary**, not the `incident` model: it is
+  append-only (`AppendOnlyModel` + DB trigger), records the curated category +
+  description + photos, and does **not** move `job.status`. The Incidents app
+  (plan §19 Step 8, not built) is what triages/promotes it, decides severity,
+  and drives `* → DISPUTED`. `reported_via_link_id` is a plain `UUIDField`, not
+  a FK to `recipient_access_link`: the amended link lifecycle *deletes* a
+  superseded link row, which would either be blocked (`PROTECT`) or crash
+  (`SET_NULL`'s cascade calls `.update()`, which `AppendOnlyQuerySet` refuses
+  even for Django's own delete-collector) — `job` is the real, permanent
+  correlation key; the link id is forensic-only.
+- **ADR-2D-18** *(Increment 5)* — the recipient access link is issued/refreshed
+  by `arrive_destination`'s apply fn, inside the same transaction and under the
+  same job-row `FOR UPDATE` lock as the `IN_TRANSIT → AT_DESTINATION`
+  transition — so the amended revoke-then-delete-then-insert sequence never
+  needs a lock of its own when triggered by arrival (recipient-access.md §8:
+  "consumes `JobAtDestination`"). `jobs.recipient.reissue_link()` is the
+  standalone, equally-atomic entry point for any other caller (tested
+  independently, including two genuinely concurrent threads). The raw token
+  exists in memory only at mint time; it is surfaced to a caller only behind
+  the same `OTP_DEV_EXPOSE` gate the OTP dev-code uses (no separate flag
+  invented) — production delivery is the same provider-neutral outbox-event
+  seam as the rest of 2D (E-3): `RecipientLinkIssued` carries `link_id`, never
+  the token.
+- **ADR-2D-19** *(Increment 5)* — token hashing follows two existing house
+  conventions rather than a new one: `token_hash` uses Django's configured
+  password hasher (`make_password`/`check_password`, same as OTP `code_hash`);
+  `token_lookup` is `HMAC-SHA256(settings.SECRET_KEY, token)` — reusing the
+  already-present `SECRET_KEY` as the "server-held key"
+  (recipient-access.md §2) rather than standing up new secret management/KMS
+  infrastructure, which is out of scope for 2D.
 
 ---
 

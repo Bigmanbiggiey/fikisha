@@ -217,3 +217,23 @@ class OtpPurpose(models.TextChoices):
 class HighValueDecision(models.TextChoices):
     APPROVED = "APPROVED", "Approved"
     REJECTED = "REJECTED", "Rejected"
+
+
+class RecipientAllowedAction(models.TextChoices):
+    """The full capability set a recipient link may ever grant
+    (recipient-access.md §1 / plan §11). Real-time gating (e.g. CONFIRM_RECEIPT
+    only works while the job is AT_DESTINATION) is enforced by the underlying
+    transition's own guards, not by narrowing this set."""
+
+    VIEW = "VIEW", "View delivery status"
+    CONFIRM_RECEIPT = "CONFIRM_RECEIPT", "Confirm receipt"
+    REPORT_ISSUE = "REPORT_ISSUE", "Report an issue"
+
+
+#: recipient-access.md §4.2 — the curated categories a recipient may report.
+class RecipientIssueCategory(models.TextChoices):
+    WRONG_RECIPIENT = "WRONG_RECIPIENT", "Wrong recipient"
+    DAMAGE = "DAMAGE", "Damage"
+    MISSING_GOODS = "MISSING_GOODS", "Missing goods"
+    WRONG_GOODS = "WRONG_GOODS", "Wrong goods"
+    OTHER = "OTHER", "Other"
