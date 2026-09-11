@@ -302,6 +302,7 @@ def view(*, principal: RecipientPrincipal) -> dict[str, Any]:
 
 
 # ─── CONFIRM_RECEIPT — the same DELIVERED transition + proof model ───────
+@transaction.atomic
 def confirm_receipt(
     *,
     principal: RecipientPrincipal,
@@ -314,7 +315,18 @@ def confirm_receipt(
     """Requires the recipient OTP (a forwarded link alone cannot confirm —
     recipient-access.md §4.1 / §5) plus a typed name. Calls the identical
     `AT_DESTINATION -> DELIVERED` transition the driver uses; only the actor and
-    `captured_by` differ."""
+    `captured_by` differ.
+
+    OTP validation (`verify_otp(consume=False)`) and consumption
+    (`apply_fns.confirm_delivery`'s `consume_otp()`) already share one
+    transaction with the transition itself — nested inside `transition()`'s
+    own `@transaction.atomic`, so a failed transition never leaves the code
+    consumed (Phase 2D final-verification N-6 fix). The `@transaction.atomic`
+    added here closes the one remaining gap: `link.used_at` used to be saved
+    in its own, separate implicit transaction *after* `job_transition()`
+    returned — a crash between the two would leave `used_at` unset on an
+    already-DELIVERED job. Now both happen in one outer transaction (a
+    harmless nested savepoint around the transition itself)."""
     _require(principal, RecipientAllowedAction.CONFIRM_RECEIPT)
     from fikisha.jobs import otp as otp_service
     from fikisha.jobs.selectors import get_job

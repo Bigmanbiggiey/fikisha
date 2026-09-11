@@ -11,6 +11,18 @@ transition, so the row lock makes both reads/writes mutually consistent
 (ADR-2D-20 / ADR-2D-07).
 
 No HTTP routes here (plan §19 Step 10 owns the API boundary).
+
+Every public function that writes a domain row and calls ``audit.record()``
+is ``@transaction.atomic`` (Phase 2D final-verification BLOCKER-1 fix):
+``audit.record()`` itself asserts it is running inside an open transaction
+and raises loudly if not — a correct, fail-loud check, but ``open_dispute``/
+``resolve_dispute`` were the only two functions here that actually supplied
+one. Outside a caller's own already-atomic context (in production, with no
+``ATOMIC_REQUESTS`` configured, that means *every* real HTTP call), the other
+seven functions raised ``RuntimeError`` immediately after already committing
+their domain row — a real write with no audit trail. Fixed by decorating
+each one, the same one-line pattern already used by
+``jobs.creation.submit_job``/``cancel_job`` for the identical defect class.
 """
 
 from __future__ import annotations
@@ -146,6 +158,7 @@ def _load_incident(incident_id: Any) -> Incident:
 
 
 # ─── incident creation ─────────────────────────────────────────────────
+@transaction.atomic
 def report_incident(
     *,
     actor: Any,
@@ -197,6 +210,7 @@ def report_incident(
     return incident
 
 
+@transaction.atomic
 def intake_recipient_report(*, report_id: Any, actor: Any = None) -> Incident:
     """Promote an already-captured, append-only ``RecipientReportedIssue``
     (ADR-2D-17) into a full triage-able ``Incident`` — a **plain callable**
@@ -261,6 +275,7 @@ def intake_recipient_report(*, report_id: Any, actor: Any = None) -> Incident:
 
 
 # ─── evidence + statements ──────────────────────────────────────────────
+@transaction.atomic
 def attach_evidence(
     *,
     actor: Any,
@@ -303,6 +318,7 @@ def attach_evidence(
     return row
 
 
+@transaction.atomic
 def add_statement(*, actor: Any, incident_id: Any, text: str) -> IncidentStatement:
     incident = _load_incident(incident_id)
     party_kind = _party_kind_for_actor(actor, incident.job)
@@ -344,6 +360,7 @@ def _require_review_permission(actor: Any, *, permission: str) -> None:
         raise NotAuthorisedForIncidentReview()
 
 
+@transaction.atomic
 def start_review(*, actor: Any, incident_id: Any) -> Incident:
     _require_review_permission(actor, permission="incident.intake")
     incident = _load_incident(incident_id)
@@ -363,6 +380,7 @@ def start_review(*, actor: Any, incident_id: Any) -> Incident:
     return incident
 
 
+@transaction.atomic
 def start_amicable_window(*, actor: Any, incident_id: Any) -> Incident:
     """Amicable-first resolution attempt (dispute-and-liability.md §4). An
     Operations Officer may facilitate this (``incident.amicable.facilitate``,
@@ -607,6 +625,7 @@ def resolve_dispute(
 
 
 # ─── escalation (Platform-Admin-only; FR-D-8) ───────────────────────────
+@transaction.atomic
 def escalate(
     *,
     actor: Any,

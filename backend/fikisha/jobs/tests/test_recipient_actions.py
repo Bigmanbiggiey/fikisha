@@ -227,3 +227,104 @@ def test_a_stale_principal_is_refused_after_its_link_is_reissued(
         recipient_service.view(principal=principal)
     with pytest.raises(RecipientLinkInactive):
         recipient_service.confirm_receipt(principal=principal, code="000000", party_name="A")
+
+
+# ─── Phase 2D final-verification N-6 corrective pass: confirm_receipt()'s
+#     transaction boundary. These deliberately use transaction=True — the
+#     default django_db marker's implicit atomic wrapper would hide exactly
+#     the gap being closed here, same reasoning as BLOCKER-1's own tests. ──
+def _boom(*_a: Any, **_kw: Any) -> Any:
+    raise RuntimeError("simulated downstream failure")
+
+
+class TestConfirmReceiptTransactionBoundary:
+    @pytest.mark.django_db(transaction=True)
+    def test_successful_confirmation_commits_every_side_effect_together(
+        self, resolved_recipient: Callable
+    ) -> None:
+        from fikisha.audit.models import AuditLogEntry
+        from fikisha.jobs.models import JobEvent, RecipientAccessLink
+
+        job, principal = resolved_recipient()
+        link_id = principal.link_id
+        out = recipient_service.confirm_receipt(
+            principal=principal, code="000000", party_name="A. Wanjiku"
+        )
+        assert out["status"] == JobStatus.DELIVERED
+        job.refresh_from_db()
+        assert job.status == JobStatus.DELIVERED
+        assert ProofOfDelivery.objects.filter(job=job, captured_by="RECIPIENT").exists()
+        assert JobEvent.objects.filter(job=job, type="RECIPIENT_VERIFIED").exists()
+        assert AuditLogEntry.objects.filter(
+            action="job.transition.delivered", entity_id=job.id
+        ).exists()
+        link = RecipientAccessLink.objects.get(id=link_id)
+        assert link.used_at is not None  # committed in the same transaction, not a later one
+
+    @pytest.mark.django_db(transaction=True)
+    def test_a_failed_transition_does_not_irreversibly_consume_the_otp(
+        self, resolved_recipient: Callable, monkeypatch: Any
+    ) -> None:
+        """Force a downstream failure *inside* the transition itself (after
+        the delivery apply fn has already called ``consume_otp()``) and
+        prove the whole thing rolls back — the OTP is not left permanently
+        burned by a doomed attempt, and a retry with the identical code
+        then succeeds."""
+        from fikisha.jobs import service as jobs_service
+
+        job, principal = resolved_recipient()
+        real_record = jobs_service.audit.record
+        monkeypatch.setattr(jobs_service.audit, "record", _boom)
+        with pytest.raises(RuntimeError):
+            recipient_service.confirm_receipt(principal=principal, code="000000", party_name="A. W")
+        job.refresh_from_db()
+        assert job.status == JobStatus.AT_DESTINATION  # unchanged, not half-applied
+        assert not ProofOfDelivery.objects.filter(job=job).exists()
+
+        monkeypatch.setattr(jobs_service.audit, "record", real_record)
+        out = recipient_service.confirm_receipt(
+            principal=principal, code="000000", party_name="A. W"
+        )
+        assert out["status"] == JobStatus.DELIVERED  # the "burned" code still worked on retry
+
+    @pytest.mark.django_db(transaction=True)
+    def test_concurrent_confirmations_still_produce_exactly_one_delivery(
+        self, resolved_recipient: Callable
+    ) -> None:
+        """Re-proves the pre-existing concurrency guarantee (already covered
+        by ``test_api_recipient.py``'s HTTP-level version) directly against
+        the service function, after wrapping it in its own
+        ``@transaction.atomic`` — confirms the new outer transaction doesn't
+        change the locking behaviour `transition()` already provides."""
+        import threading
+
+        from django.db import connection
+
+        job, principal = resolved_recipient()
+        results: list[int] = []
+        errors: list[BaseException] = []
+        lock = threading.Lock()
+
+        def _confirm() -> None:
+            try:
+                out = recipient_service.confirm_receipt(
+                    principal=principal, code="000000", party_name="A. W"
+                )
+                with lock:
+                    results.append(1 if out.get("status") == JobStatus.DELIVERED else 0)
+            except BaseException as exc:  # recorded, not swallowed
+                with lock:
+                    errors.append(exc)
+            finally:
+                connection.close()
+
+        threads = [threading.Thread(target=_confirm) for _ in range(5)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+
+        assert sum(results) == 1, (results, errors)
+        job.refresh_from_db()
+        assert job.status == JobStatus.DELIVERED
+        assert ProofOfDelivery.objects.filter(job=job).count() == 1
