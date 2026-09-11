@@ -14,6 +14,7 @@ from typing import Any, BinaryIO
 
 from django.db import transaction
 
+from fikisha.common.exceptions import DomainError
 from fikisha.evidence.models import EvidenceAccessLog, EvidenceObject, PiiClass, UploaderKind
 from fikisha.storage.service import get_storage
 
@@ -24,12 +25,22 @@ _ALLOWED_TYPES: dict[str, set[str]] = {
     "PROFILE_PHOTO": {"image/jpeg", "image/png", "image/webp"},
     "BASE_PHOTO": {"image/jpeg", "image/png", "image/webp"},
     "INCIDENT_EVIDENCE": {"image/jpeg", "image/png", "image/webp", "application/pdf"},
+    "CUSTODY_PROOF": {"image/jpeg", "image/png", "image/webp"},
 }
 _MAX_BYTES = 10 * 1024 * 1024  # 10 MB
 
 
-class EvidenceValidationError(ValueError):
-    """Raised when an upload violates the per-purpose type / size allowlist."""
+class EvidenceValidationError(DomainError):
+    """Raised when an upload violates the per-purpose type / size allowlist.
+
+    Maps to a clean 422 ``application/problem+json`` response at every HTTP
+    boundary that calls ``store()`` (Verification's pre-existing
+    ``EvidenceUploadView`` and Phase 2D Step 10's custody/incident upload
+    endpoints) instead of an unhandled 500 — this is shared infrastructure,
+    not new domain behaviour.
+    """
+
+    default_code = "evidence_validation_error"
 
 
 def _key(purpose: str, object_id: uuid.UUID) -> str:

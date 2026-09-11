@@ -1,13 +1,19 @@
 """Job-domain authorization policies (registered on app ``ready()``).
 
-These are the **coarse** gate — "may this actor touch jobs at all". The
-fine-grained *who may initiate this specific transition* check is the
-initiator-token match inside :func:`fikisha.jobs.service.transition`, driven by
-the authoritative table in :mod:`fikisha.jobs.transitions`.
+The write-side actions here are still a **coarse** gate — "may this actor
+touch jobs at all". The fine-grained *who may initiate this specific
+transition* check is the initiator-token match inside
+:func:`fikisha.jobs.service.transition`, driven by the authoritative table in
+:mod:`fikisha.jobs.transitions` — that remains the real guard for every write.
 
-Full per-resource policies (business owns the job, operator is on the agreement,
-recipient link scope, admin band authority) land with the API layer in plan §19
-Step 10; nothing here grants access to another org's data.
+``job.read`` (Step 10, plan §19) is the one **object-level** policy here: a
+list view passes no resource (``get_authz_resource()`` returns ``None``
+without a ``resolve_target``) and falls back to the coarse authenticated
+check — the view itself scopes the queryset
+(:func:`fikisha.jobs.job_authz.jobs_visible_to`); a detail view resolves the
+actual ``Job`` first, and this policy then runs
+:func:`fikisha.jobs.job_authz.is_job_party` against it — the real
+cross-business / cross-operator isolation boundary (brief §20).
 """
 
 from __future__ import annotations
@@ -28,8 +34,16 @@ def _authed_or_system(actor: Any) -> Decision:
 
 
 @policy("job.read")
-def _job_read(actor: Any, _action: str, _resource: Any) -> Decision:
-    return _authed_or_system(actor)
+def _job_read(actor: Any, _action: str, resource: Any) -> Decision:
+    if resource is None:
+        return _authed_or_system(actor)
+    if not getattr(actor, "is_authenticated", False) and not _is_system(actor):
+        return deny("authz.unauthenticated")
+    from fikisha.jobs import job_authz
+
+    if job_authz.is_job_party(actor, resource):
+        return ALLOW
+    return deny("authz.forbidden", "You are not a party to this job.")
 
 
 @policy("job.create")
@@ -60,6 +74,19 @@ def _job_proof_pickup(actor: Any, _action: str, _resource: Any) -> Decision:
 @policy("job.proof.delivery")
 def _job_proof_delivery(actor: Any, _action: str, _resource: Any) -> Decision:
     return _authed_or_system(actor)
+
+
+@policy("commission.read")
+def _commission_read(actor: Any, _action: str, _resource: Any) -> Decision:
+    """Platform-Admin-only (Step 10 brief §17/§23 — commission is commercially
+    sensitive; nothing in the approved requirements names another party with a
+    right to read it, so this stays conservative rather than inventing a
+    broader disclosure)."""
+    if not getattr(actor, "is_authenticated", False):
+        return deny("authz.unauthenticated")
+    from fikisha.jobs import job_authz
+
+    return ALLOW if job_authz.is_platform_admin(actor) else deny("authz.forbidden")
 
 
 @policy("highvalue.approve")

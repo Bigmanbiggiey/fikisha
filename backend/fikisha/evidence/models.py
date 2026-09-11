@@ -24,6 +24,11 @@ class EvidencePurpose(models.TextChoices):
     # Phase 2D Step 8 (Incidents & Disputes) — additive; no existing member
     # changes, no migration needed (a plain CharField, no DB check constraint).
     INCIDENT_EVIDENCE = "INCIDENT_EVIDENCE", "Incident evidence"
+    # Phase 2D Step 10 (API Boundary) — additive. jobs.custody's
+    # confirm_pickup/confirm_delivery already accept *stored* evidence ids
+    # (photo_evidence_ids); the HTTP layer is the first caller that needs
+    # somewhere to store the photo bytes first.
+    CUSTODY_PROOF = "CUSTODY_PROOF", "Pickup/delivery proof photo"
 
 
 class UploaderKind(models.TextChoices):

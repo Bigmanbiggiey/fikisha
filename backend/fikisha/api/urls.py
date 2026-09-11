@@ -36,6 +36,10 @@ urlpatterns = [
     # Phase 2C — vehicles & verification.
     path("", include("fikisha.vehicles.api.urls")),
     path("", include("fikisha.verification.api.urls")),
+    # Phase 2D — jobs & core coordination (Step 10 — API boundary).
+    path("", include("fikisha.jobs.api.urls")),
+    path("", include("fikisha.negotiation.api.urls")),
+    path("", include("fikisha.incidents.api.urls")),
 ]
 
 if settings.DEBUG:

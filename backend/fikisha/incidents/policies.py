@@ -27,6 +27,24 @@ def _is_admin(actor: Any) -> bool:
     )
 
 
+@policy("incident.read")
+def _incident_read(actor: Any, _action: str, resource: Any) -> Decision:
+    """Object-level (Step 10, plan §19): a list view passes no resource (the
+    view itself scopes the queryset to the caller's own jobs); a detail view
+    resolves the actual ``Incident``/``Dispute`` first, and this checks the
+    actor is a party to its job — real cross-job/cross-business isolation."""
+    if not getattr(actor, "is_authenticated", False):
+        return deny("authz.unauthenticated")
+    if resource is None:
+        return ALLOW
+    from fikisha.incidents import authz as incidents_authz
+
+    job = resource.job
+    if incidents_authz.is_job_party(actor, job):
+        return ALLOW
+    return deny("authz.forbidden", "You are not a party to this job.")
+
+
 @policy("incident.create")
 def _incident_create(actor: Any, _action: str, _resource: Any) -> Decision:
     """Any party or admin may report an incident; a recipient reports via its

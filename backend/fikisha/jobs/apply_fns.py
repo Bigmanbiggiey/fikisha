@@ -199,9 +199,13 @@ def arrive_destination(job: Any, actor: Any, ctx: dict[str, Any]) -> None:
 
 
 # ── publish ──────────────────────────────────────────────────────────
-def publish(job: Any, actor: Any, ctx: dict[str, Any]) -> None:
-    """Compute + freeze the value band, required trust level and high-value flag;
-    pin the config version. ``published_at`` is stamped by the service."""
+def _freeze_value_band(job: Any) -> None:
+    """Compute + freeze the value band, required trust level and high-value
+    flag; pin the config version. Shared by ``publish`` and by ``cancel``
+    when a job is cancelled directly from ``DRAFT`` (see ``cancel``'s
+    docstring) — both are "a job leaves DRAFT" moments, and
+    ``ck_job_band_set_once_published`` requires every non-DRAFT row to carry
+    a real band, not a fabricated one computed after the fact."""
     band = eligibility.band_for_declared_value(job.declared_value_kes)
     job.value_band = band
     job.required_trust_level = eligibility.band_min_trust_level(band) or TrustLevel.L1
@@ -210,8 +214,22 @@ def publish(job: Any, actor: Any, ctx: dict[str, Any]) -> None:
         job.config_version = current_config_version()
 
 
+def publish(job: Any, actor: Any, ctx: dict[str, Any]) -> None:
+    """``published_at`` is stamped by the service."""
+    _freeze_value_band(job)
+
+
 # ── cancel / fail (terminal-reason rows) ─────────────────────────────
 def cancel(job: Any, actor: Any, ctx: dict[str, Any]) -> None:
+    """A job cancelled directly from ``DRAFT`` (the ``(DRAFT, CANCELLED)`` row)
+    never went through ``publish`` — ``value_band`` freezes here instead, using
+    the identical computation, so ``ck_job_band_set_once_published`` holds for
+    every row that has ever left ``DRAFT``, cancelled-before-publish included
+    (a real gap: no test exercised this path before Step 10's API tests did —
+    self-caught during that verification, matching the Increment 3/4
+    precedent of fixing what a later increment's testing surfaces)."""
+    if job.status == JobStatus.DRAFT:
+        _freeze_value_band(job)
     reason_code = ctx.get("reason_code") or CancellationReason.OTHER
     CancellationRecord.objects.create(
         job=job,

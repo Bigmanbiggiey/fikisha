@@ -793,6 +793,101 @@ new code; **security and invariant tests are not optional**.
   before any write if that same Ops Officer asks for `REDUCE`/`WAIVE` — two
   genuinely different authorities that happen to be exercised through one
   call, checked independently.
+- **ADR-2D-25** *(Step 10 — API Boundary)* — **`jobs.creation.create_draft()`
+  is a new domain function, not new business logic.** No Increment ever
+  built a "create the `DRAFT` row" entry point — every domain test since
+  Increment 1 constructed a `Job` directly via `Job.objects.create(...)`,
+  which is fine for a fixture but is not an entry point an HTTP view may
+  call (brief §1: views must call domain services, never write models
+  directly). `DRAFT` is not reached via `JobLifecycleService.transition()`
+  (there is no `(_, DRAFT)` row in `ALLOWED_TRANSITIONS` — a job is *born*
+  there), so `create_draft()` is a plain create, mirroring exactly the
+  fields the existing fixtures already used; `submit_job()` immediately
+  hands off to the real first transition, `transition(REQUESTED)`. Only
+  ad-hoc pickup/destination locations are supported
+  (`source_kind=AD_HOC`) — reusing a saved `BusinessLocation`
+  (`source_kind=BUSINESS_LOCATION`) is deliberately deferred; nothing in
+  the approved schema is missing for it, there is simply no caller that
+  needs it yet (known limitation, not a defect).
+- **ADR-2D-26** *(Step 10)* — **`jobs.job_authz` duplicates
+  `incidents.authz`'s / `negotiation.authz`'s party-resolution pattern
+  rather than importing it**, for the same reason `jobs.apply_fns` never
+  imports `fikisha.incidents` (ADR-2D-01/22/23): the module-boundary rule
+  runs one way — sibling apps depend inward on `jobs`, `jobs` must never
+  depend on them. `job_authz.is_job_party()` is the real object-level check
+  behind the `job.read` policy (a list view scopes its queryset via
+  `job_authz.jobs_visible_to()`; a detail view resolves the actual `Job`
+  and the policy runs `is_job_party()` against it) — completing exactly
+  what `jobs.policies`'s docstring said Step 10 would complete.
+  `incidents.policies`'s new `incident.read` policy is the same pattern,
+  reusing `incidents.authz.is_job_party()` (the allowed import direction).
+- **ADR-2D-27** *(Step 10)* — **the commission read endpoint
+  (`GET /jobs/<id>/commission`) is Platform-Admin-only**, not extended to
+  the business or operator, even though Step 9's `party_liable: "OPERATOR"`
+  config could argue an operator has a stake in seeing it. No approved
+  functional requirement names a non-admin party with a right to read
+  platform commission figures (Step 9's `docs/phase-0/dispute-and-
+  liability.md` places statements under a still-unbuilt "weekly M-Pesa
+  statement" concept, not this endpoint) — brief §17/§23 explicitly frames
+  commission as commercially sensitive, so this stays conservative;
+  broadening it to a specific party is a product decision for whoever
+  builds the statement feature, not assumed here.
+- **ADR-2D-28** *(Step 10)* — **idempotency uses the two existing
+  mechanisms as-is, matched to what each endpoint already had**: plain
+  creates with no domain-level idempotency key (job creation, incident
+  report, dispute open) use the existing cache-based
+  `fikisha.common.idempotency.idempotent()` (Phase 2B, already used by
+  every `business`/`operators`/`groups` create endpoint); lifecycle actions
+  that already accepted an `idempotency_key` parameter since Increment 1
+  (submit, assign, custody confirms, negotiation accept, dispute resolve)
+  simply forward the HTTP `Idempotency-Key` header straight into that
+  parameter, reusing `JobTransitionIdempotency` (the DB-row store built in
+  Increment 1) — no second idempotency store, per brief §21. One
+  consequence, tested and accepted rather than papered over: a retried
+  `resolve_dispute()` call does not replay a cached response byte-for-byte
+  (Step 8 never added a `peek_idempotent()` short-circuit there, unlike
+  `negotiation.accept()`) — it instead hits `dispute.status == RESOLVED`
+  under the row lock and cleanly returns `409 dispute_already_resolved`.
+  No duplicate `Resolution`/`CommissionAdjustment` row is possible either
+  way (the dispute-resolved check and the `Resolution` `OneToOneField`
+  both independently prevent it) — a safe, if not byte-identical, retry.
+- **Self-caught bug (Step 10 API testing surfaced it, fixed alongside):**
+  `(DRAFT, CANCELLED)` — an already-approved row in
+  `ALLOWED_TRANSITIONS` since Increment 1 — had never been exercised
+  end-to-end by any test. `apply_fns.cancel()` never computed `value_band`,
+  so a job cancelled directly from `DRAFT` violated
+  `ck_job_band_set_once_published` ("every non-`DRAFT` row carries a real
+  band") the instant the API's cancel endpoint tried it. Fixed by having
+  `cancel()` run the identical band computation `publish()` uses,
+  *only* when the job is still `DRAFT` at cancel time — the invariant is
+  unchanged, every row that has ever left `DRAFT` still carries a real
+  band; a regression test was added directly at the domain level
+  (`fikisha.jobs.tests.test_lifecycle_engine`), not only through the API.
+- **Self-caught bug (Step 10 security self-review surfaced it, fixed
+  alongside — shared infrastructure, pre-existing since Phase 2C):**
+  `fikisha.evidence.services.EvidenceValidationError` (raised by `store()`
+  for an empty upload, an oversized file, or a content-type outside the
+  per-purpose allowlist) subclassed plain `ValueError`, which
+  `common.exceptions.problem_detail_exception_handler` does not recognise —
+  an upload validation failure would surface as an unhandled 500, not RFC
+  9457 `application/problem+json`, per brief §23. Confirmed this predates
+  Step 10: `verification.services.add_evidence()` (Phase 2C, used by the
+  existing `RecordEvidenceView`) already calls `evidence.services.store()`
+  with no catch of `EvidenceValidationError` anywhere in production code —
+  Step 10's new custody-photo and incident-evidence upload endpoints made
+  the same latent gap newly reachable rather than introducing a new one.
+  Fixed at the shared-infrastructure level: `EvidenceValidationError` now
+  subclasses `common.exceptions.DomainError` (422,
+  `code="evidence_validation_error"`) instead of `ValueError` — a small,
+  additive change with no behavioural change for existing callers that
+  catch `EvidenceValidationError` itself (its message/`__init__` shape is
+  unchanged; only its exception ancestry changed), fixing the gap for both
+  the pre-existing Verification upload path and every Step 10 upload
+  endpoint at once. A regression test was added at the HTTP level
+  (`fikisha.incidents.tests.test_api_incidents_disputes`, posting a
+  disallowed content-type to `IncidentEvidenceView` and asserting a clean
+  422 problem+json) rather than only re-checking the pre-existing
+  domain-level `pytest.raises(EvidenceValidationError)` tests.
 
 ---
 
@@ -924,8 +1019,26 @@ source.
    to match the now-real `resolve_completed`. No HTTP routes, no
    M-Pesa/eTIMS/wallet/escrow/refund/payout (Step 9 brief §3/§28) — Fikisha
    still never holds the transport fare.
-10. API views/urls for all groups + `next allowed actions` computation → API +
-    authorization tests.
+10. ✅ **DELIVERED** — API views/urls for all groups + `next allowed actions`
+    computation (`jobs.dto.next_allowed_statuses`, already built in
+    Increment 1 for exactly this) → API + authorization tests
+    (ADR-2D-25/26/27/28). Three new `api/` subpackages —
+    `fikisha.jobs.api` (jobs CRUD/submit/cancel, assignment, custody, OTP
+    (embedded in arrive/confirm), recipient scoped access at `/r/<token>`,
+    commission read), `fikisha.negotiation.api` (propose/counter/accept/
+    decline/read), `fikisha.incidents.api` (incidents/evidence/statements/
+    review/amicable/escalate, disputes/open/resolve) — all wired under
+    `/api/v1/` in `fikisha.api.urls`, all thin `OrgApiView` adapters over
+    the already-approved domain services (no lifecycle/negotiation/
+    assignment/proof/incident/dispute/commission rule duplicated in HTTP —
+    brief §1/§27). Full endpoint inventory, domain-boundary confirmation,
+    idempotency/concurrency/security results are in the Step 10 Founder
+    Gate report. 75 new API-level tests (incl. the mandatory concurrent-
+    HTTP OTP single-use regression, brief §8, a concurrent recipient-
+    confirmation equivalent, and the evidence-validation-error → clean-422
+    regression from the self-review fix below) — 818 backend total;
+    ruff/mypy/fresh-migrate/`makemigrations --check` all green. No frontend
+    (brief §30).
 11. Scheduled sweeps + beat wiring (per Q-5).
 12. Invariant/property tests; audit/outbox atomicity tests.
 13. `ruff` / `mypy` / `makemigrations --check` / fresh migrate / docker smoke.

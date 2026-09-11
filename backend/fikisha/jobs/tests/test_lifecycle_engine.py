@@ -44,6 +44,30 @@ def test_publish_computes_and_freezes_band(
     assert draft_job.status == JobStatus.REQUESTED
 
 
+def test_cancelling_directly_from_draft_also_freezes_the_band(
+    draft_job: Job, business_actor: Any, do_transition: Callable
+) -> None:
+    """Regression (self-caught during Step 10 API testing): ``(DRAFT,
+    CANCELLED)`` never ran ``publish``'s band computation, so the row left
+    ``DRAFT`` with ``value_band IS NULL`` — violating
+    ``ck_job_band_set_once_published`` ("every non-DRAFT row carries a real
+    band"). No prior test exercised a direct draft-to-cancel end-to-end
+    transition to catch it."""
+    view = do_transition(
+        draft_job,
+        JobStatus.CANCELLED,
+        business_actor,
+        data={"initiator_tokens": ["BUSINESS_PARTY"], "reason_code": "BUSINESS_CHANGED_MIND"},
+    )
+    assert view["status"] == JobStatus.CANCELLED
+    assert view["value_band"] == "STANDARD"
+    assert view["required_trust_level"] == "L1"
+
+    draft_job.refresh_from_db()
+    assert draft_job.status == JobStatus.CANCELLED
+    assert draft_job.value_band == "STANDARD"
+
+
 def test_publish_requires_verified_business(
     draft_job: Job, business_actor: Any, do_transition: Callable
 ) -> None:
