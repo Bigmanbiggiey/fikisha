@@ -23,6 +23,7 @@ _ALLOWED_TYPES: dict[str, set[str]] = {
     "VEHICLE_PHOTO": {"image/jpeg", "image/png", "image/webp"},
     "PROFILE_PHOTO": {"image/jpeg", "image/png", "image/webp"},
     "BASE_PHOTO": {"image/jpeg", "image/png", "image/webp"},
+    "INCIDENT_EVIDENCE": {"image/jpeg", "image/png", "image/webp", "application/pdf"},
 }
 _MAX_BYTES = 10 * 1024 * 1024  # 10 MB
 

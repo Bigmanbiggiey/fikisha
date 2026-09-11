@@ -339,18 +339,47 @@ def failure_reason_provided(job: Any, actor: Any, ctx: dict[str, Any]) -> None:
         _fail("failure_reason_required", "A failure reason is required.")
 
 
-# ── dispute ──────────────────────────────────────────────────────────
+# ── dispute (plan §19 Step 8, docs/phase-0/dispute-and-liability.md) ──
 def blocking_incident_exists(job: Any, actor: Any, ctx: dict[str, Any]) -> None:
-    """An OPEN/UNDER_REVIEW progression-blocking incident. Verified by the
-    IncidentService (later increment); the engine accepts
-    ``ctx['blocking_incident_id']``."""
-    if not ctx.get("blocking_incident_id"):
+    """A real, non-``RESOLVED`` progression-blocking ``Incident`` for *this*
+    job — not merely a truthy ``ctx`` claim. ``fikisha.incidents.services``
+    supplies ``ctx['blocking_incident_id']`` only after creating/loading the
+    Incident row itself; this guard re-verifies it server-side."""
+    incident_id = ctx.get("blocking_incident_id")
+    if not incident_id:
         _fail("no_blocking_incident", "A progression-blocking incident is required to dispute.")
+
+    from fikisha.incidents.constants import IncidentStatus
+    from fikisha.incidents.models import Incident
+
+    exists = (
+        Incident.objects.filter(id=incident_id, job_id=job.id)
+        .exclude(status=IncidentStatus.RESOLVED)
+        .exists()
+    )
+    if not exists:
+        _fail(
+            "no_blocking_incident",
+            "No open incident for this job matches the supplied blocking incident.",
+        )
 
 
 def resolution_recorded(job: Any, actor: Any, ctx: dict[str, Any]) -> None:
-    if not ctx.get("resolution_id") or not ctx.get("routed_job_status"):
+    """A real, persisted dispute ``Resolution`` for *this* job whose
+    ``routed_job_status`` matches what the caller asserts — not merely a
+    truthy ``ctx`` claim."""
+    resolution_id = ctx.get("resolution_id")
+    routed_status = ctx.get("routed_job_status")
+    if not resolution_id or not routed_status:
         _fail("no_resolution", "A recorded dispute Resolution is required.")
+
+    from fikisha.incidents.models import Resolution
+
+    exists = Resolution.objects.filter(
+        id=resolution_id, dispute__job_id=job.id, routed_job_status=routed_status
+    ).exists()
+    if not exists:
+        _fail("no_resolution", "No matching recorded dispute Resolution was found for this job.")
 
 
 def admin_band_authorised(job: Any, actor: Any, ctx: dict[str, Any]) -> None:
@@ -368,13 +397,9 @@ def admin_band_authorised(job: Any, actor: Any, ctx: dict[str, Any]) -> None:
 
 
 def no_open_blocking_dispute(job: Any, actor: Any, ctx: dict[str, Any]) -> None:
-    try:
-        from fikisha.incidents.models import (  # type: ignore[import-not-found]
-            Dispute,
-            DisputeStatus,
-        )
-    except ImportError:
-        return  # the incidents app (plan §19 Step 8) is not installed yet → no disputes
+    from fikisha.incidents.constants import DisputeStatus
+    from fikisha.incidents.models import Dispute
+
     if Dispute.objects.filter(job=job).exclude(status=DisputeStatus.RESOLVED).exists():
         raise JobNoLongerAvailable()
 

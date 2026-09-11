@@ -14,8 +14,24 @@ issue the pickup / recipient OTP; ``confirm_pickup`` / ``confirm_delivery`` writ
 the ``ProofOf*`` row **and** the method-specific custody ``job_event``
 (``PICKUP_OTP_CONFIRMED`` / ``PICKUP_BUSINESS_CONFIRMED`` /
 ``PICKUP_OPERATOR_ATTESTED`` / ``RECIPIENT_VERIFIED``) — the one place the method
-is known (ADR-2D-15). ``freeze`` / ``complete`` / ``resolve_*`` still raise
-``NotImplementedInThisIncrement`` (plan §19 Steps 8-9).
+is known (ADR-2D-15).
+
+Dispute side effects (Step 8, plan §19): ``freeze`` / ``freeze_post_completion``
+/ ``resolve_completed`` / ``resolve_failed`` / ``resolve_cancelled`` are ``noop``
+here **by design**, not a stub. The Job-lifecycle module boundary rule (sibling
+apps depend inward on ``jobs``, never the reverse) means this module must not
+import or write ``fikisha.incidents`` models. ``fikisha.incidents.services``
+owns creating the ``Dispute`` row (stamping ``pre_dispute_status`` from the
+still-pre-write, row-locked ``job.status`` it reads itself, ADR-2D-07) and
+marking a resolved ``Dispute`` — both **before** calling
+``JobLifecycleService.transition()`` inside the *same* outer
+``transaction.atomic()`` (a nested atomic block is a savepoint on the same
+locked row, so both reads see the identical, consistent job state). The DISPUTED
+status write itself — plus the ``job_event`` / audit / outbox rows the engine
+already produces — is the entire job-side effect of a freeze or a resolution;
+there is nothing left for these apply fns to do. ``complete`` (the ordinary
+``DELIVERED → COMPLETED`` completion + commission path) remains deferred to
+Step 9 — untouched here.
 """
 
 from __future__ import annotations
@@ -362,12 +378,17 @@ def _deferred(what: str) -> ApplyFn:
     return _fn
 
 
-freeze = _deferred("dispute (freeze)")
-freeze_post_completion = _deferred("post-completion dispute (freeze)")
 complete = _deferred("completion + commission")
-resolve_completed = _deferred("dispute resolution → COMPLETED")
-resolve_failed = _deferred("dispute resolution → FAILED")
-resolve_cancelled = _deferred("dispute resolution → CANCELLED")
+
+# Dispute freeze / resolution: the job-side effect is exactly the status write
+# the engine already performs — see the module docstring. ``fikisha.incidents
+# .services`` creates/updates the ``Dispute`` row itself, before/around this
+# call, in the same transaction.
+freeze = noop
+freeze_post_completion = noop
+resolve_completed = noop
+resolve_failed = noop
+resolve_cancelled = noop
 
 
 APPLY: dict[str, ApplyFn] = {

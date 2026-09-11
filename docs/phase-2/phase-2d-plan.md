@@ -698,6 +698,56 @@ new code; **security and invariant tests are not optional**.
   already-present `SECRET_KEY` as the "server-held key"
   (recipient-access.md §2) rather than standing up new secret management/KMS
   infrastructure, which is out of scope for 2D.
+- **ADR-2D-20** *(Step 8 — Incidents & Disputes)* — **`dispute` uses a
+  partial-unique index, not the hard `UNIQUE(job_id)` `database-design.md
+  §4.10` states.** A literal hard-unique would permanently block the
+  already-approved `COMPLETED → DISPUTED` post-completion-window path on any
+  job whose *first* dispute already resolved it to `COMPLETED` — the second,
+  later dispute could never be recorded. Reconciled (Founder-selected option,
+  not silently decided) as
+  `UniqueConstraint(fields=["job"], condition=Q(status__in=[OPEN,
+  UNDER_REVIEW, AMICABLE_PENDING, ESCALATED]), name="uq_dispute_one_open_per_job")`
+  — the predicate is on **static status values only**, never `now()` (the
+  standing rule from the Increment 5 Founder Gate amendment, §0). One job may
+  have more than one `Dispute` episode over its lifetime; at most one may be
+  open at a time — this is also the concurrency backstop for
+  `incidents.services.open_dispute()` (a second concurrent caller's `INSERT`
+  hits the index and fails, not a race-prone check-then-write).
+- **ADR-2D-21** *(Step 8)* — **`Resolution.actions` records admin-declared
+  intent flags only; Step 8 executes none of them.**
+  `dispute-and-liability.md §6` describes confirmed-fault incidents feeding a
+  rating summary and operator trust-level assessment; the Step 8 brief
+  explicitly forbids introducing ratings, trust scoring, or any automatic
+  trust-level change in this increment. Resolved in favour of the more
+  specific, more recent instruction: `ResolutionAction` (`NONE` /
+  `RATING_IMPACT` / `TRUST_CHANGE` / `SUSPENSION`) is stored as data on the
+  append-only `Resolution` row for a **future**, separately-approved
+  trust/rating phase to read — no rating computation, no trust-engine call, no
+  operator/vehicle suspension side effect happens anywhere in this increment.
+  The approved cancellation-reputation rule (3 late cancellations / wasted
+  trips, rolling 30-day window → admin-review flag) is unchanged and untouched
+  by Step 8.
+- **ADR-2D-22** *(Step 8)* — **`jobs.apply_fns`'s dispute paths (`freeze` /
+  `freeze_post_completion` / `resolve_completed` / `resolve_failed` /
+  `resolve_cancelled`) are the existing `noop` apply fn, not new code** — the
+  module-boundary rule (§4 / ADR-2D-01: sibling apps depend inward on `jobs`,
+  never the reverse) means `jobs.apply_fns` must not import or write
+  `fikisha.incidents` models. `fikisha.incidents.services.open_dispute()` /
+  `resolve_dispute()` create/update the `Dispute` / `Resolution` rows
+  **themselves**, before/around the call to
+  `JobLifecycleService.transition()`, inside the *same* outer
+  `transaction.atomic()` that also takes the Job row lock — so
+  `Dispute.pre_dispute_status` is stamped from the identical locked
+  `job.status` the transition itself then reads, with no risk of the two
+  disagreeing (ADR-2D-07/20). The three dispute guards
+  (`BlockingIncidentExists`, `ResolutionRecorded`, `NoOpenBlockingDispute`,
+  already scaffolded in Increment 1 with a lazy cross-app import — the one
+  pre-anticipated, narrower exception to the module-boundary rule: a **guard**
+  may read across the boundary to protect the Job lifecycle's own invariants,
+  it never writes there) now verify a real, persisted, same-job Incident /
+  Resolution row — not merely a truthy `ctx` claim — closing a
+  request-forgery gap the placeholder stubs left open (regression tests:
+  `fikisha.incidents.tests.test_job_lifecycle_safety`).
 
 ---
 
@@ -779,8 +829,27 @@ source.
    → proof tests.
 7. `recipient_access_link` + principal + minimal serializer + `/r/` endpoints →
    recipient tests.
-8. `incidents` app + `dispute` + `resolution` + the `* → DISPUTED` /
-   `DISPUTED → *` transitions → incident/dispute tests.
+8. ✅ **DELIVERED** — `incidents` app + `dispute` + `resolution` + the
+   `* → DISPUTED` / `DISPUTED → *` transitions → incident/dispute tests
+   (ADR-2D-20/21/22). `fikisha.incidents`: `constants.py` (11-value FR-D-1
+   taxonomy, small explicit Incident/Dispute status workflows — not the 14-state
+   Job lifecycle reused), `models.py` (`Incident`, `IncidentEvidence` +
+   `IncidentStatement` append-only, `Dispute`, `Resolution` append-only,
+   `Escalation` append-only), `authz.py`, `services.py`
+   (`report_incident` / `intake_recipient_report` / `attach_evidence` /
+   `add_statement` / `start_review` / `start_amicable_window` / `open_dispute`
+   / `resolve_dispute` / `escalate` — none writes `job.status` directly),
+   `policies.py`. `jobs.guards` strengthened (real DB re-verification, not
+   ctx-trust); `jobs.apply_fns` dispute paths are `noop` (ADR-2D-22). 90
+   Step-8 tests + 2 pre-existing Increment-1 placeholder tests updated to
+   match the now-real behaviour (full suite: 691 passed). **Known
+   limitation:** `DELIVERED → COMPLETED` (`complete`) stays deferred to Step
+   9 (commission), so the `COMPLETED → DISPUTED` post-completion path and any
+   commission-record interaction are implemented and guarded but not yet
+   reachable end-to-end in a running system — `Resolution.commission_treatment`
+   / `reduced_amount_kes` / `agreed_compensation_kes` are the smallest
+   domain-neutral boundary Step 9 will read; Step 8 builds no
+   `CommissionRecord`/adjustment engine. No HTTP routes (Step 10).
 9. Commission integration on `→ COMPLETED` → financial tests.
 10. API views/urls for all groups + `next allowed actions` computation → API +
     authorization tests.

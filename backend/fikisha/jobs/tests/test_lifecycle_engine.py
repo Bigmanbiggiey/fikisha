@@ -264,43 +264,17 @@ def test_full_custody_chain_to_delivered(
 
 
 # ─── deferred increments ───────────────────────────────────────────
-def test_dispute_paths_raise_not_implemented(
-    draft_job: Job,
-    admin_actor: Any,
-    do_transition: Callable,
-    _bypass_assignment_guards: None,
-    driver_and_vehicle: tuple[Any, Any],
-) -> None:
-    driver, vehicle = driver_and_vehicle
-    op_id = str(driver.id)
-    do_transition(draft_job, JobStatus.REQUESTED, admin_actor)
-    do_transition(
-        draft_job,
-        JobStatus.CONFIRMED,
-        admin_actor,
-        data={"agreed_price_kes": 1, "operator_party": "OPERATOR", "operator_id": op_id},
-    )
-    do_transition(
-        draft_job,
-        JobStatus.ASSIGNED,
-        admin_actor,
-        data={
-            "driver_profile": driver,
-            "vehicle": vehicle,
-            "operator_party": "OPERATOR",
-            "operator_id": op_id,
-        },
-    )
-    draft_job.refresh_from_db()
+def test_complete_apply_fn_still_raises_not_implemented() -> None:
+    """``DELIVERED -> COMPLETED`` (completion + commission) remains deferred to
+    Phase 2D Step 9. The dispute paths this test used to cover (``freeze`` /
+    ``resolve_*``) are implemented as of plan §19 Step 8 — see
+    ``fikisha.incidents.tests`` for their comprehensive suite, including the
+    full lifecycle-safety guarantees (no incidents code path writes
+    ``job.status`` directly; every guard re-verifies a real persisted row)."""
+    from fikisha.jobs.apply_fns import APPLY
+
     with pytest.raises(NotImplementedInThisIncrement):
-        do_transition(
-            draft_job,
-            JobStatus.DISPUTED,
-            admin_actor,
-            data={"blocking_incident_id": "x"},
-        )
-    draft_job.refresh_from_db()
-    assert draft_job.status == JobStatus.ASSIGNED  # rolled back
+        APPLY["complete"](None, None, {})
 
 
 # ─── DB backstop (job-state-machine.md §7) ────────────────────────

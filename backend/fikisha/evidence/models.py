@@ -21,6 +21,9 @@ class EvidencePurpose(models.TextChoices):
     VEHICLE_PHOTO = "VEHICLE_PHOTO", "Vehicle photo"
     PROFILE_PHOTO = "PROFILE_PHOTO", "Profile photo"
     BASE_PHOTO = "BASE_PHOTO", "Operating-location photo"
+    # Phase 2D Step 8 (Incidents & Disputes) — additive; no existing member
+    # changes, no migration needed (a plain CharField, no DB check constraint).
+    INCIDENT_EVIDENCE = "INCIDENT_EVIDENCE", "Incident evidence"
 
 
 class UploaderKind(models.TextChoices):
@@ -28,6 +31,8 @@ class UploaderKind(models.TextChoices):
     BUSINESS = "BUSINESS", "Business user"
     ADMIN = "ADMIN", "Administrator"
     SYSTEM = "SYSTEM", "System"
+    # Phase 2D Step 8 — a recipient may attach evidence to an incident (FR-D-2).
+    RECIPIENT = "RECIPIENT", "Recipient"
 
 
 class EvidenceObject(TimestampedModel):

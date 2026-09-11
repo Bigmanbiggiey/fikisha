@@ -11,7 +11,7 @@ from typing import Any
 
 from django.http import Http404
 
-from fikisha.jobs.models import Job
+from fikisha.jobs.models import Job, RecipientReportedIssue
 
 
 def get_job(job_id: Any) -> Job:
@@ -27,3 +27,10 @@ def job_for_update(job_id: Any) -> Job:
         return Job.objects.select_for_update().get(id=job_id)
     except Job.DoesNotExist as exc:
         raise Http404("No such job.") from exc
+
+
+def get_recipient_reported_issue(report_id: Any) -> RecipientReportedIssue:
+    try:
+        return RecipientReportedIssue.objects.select_related("job").get(id=report_id)
+    except RecipientReportedIssue.DoesNotExist as exc:
+        raise Http404("No such recipient report.") from exc

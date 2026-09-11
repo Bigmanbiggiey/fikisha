@@ -145,12 +145,45 @@ def test_failure_reason_provided() -> None:
         guards.GUARDS["FailureReasonProvided"](None, None, {"reason_text": "   "})
 
 
-def test_resolution_recorded() -> None:
+def test_resolution_recorded_fails_fast_on_missing_ctx_fields() -> None:
+    """The ctx-shape check runs before any DB lookup — a stub ``job`` is enough
+    here. The full "resolves against a *real*, same-job Resolution row" check
+    (plan §19 Step 8) has its own DB-backed suite in
+    ``fikisha.incidents.tests``."""
+    stub_job = SimpleNamespace(id="not-a-real-job")
+    with pytest.raises(GuardFailed):
+        guards.GUARDS["ResolutionRecorded"](stub_job, None, {"resolution_id": "r1"})
+    with pytest.raises(GuardFailed):
+        guards.GUARDS["ResolutionRecorded"](stub_job, None, {"routed_job_status": "COMPLETED"})
+
+
+def test_resolution_recorded_matches_a_real_persisted_resolution_for_this_job(
+    make_assigned_job: Any,
+) -> None:
+    from fikisha.incidents.models import Dispute, Resolution
+
+    job = make_assigned_job()
+    dispute = Dispute.objects.create(job=job, incident_ids=[], pre_dispute_status=job.status)
+    resolution = Resolution.objects.create(
+        dispute=dispute,
+        outcome_code="ADMIN_DETERMINATION",
+        rationale="test resolution",
+        routed_job_status="COMPLETED",
+        resolved_by_admin=job.created_by,
+    )
     guards.GUARDS["ResolutionRecorded"](
-        None, None, {"resolution_id": "r1", "routed_job_status": "COMPLETED"}
+        job, None, {"resolution_id": str(resolution.id), "routed_job_status": "COMPLETED"}
     )
     with pytest.raises(GuardFailed):
-        guards.GUARDS["ResolutionRecorded"](None, None, {"resolution_id": "r1"})
+        # right resolution, wrong asserted routed_job_status
+        guards.GUARDS["ResolutionRecorded"](
+            job, None, {"resolution_id": str(resolution.id), "routed_job_status": "FAILED"}
+        )
+    with pytest.raises(GuardFailed):
+        # a resolution id that doesn't exist at all
+        guards.GUARDS["ResolutionRecorded"](
+            job, None, {"resolution_id": str(job.id), "routed_job_status": "COMPLETED"}
+        )
 
 
 def test_admin_band_authorised() -> None:
