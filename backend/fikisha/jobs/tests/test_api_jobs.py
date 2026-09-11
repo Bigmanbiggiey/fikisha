@@ -177,6 +177,32 @@ class TestJobSubmitAndCancel:
         assert r.status_code == 200
         assert r.data["status"] == "CANCELLED"
 
+    @pytest.mark.django_db(transaction=True)
+    def test_submit_and_cancel_work_outside_an_implicit_test_transaction(
+        self, business_actor: Any, draft_job: Any
+    ) -> None:
+        """Self-caught bug (Step 11 concurrency testing surfaced it):
+        ``creation.submit_job``/``cancel_job`` called ``job_for_update()``
+        (``select_for_update()``) with no ``@transaction.atomic`` of their
+        own — invisible under every prior test because pytest-django's
+        default ``django_db`` fixture already wraps each test in an implicit
+        atomic block, and Django has no ``ATOMIC_REQUESTS`` either, so the
+        same crash was latent in real HTTP use. Fixed by switching both
+        functions to the unlocked ``get_job()`` (they only resolve the
+        initiator token; ``transition()`` re-locks the row itself, the
+        actual authoritative check) — this test only passes under
+        ``transaction=True``, which removes that implicit wrapper."""
+        from fikisha.jobs.creation import cancel_job, submit_job
+
+        result = submit_job(actor=business_actor, job_id=draft_job.id)
+        assert result["status"] == "REQUESTED"
+        result = cancel_job(
+            actor=business_actor,
+            job_id=draft_job.id,
+            reason_code="BUSINESS_CHANGED_MIND",
+        )
+        assert result["status"] == "CANCELLED"
+
     def test_the_http_layer_does_not_bypass_the_transition_guard_chain(
         self, client_for: Callable, business_actor: Any, verified_business: Any
     ) -> None:

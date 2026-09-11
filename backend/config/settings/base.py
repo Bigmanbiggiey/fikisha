@@ -130,11 +130,32 @@ CELERY_TASK_SOFT_TIME_LIMIT = 90
 CELERY_TASK_DEFAULT_QUEUE = "default"
 CELERY_TIMEZONE = env.str_("DJANGO_TIME_ZONE", "Africa/Nairobi")
 OUTBOX_POLL_SECONDS = env.int_("OUTBOX_POLL_SECONDS", 3)
+# ─── Scheduled sweeps (Phase 2D Step 11, plan §19 / ADR-2D-08 / Q-5) ──────
+# Only the two lifecycle-critical jobs sweeps are beat-wired here (ADR-2D-08:
+# "beat-wired — unlike 2C's optional command"). Verification expiry stays
+# command-only, exactly as Phase 2C left it (`fikisha.verification.tasks`
+# exists so it *can* be beat-wired later without duplicating logic, but Q-5
+# never approved doing so — see the Step 11 write-up in phase-2d-plan.md).
+# Everything else in the 2D domain stays request-time/lazy (see the Step 11
+# time-dependent inventory in the same doc). 5 minutes is generous next to
+# the hours/days-scale windows each sweep actually enforces.
+JOBS_EXPIRE_REQUESTS_POLL_SECONDS = env.int_("JOBS_EXPIRE_REQUESTS_POLL_SECONDS", 300)
+JOBS_AUTOCOMPLETE_DELIVERED_POLL_SECONDS = env.int_("JOBS_AUTOCOMPLETE_DELIVERED_POLL_SECONDS", 300)
 CELERY_BEAT_SCHEDULE = {
     "drain-outbox": {
         "task": "fikisha.outbox.tasks.drain_outbox",
         "schedule": float(OUTBOX_POLL_SECONDS),
         "options": {"expires": OUTBOX_POLL_SECONDS},
+    },
+    "jobs-expire-requests": {
+        "task": "fikisha.jobs.tasks.expire_requests",
+        "schedule": float(JOBS_EXPIRE_REQUESTS_POLL_SECONDS),
+        "options": {"expires": JOBS_EXPIRE_REQUESTS_POLL_SECONDS},
+    },
+    "jobs-autocomplete-delivered": {
+        "task": "fikisha.jobs.tasks.autocomplete_delivered",
+        "schedule": float(JOBS_AUTOCOMPLETE_DELIVERED_POLL_SECONDS),
+        "options": {"expires": JOBS_AUTOCOMPLETE_DELIVERED_POLL_SECONDS},
     },
 }
 

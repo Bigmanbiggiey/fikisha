@@ -246,6 +246,13 @@ Custody has **no** app of its own — it is `job_event` rows written by
 `JobStatus` / `ValueBand` / `TrustLevel` enum home if not already in config, and
 a `recipient` auth principal type.
 
+> **As actually delivered (Step 11, §22/ADR-2D-29/30):** `jobs.tasks` (not
+> foreseen above) holds the Celery task wrappers; the management commands are
+> `jobs_expire_requests` + `jobs_autocomplete_delivered` only —
+> `jobs_close_post_completion_window` was **not** built (ADR-2D-30: nothing
+> left for it to do once Step 9 dropped the commission HELD concept this
+> layout's `jobs_close_post_completion_window` line originally assumed).
+
 ---
 
 ## 5. Job schema (verbatim from `database-design.md §4.6–4.11`)
@@ -888,6 +895,75 @@ new code; **security and invariant tests are not optional**.
   disallowed content-type to `IncidentEvidenceView` and asserting a clean
   422 problem+json) rather than only re-checking the pre-existing
   domain-level `pytest.raises(EvidenceValidationError)` tests.
+- **ADR-2D-29** *(Step 11 — Scheduled Sweeps)* — **a sweep is candidate
+  selection + one `transition()` call per candidate, nothing else.**
+  `jobs.tasks.expire_requests`/`autocomplete_delivered` compute their own
+  cutoff from `platform_config` (`timeouts.request_expiry_hours` /
+  `timeouts.delivery_acceptance`) and hand each candidate to the identical
+  `JobLifecycleService.transition()` every API view already calls, as
+  `fikisha.identity.authz.actors.SystemActor` — `audit_role == "SYSTEM"` is
+  exactly the token `jobs.service._actor_matches` already granted
+  `SCHEDULER` for since Increment 1 (`(REQUESTED, FAILED)` /
+  `(DELIVERED, COMPLETED)` already listed `SCHEDULER` as an initiator; this
+  sweep is simply the first caller that reaches them). No guard, apply fn,
+  or lifecycle rule changed. Candidates are queried in bounded batches, then
+  driven **one at a time** — each `transition()` call keeps its own row
+  lock and transaction, so a candidate another actor or worker already moved
+  is a clean, expected `skipped` (a `DomainError`/`Http404`), never a
+  `failed`; a genuinely unexpected exception on one candidate is caught and
+  counted, never aborting the rest of the batch (brief §17). Only the two
+  lifecycle-critical sweeps are beat-wired (`CELERY_BEAT_SCHEDULE`, 300s —
+  generous next to the hours/days windows each one enforces), matching
+  Q-5/ADR-2D-08's "beat-wired... unlike 2C's optional command" framing;
+  `verification.tasks.expire_due` was added (so it *can* be scheduled later
+  without duplicating `services.expire_due()`) but stays **command-only** —
+  Q-5 never approved beat-wiring it, and it isn't lifecycle-critical the way
+  the two jobs sweeps are (`VerificationRecord.effective_state()` already
+  folds expiry in at read time regardless of whether the sweep ever runs).
+  Management commands (`jobs_expire_requests`, `jobs_autocomplete_delivered`,
+  the pre-existing `verification_expire`) call the Celery task function
+  directly for synchronous manual/operational runs — the exact
+  `outbox_drain` / `drain_outbox` precedent, no new pattern invented.
+- **ADR-2D-30** *(Step 11)* — **`jobs_close_post_completion_window`, named
+  in §4's original module layout, was not built — there is nothing left for
+  it to do.** The plan's original vision (this doc's now-superseded §6 row
+  "`commission_record.status = HELD`") assumed a commission *hold* state a
+  window-close sweep would later release. Step 9 (ADR-2D-23/24) deliberately
+  built `CommissionRecord` append-only with **no `status`/HELD field at
+  all** — commission is created unconditionally and atomically at
+  `COMPLETED`, and the only correction path is an explicit, authorized,
+  reasoned `CommissionAdjustment`. Separately, the `COMPLETED → DISPUTED`
+  window is already fully self-enforcing at request time
+  (`WithinPostCompletionWindow`, checked against `completed_at` +
+  `platform_config` on every attempt) — once the window closes, the guard
+  alone makes a fresh dispute impossible; there is no separate piece of
+  state a sweep could still flip. Inventing a HELD/release mechanism now
+  would be a new commission-workflow decision Step 9's own brief explicitly
+  ruled out ("no automatic dispute compensation... must be attributable /
+  authorized / reasoned" — a bare window-close notification is none of
+  those). Recorded here as a verified plan-vs-implementation drift (brief
+  §2: "do not assume the plan and implementation are identical"), not a
+  Step 11 gap.
+- **Self-caught bug (Step 11 concurrency testing surfaced it, fixed
+  alongside — a real, pre-existing Step 10 defect, not a Step 11 one):**
+  `jobs.creation.submit_job()` / `cancel_job()` called
+  `selectors.job_for_update()` (`select_for_update()`) with no
+  `@transaction.atomic` of their own. Invisible under every prior test
+  (pytest-django's default `django_db` fixture already wraps each test in
+  an implicit atomic block) — and just as invisible over real HTTP, since
+  Django has no `ATOMIC_REQUESTS` configured either — until Step 11's first
+  genuinely cross-connection (`transaction=True`) test called `submit_job()`
+  and hit `TransactionManagementError` for real. The locked read was dead
+  weight besides: it only resolves which initiator token the actor holds,
+  never the write itself — `transition()` re-fetches and re-locks the row
+  under its own `select_for_update()` immediately after, which is the
+  actual authoritative check. Fixed by switching both functions to the
+  existing unlocked `selectors.get_job()` — smaller and safer than adding a
+  decorator, and correct for exactly the same reason the redundant lock was
+  never load-bearing. A direct `transaction=True` regression test was added
+  in `fikisha.jobs.tests.test_api_jobs` (calls `submit_job`/`cancel_job`
+  with no surrounding atomic block) rather than relying on the sweep's own
+  concurrency tests to keep covering it incidentally.
 
 ---
 
@@ -1039,7 +1115,23 @@ source.
     regression from the self-review fix below) — 818 backend total;
     ruff/mypy/fresh-migrate/`makemigrations --check` all green. No frontend
     (brief §30).
-11. Scheduled sweeps + beat wiring (per Q-5).
+11. ✅ **DELIVERED** — scheduled sweeps + beat wiring (per Q-5, ADR-2D-29/30).
+    `fikisha.jobs.tasks` (`expire_requests`, `autocomplete_delivered`) +
+    matching management commands, beat-wired at 300s each;
+    `fikisha.verification.tasks.expire_due` wraps the pre-existing Phase 2C
+    command, command-only (not beat-wired). Every sweep is candidate
+    selection + one `JobLifecycleService.transition()` call per candidate as
+    `SystemActor` — no guard/apply-fn/lifecycle rule touched. Full
+    time-dependent inventory + operational detail in §22. One self-caught,
+    pre-existing Step 10 bug fixed alongside: `jobs.creation.submit_job`/
+    `cancel_job` used an unwrapped `select_for_update()`, invisible under
+    every prior (implicitly-atomic) test — switched to the unlocked
+    `get_job()`, the read was never load-bearing. 20 new tests (candidate
+    selection/batching/idempotent-rerun/robustness for both sweeps, Celery
+    registration, two real-thread concurrency tests, the privilege-boundary
+    pair, the `submit_job`/`cancel_job` regression) — 838 backend total;
+    ruff/mypy/`makemigrations --check` all green; `docker compose up
+    worker beat` verified clean startup + correct task registration (§22).
 12. Invariant/property tests; audit/outbox atomicity tests.
 13. `ruff` / `mypy` / `makemigrations --check` / fresh migrate / docker smoke.
 14. `claude-security` scan-changes + STRIDE notes + full review vs Phases 0–2C.
@@ -1089,3 +1181,83 @@ reputation (stays DEFERRED).
 
 On confirmation, implementation proceeds per §19; on any change, the plan is
 revised and re-presented.
+
+---
+
+## 22. Step 11 — Scheduled sweeps: time-dependent inventory + operational detail
+
+Full review of every time-bounded record in the approved Phase 2D domain
+(brief §5), classified per the brief's own categories. Only a row marked
+**sweep** gets one; every other row is already correct without one.
+
+| Domain | Field(s) | Category | Sweep? |
+| --- | --- | --- | --- |
+| Job request | `job.published_at` + `timeouts.request_expiry_hours` | Requires authoritative state mutation | ✅ `jobs.tasks.expire_requests` → `(REQUESTED, FAILED)` |
+| Delivery acceptance | `job.delivered_at` + `timeouts.delivery_acceptance` | Requires authoritative state mutation | ✅ `jobs.tasks.autocomplete_delivered` → `(DELIVERED, COMPLETED)` |
+| Post-completion dispute window | `job.completed_at` + `timeouts.post_completion_window` | Already handled lazily — `WithinPostCompletionWindow` guard re-checks it on every attempt | ❌ no sweep (ADR-2D-30 — nothing left to flip once Step 9 dropped the HELD concept) |
+| Verification record expiry | `VerificationRecord.expires_at` | Already handled lazily (`effective_state()` folds it in at read time); `expire_due()` only keeps the append-only decision history complete | Command-only, unchanged from Phase 2C (ADR-2D-29); `verification.tasks.expire_due` exists for a future Beat wire, not scheduled now |
+| Recipient access link | `RecipientAccessLink.expires_at`/`revoked_at` | Already handled lazily — `"active" = revoked_at IS NULL AND now() < expires_at"`, checked at request time (Increment 5) | ❌ no sweep — the brief explicitly warns against a destructive cleanup sweep here |
+| Custody / recipient OTP | `OtpChallenge.expires_at`, `attempts` | Already handled lazily — `is_expired()` / attempt cap checked on every verify | ❌ no sweep |
+| Negotiation entry | `NegotiationEntry.expires_at` | Append-only; status is **derived**, never stored (ADR-2D-11) | ❌ no sweep — a mutating sweep would violate the append-only invariant outright |
+| Incident amicable window | — | Not yet modeled — no deadline field exists on `Incident`/`Dispute`, only a status label | ❌ do not invent |
+| Cancellation-reputation rolling window / flag | `cancellation_policy.rolling_window_days`/`flag_threshold` (config only) | Not yet modeled — no domain field to flip exists on `CancellationRecord` | ❌ do not invent |
+| Evidence / document expiry | — | Not yet modeled — no expiry field on `EvidenceObject` | ❌ do not invent |
+| Identity `AuthSession` / `RefreshToken` | `expires_at`, `revoked_at` | Already handled lazily (`is_active`/`is_expired` properties); Phase 2A, out of the 2D domain | ❌ no sweep |
+| Commission | — | Append-only, immutable, no HELD/pending state | Not applicable — see ADR-2D-30 |
+
+**Implemented sweeps:**
+
+- `jobs.tasks.expire_requests` (command `jobs_expire_requests`, beat entry
+  `jobs-expire-requests`, 300s / `JOBS_EXPIRE_REQUESTS_POLL_SECONDS`, default
+  batch 100): `REQUESTED` jobs past `timeouts.request_expiry_hours` with no
+  agreement → `FAILED` via the pre-existing `(REQUESTED, FAILED)` rule
+  (`RequestExpired` guard, `SCHEDULER` initiator, both already part of the
+  Increment-1 table). `apply_fns.fail()` already defaulted
+  `reason_text = "EXPIRED_NO_OFFER"` for exactly this path since Increment 1
+  — no domain code changed.
+- `jobs.tasks.autocomplete_delivered` (command `jobs_autocomplete_delivered`,
+  beat entry `jobs-autocomplete-delivered`, 300s /
+  `JOBS_AUTOCOMPLETE_DELIVERED_POLL_SECONDS`, default batch 100): `DELIVERED`
+  jobs whose `timeouts.delivery_acceptance` window has closed (standard vs.
+  high-value split, mirroring `within_delivery_acceptance_window`'s own
+  branching) and that carry no open, unresolved `Dispute` → `COMPLETED` via
+  the pre-existing `(DELIVERED, COMPLETED)` rule (`NoOpenBlockingDispute`
+  guard, `SCHEDULER` initiator) — the same `complete` apply fn an explicit
+  business/recipient confirmation uses, including the same idempotent
+  `CommissionRecord` creation.
+- `verification.tasks.expire_due` (command `verification_expire`, unchanged
+  invocation/output): thin Celery wrapper around the existing
+  `services.expire_due()`; **not** beat-scheduled (ADR-2D-29).
+
+**Drive loop / concurrency:** both jobs sweeps query a bounded batch of
+candidate ids, then call `JobLifecycleService.transition()` **once per
+candidate**, each keeping `transition()`'s own row lock and transaction — no
+second locking or idempotency mechanism. A candidate a guard refuses (already
+moved by another actor, a fresh dispute just opened, …) is counted
+`skipped`, not `failed`; a genuinely unexpected exception on one candidate is
+caught, logged, and counted `failed` without aborting the rest of the batch.
+Two sweep workers racing the same candidate, and a sweep racing an ordinary
+domain operation on the same job, are both covered by real multi-threaded
+tests (`fikisha.jobs.tests.test_sweeps.TestConcurrency`) — correctness comes
+from `transition()`'s existing `SELECT ... FOR UPDATE`, not from timing.
+
+**Actor / privilege boundary:** both sweeps run as
+`fikisha.identity.authz.actors.SystemActor` (`audit_role == "SYSTEM"`), the
+exact token `jobs.service._actor_matches` already recognised as granting the
+`SCHEDULER` initiator since Increment 1. No HTTP endpoint exposes
+`expire_requests`/`autocomplete_delivered`, or any way to set
+`ctx["expiry_reached"]`/`ctx["scheduler"]`, to an ordinary caller — confirmed
+by both a direct domain-level test (an ordinary business actor attempting
+`(REQUESTED, FAILED)` gets `NotAuthorisedToInitiate`) and a URL-inventory
+test (no `expire`/`autocomplete`/`sweep`/`scheduler` route exists).
+
+**Docker verification:** `docker compose up -d --build worker beat` (db/redis
+already running) — both containers reached healthy with no crash; the worker
+log lists all six tasks (`fikisha.jobs.tasks.expire_requests`,
+`fikisha.jobs.tasks.autocomplete_delivered`, `fikisha.verification.tasks.
+expire_due`, plus the three pre-existing ones); beat parsed the schedule and
+began sending `drain-outbox` (3s) with no error — `jobs-expire-requests`/
+`jobs-autocomplete-delivered` (300s) hadn't come due yet within the
+observation window, which is expected. Containers were stopped and removed
+afterward, restoring the environment to its pre-verification state
+(db/redis only).

@@ -14,12 +14,12 @@ from typing import Any
 
 from django.core.management.base import BaseCommand
 
-from fikisha.verification import services
+from fikisha.verification.tasks import expire_due
 
 
 class Command(BaseCommand):
     help = "Expire verification records whose expiry date has passed."
 
     def handle(self, *args: Any, **options: Any) -> None:
-        count = services.expire_due()
-        self.stdout.write(self.style.SUCCESS(f"Expired {count} verification record(s)."))
+        stats = expire_due()
+        self.stdout.write(self.style.SUCCESS(f"Expired {stats['expired']} verification record(s)."))

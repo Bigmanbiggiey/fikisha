@@ -30,7 +30,7 @@ from fikisha.jobs.constants import JobStatus, LocationSourceKind, LocationType
 from fikisha.jobs.dto import job_view
 from fikisha.jobs.errors import NotAuthorisedToAssign
 from fikisha.jobs.models import CargoDetails, Job, JobLocation, VehicleRequirement
-from fikisha.jobs.selectors import job_for_update
+from fikisha.jobs.selectors import get_job
 from fikisha.jobs.service import TransitionContext
 from fikisha.jobs.service import transition as job_transition
 from fikisha.outbox.services import emit
@@ -135,8 +135,13 @@ def create_draft(*, actor: Any, business_id: Any, data: dict[str, Any]) -> Job:
 def submit_job(*, actor: Any, job_id: Any, idempotency_key: str = "") -> dict[str, Any]:
     """`DRAFT -> REQUESTED` through the authoritative transition — this
     function resolves the initiator token server-side and calls
-    `JobLifecycleService.transition()`; it implements nothing itself."""
-    job = job_for_update(job_id)
+    `JobLifecycleService.transition()`; it implements nothing itself.
+
+    ``get_job`` (unlocked) is enough here: this read only resolves which
+    initiator token the actor holds, never the write itself — `transition()`
+    re-fetches and re-locks the row under its own `select_for_update()`
+    immediately after, which is the actual authoritative check."""
+    job = get_job(job_id)
     token = "BUSINESS_OWNER_OR_DISPATCHER" if job_authz.business_is_party(actor, job) else None
     return job_transition(
         job_id=job.id,
@@ -157,8 +162,11 @@ def cancel_job(
 ) -> dict[str, Any]:
     """Business- or admin-initiated cancellation, through the authoritative
     transition — server-resolves which initiator token the actor actually
-    holds; the transition's own initiator check remains the real guard."""
-    job = job_for_update(job_id)
+    holds; the transition's own initiator check remains the real guard.
+
+    ``get_job`` (unlocked): same rationale as ``submit_job`` — this read only
+    resolves the initiator token; `transition()` re-locks the row itself."""
+    job = get_job(job_id)
     token = "BUSINESS_PARTY" if job_authz.business_is_party(actor, job) else None
     return job_transition(
         job_id=job.id,
