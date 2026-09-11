@@ -25,6 +25,7 @@ from fikisha.jobs.constants import (
     AssignedBy,
     Attestation,
     CancellationReason,
+    CommissionAdjustmentKind,
     ConfirmationMethod,
     GeoState,
     HighValueDecision,
@@ -552,6 +553,110 @@ class HighValueApproval(AppendOnlyModel):
 
     class Meta:
         db_table = "high_value_approval"
+
+
+class CommissionRecord(AppendOnlyModel):
+    """The platform's commission entitlement for one completed Job (Step 9,
+    plan §19, CLAUDE.md §4 "Payments / revenue"). Created exactly once per Job
+    — ``OneToOneField`` gives the ``UNIQUE(job_id)`` DB backstop — by
+    ``jobs.commission.create_commission_record_locked``, called from the
+    ``complete`` apply fn (both the ordinary ``DELIVERED → COMPLETED`` path
+    and a ``DISPUTED → COMPLETED`` resolution that completes a job for the
+    first time) inside the transition's own transaction and row lock.
+
+    Every value the calculation used is captured directly on the row —
+    ``rate`` / ``min_fee_kes`` / ``cap_kes`` — **not** merely a foreign key to
+    (mutable) live config, so the row stays self-explaining even after
+    ``platform_config`` changes later (Step 9 brief §7/§15); ``config_version``
+    is additionally pinned for full provenance. Fikisha never holds the
+    transport fare — this row is an accounting record of the platform's own
+    commission entitlement, not a payment, and moves no money (CLAUDE.md §4
+    "Payments / revenue" / Step 9 brief §3/§13)."""
+
+    job = models.OneToOneField(Job, on_delete=models.PROTECT, related_name="commission_record")
+    agreement = models.ForeignKey(Agreement, on_delete=models.PROTECT, related_name="+")
+    agreed_price_kes = models.BigIntegerField()
+    rate = models.DecimalField(max_digits=6, decimal_places=4)
+    min_fee_kes = models.BigIntegerField()
+    cap_kes = models.BigIntegerField()
+    commission_kes = models.BigIntegerField()
+    currency = models.CharField(max_length=3, default="KES")
+    config_version = models.ForeignKey(
+        "platform_config.PlatformConfigVersion",
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="+",
+    )
+
+    objects = AppendOnlyQuerySet.as_manager()
+
+    class Meta:
+        db_table = "commission_record"
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(agreed_price_kes__gte=0), name="ck_commission_price_non_negative"
+            ),
+            models.CheckConstraint(
+                condition=models.Q(commission_kes__gte=0),
+                name="ck_commission_amount_non_negative",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"commission {self.commission_kes} KES for job {self.job_id}"
+
+
+class CommissionAdjustment(AppendOnlyModel):
+    """An authorized, auditable correction to a ``CommissionRecord`` — the
+    original record is **never** mutated (Step 9 brief §10). Always a
+    reduction (``amount_kes`` is negative — DB ``CheckConstraint``): the
+    approved MVP model has no automatic or invented compensation increase.
+    The *effective* commission is ``commission_record.commission_kes +
+    SUM(adjustments.amount_kes)``.
+
+    ``source_dispute_id`` / ``source_resolution_id`` are plain ``UUIDField``s,
+    not FKs — the module-boundary rule (ADR-2D-01/22: sibling apps depend
+    inward on ``jobs``, never the reverse) means ``jobs`` must not reference
+    ``fikisha.incidents`` models; ``incidents.services.resolve_dispute()``
+    (the only caller in Step 9 — brief §12/§19: only an explicit authorized
+    resolution may create an adjustment) supplies its own ids for forensic
+    cross-reference, exactly mirroring ``Incident.source_report_id`` /
+    ``RecipientReportedIssue.reported_via_link_id`` (ADR-2D-17)."""
+
+    commission_record = models.ForeignKey(
+        CommissionRecord, on_delete=models.PROTECT, related_name="adjustments"
+    )
+    kind = models.CharField(max_length=12, choices=CommissionAdjustmentKind.choices)
+    amount_kes = models.BigIntegerField()
+    reason = models.TextField()
+    authorized_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="+"
+    )
+    authorized_by_is_platform_admin = models.BooleanField(default=False)
+    source_dispute_id = models.UUIDField(null=True, blank=True)
+    source_resolution_id = models.UUIDField(null=True, blank=True)
+    config_version = models.ForeignKey(
+        "platform_config.PlatformConfigVersion",
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="+",
+    )
+
+    objects = AppendOnlyQuerySet.as_manager()
+
+    class Meta:
+        db_table = "commission_adjustment"
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(amount_kes__lt=0), name="ck_commission_adjustment_negative"
+            ),
+        ]
+        indexes = [models.Index(fields=["commission_record", "created_at"])]
+
+    def __str__(self) -> str:
+        return f"adjustment {self.amount_kes} KES on commission {self.commission_record_id}"
 
 
 class JobTransitionIdempotency(models.Model):

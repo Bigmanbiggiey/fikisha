@@ -12,7 +12,6 @@ from fikisha.jobs.constants import JobEventCategory, JobStatus
 from fikisha.jobs.errors import (
     GuardFailed,
     NotAuthorisedToInitiate,
-    NotImplementedInThisIncrement,
     StaleJob,
     TransitionNotAllowed,
 )
@@ -263,18 +262,13 @@ def test_full_custody_chain_to_delivered(
         assert cur.fetchone()[0] > 0
 
 
-# ─── deferred increments ───────────────────────────────────────────
-def test_complete_apply_fn_still_raises_not_implemented() -> None:
-    """``DELIVERED -> COMPLETED`` (completion + commission) remains deferred to
-    Phase 2D Step 9. The dispute paths this test used to cover (``freeze`` /
-    ``resolve_*``) are implemented as of plan §19 Step 8 — see
-    ``fikisha.incidents.tests`` for their comprehensive suite, including the
-    full lifecycle-safety guarantees (no incidents code path writes
-    ``job.status`` directly; every guard re-verifies a real persisted row)."""
-    from fikisha.jobs.apply_fns import APPLY
-
-    with pytest.raises(NotImplementedInThisIncrement):
-        APPLY["complete"](None, None, {})
+# As of Step 9 (Commission), every apply fn in ``jobs.apply_fns.APPLY`` is a
+# real implementation — nothing in the Job lifecycle is deferred any longer.
+# ``freeze`` / ``resolve_*`` (Step 8) have their comprehensive suite in
+# ``fikisha.incidents.tests``; ``complete`` (Step 9) has its own in
+# ``test_commission_calculation.py`` / ``test_commission_completion.py`` /
+# ``test_commission_integrity.py`` / ``test_commission_concurrency.py`` /
+# ``test_commission_lifecycle_safety.py``.
 
 
 # ─── DB backstop (job-state-machine.md §7) ────────────────────────

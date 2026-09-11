@@ -51,18 +51,18 @@ def test_incidents_services_module_never_assigns_job_status() -> None:
 
 
 def test_apply_fns_dispute_paths_are_noop_not_a_second_writer() -> None:
-    """``freeze`` / ``freeze_post_completion`` / ``resolve_*`` are aliases of the
-    existing ``noop`` apply fn — the job-side write is exactly the status
-    write the engine already performs; nothing incidents-specific happens
-    inside ``jobs.apply_fns``."""
-    for name in (
-        "freeze",
-        "freeze_post_completion",
-        "resolve_completed",
-        "resolve_failed",
-        "resolve_cancelled",
-    ):
+    """``freeze`` / ``freeze_post_completion`` / ``resolve_failed`` /
+    ``resolve_cancelled`` are aliases of the existing ``noop`` apply fn — the
+    job-side write is exactly the status write the engine already performs;
+    nothing incidents-specific happens inside ``jobs.apply_fns``.
+    ``resolve_completed`` is the one exception — it shares Step 9's real
+    ``complete`` (commission) body, not ``noop`` (see
+    ``fikisha.jobs.tests.test_commission_completion`` for its own coverage of
+    that path, including the post-completion-dispute idempotency case)."""
+    for name in ("freeze", "freeze_post_completion", "resolve_failed", "resolve_cancelled"):
         assert apply_fns.APPLY[name] is apply_fns.noop
+    assert apply_fns.APPLY["resolve_completed"] is apply_fns.APPLY["complete"]
+    assert apply_fns.APPLY["complete"] is not apply_fns.noop
 
 
 def test_a_forged_blocking_incident_id_is_refused(

@@ -324,6 +324,42 @@ def driver_actor(eligible_driver: Any, actor_for: Callable) -> Any:
 
 
 @pytest.fixture
+def delivered_job(make_assigned_job: Callable, driver_actor: Any) -> Callable[..., Any]:
+    """``delivered_job(declared_value_kes=...)`` -> a job driven ASSIGNED ->
+    ... -> DELIVERED through the real custody flow (Step 9 commission tests —
+    ``jobs.commission`` reads ``job.agreement.agreed_price_kes``, frozen at
+    CONFIRMED, unaffected by anything that happens afterward)."""
+    from fikisha.jobs import custody
+
+    def _make(*, declared_value_kes: int = 1_200_000) -> Any:
+        job = make_assigned_job(declared_value_kes=declared_value_kes)
+        custody.arrive_at_pickup(actor=driver_actor, job_id=job.id)
+        custody.confirm_pickup_with_otp(actor=driver_actor, job_id=job.id, code="000000")
+        custody.start_transit(actor=driver_actor, job_id=job.id)
+        custody.arrive_at_destination(actor=driver_actor, job_id=job.id)
+        custody.confirm_delivery(
+            actor=driver_actor,
+            job_id=job.id,
+            party_name="R. Recipient",
+            photo_evidence_ids=["ev-1"],
+        )
+        job.refresh_from_db()
+        return job
+
+    return _make
+
+
+@pytest.fixture
+def complete_job(admin_actor: Any, do_transition: Callable) -> Callable[..., dict[str, Any]]:
+    """``complete_job(job)`` -> drives DELIVERED -> COMPLETED as an admin."""
+
+    def _complete(job: Job) -> dict[str, Any]:
+        return do_transition(job, JobStatus.COMPLETED, admin_actor)
+
+    return _complete
+
+
+@pytest.fixture
 def do_transition() -> Callable[..., dict[str, Any]]:
     """``do_transition(job, "REQUESTED", actor, data={...}, if_match=None, key="")``."""
 

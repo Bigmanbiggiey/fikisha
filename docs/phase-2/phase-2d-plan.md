@@ -748,6 +748,51 @@ new code; **security and invariant tests are not optional**.
   Resolution row — not merely a truthy `ctx` claim — closing a
   request-forgery gap the placeholder stubs left open (regression tests:
   `fikisha.incidents.tests.test_job_lifecycle_safety`).
+- **ADR-2D-23** *(Step 9 — Commission)* — **`CommissionRecord` /
+  `CommissionAdjustment` live in `fikisha.jobs` (a new `jobs/commission.py`
+  domain-surface module, mirroring `jobs.otp` / `jobs.recipient` / `jobs.
+  assignment`), not a separate `fikisha.commission` app**, and `complete`
+  is a **real** `jobs.apply_fns` function (not a `noop`/wrapped-from-outside
+  pattern like ADR-2D-22's dispute rows). This is the opposite module
+  placement from Incidents, deliberately: the Step 9 brief requires
+  commission creation to be *literally* inside the `DELIVERED → COMPLETED`
+  transition's own transaction — "if commission creation fails, the
+  completion transaction must not partially succeed" — and Commission,
+  unlike Incidents/Disputes, has no workflow of its own (no states, no
+  review queue); it is exactly the same shape of thing as `Agreement` /
+  `Assignment` / `ProofOf*`, which already live in `jobs.models` and are
+  already created inline by their apply fns. Same-app placement means no
+  cross-app import question exists at all, and a failure inside
+  `create_commission_record_locked` aborts the whole transition (including
+  the `job.status` write) by simple, ordinary transaction rollback — no
+  savepoint-wrapping needed. `resolve_completed` (`DISPUTED → COMPLETED`)
+  is a **plain alias** of `complete`: a job can reach `COMPLETED` more than
+  once (an ordinary completion, then later a post-completion dispute
+  resolved back to `COMPLETED`, ADR-2D-20) and both paths need the identical
+  idempotent "ensure a `CommissionRecord` exists" side effect —
+  `create_commission_record_locked` returns the existing row rather than
+  creating a second one (`UNIQUE(job_id)` is the DB-level backstop either
+  way). `fikisha.incidents.services.resolve_dispute()` (the allowed
+  direction — Incidents depends inward on Jobs) is the **only** caller of
+  `jobs.commission.create_adjustment()`, exactly as ADR-2D-22 already
+  established for `Dispute`/`Resolution`; `jobs` still never imports
+  `fikisha.incidents` — `source_dispute_id` / `source_resolution_id` are
+  plain `UUIDField`s on `CommissionAdjustment`, not FKs (same pattern as
+  `Incident.source_report_id`, ADR-2D-17).
+- **ADR-2D-24** *(Step 9)* — **commission-adjustment authority is
+  Platform-Admin-only, and is a *separate* check from dispute-resolution
+  authority.** `jobs.commission.can_adjust_commission()` checks for
+  `PLATFORM_ADMIN` directly; no `role_permissions` entry grants any other
+  role this (brief §12: "Operations Officer must not gain adjustment
+  authority merely because they can review incidents [or resolve
+  disputes]" — broadening `role_permissions.OPERATIONS_OFFICER` was
+  explicitly out of scope). Concretely: an Operations Officer may still
+  resolve a Standard-band dispute (`incidents_authz.is_admin`, D-ADM-1's
+  existing scope, unchanged) with `commission_treatment=APPLY`, but
+  `resolve_dispute()` now raises `NotAuthorisedForCommissionAdjustment`
+  before any write if that same Ops Officer asks for `REDUCE`/`WAIVE` — two
+  genuinely different authorities that happen to be exercised through one
+  call, checked independently.
 
 ---
 
@@ -850,7 +895,35 @@ source.
    / `reduced_amount_kes` / `agreed_compensation_kes` are the smallest
    domain-neutral boundary Step 9 will read; Step 8 builds no
    `CommissionRecord`/adjustment engine. No HTTP routes (Step 10).
-9. Commission integration on `→ COMPLETED` → financial tests.
+9. ✅ **DELIVERED** — Commission integration on `→ COMPLETED` → financial
+   tests (ADR-2D-23/24). `jobs.commission`: `calculate_commission_kes`
+   (integer/`Decimal`-exact `FLAT_WITH_MIN_CAP`: `max(min_fee, min(price ×
+   rate, cap))`, round-half-up), `create_commission_record_locked` (called
+   from the now-real `complete` apply fn — a literal, same-transaction
+   side effect of `DELIVERED → COMPLETED`/`DISPUTED → COMPLETED`, idempotent
+   — `UNIQUE(job_id)` DB-backstopped), `create_adjustment` /
+   `effective_commission_kes` / `can_adjust_commission` (Platform-Admin-only,
+   separate from dispute-resolution authority). New append-only
+   `CommissionRecord` (rate/min/cap/amount + `PlatformConfigVersion`
+   captured directly on the row, not merely FK'd, so a later config change
+   never alters a historical figure) and `CommissionAdjustment` (always a
+   negative `amount_kes` — DB `CheckConstraint`; `effective = original +
+   Σadjustments`) models, both in `fikisha.jobs` (not a new app — ADR-2D-23).
+   `incidents.services.resolve_dispute()` extended: `commission_treatment
+   ∈ {REDUCE, WAIVE}` creates a `CommissionAdjustment` via the above (only
+   when a `CommissionRecord` actually exists — nothing to adjust otherwise);
+   `agreed_compensation_kes` deliberately never touches commission (records
+   party-to-party compensation intent only — Fikisha still never holds or
+   moves the transport fare). `_deferred`/`NotImplementedInThisIncrement`
+   retired from `jobs.apply_fns` — every apply fn is now a real
+   implementation (Steps 10-15 add no new Job transitions). 66 new tests
+   (calculation boundaries, completion/idempotency/config-pinning,
+   DB append-only/constraints, real-thread concurrency for both completion
+   and adjustments, lifecycle-safety, and the incidents-side
+   authorization/association suite) + 2 Step-8-era placeholder tests updated
+   to match the now-real `resolve_completed`. No HTTP routes, no
+   M-Pesa/eTIMS/wallet/escrow/refund/payout (Step 9 brief §3/§28) — Fikisha
+   still never holds the transport fare.
 10. API views/urls for all groups + `next allowed actions` computation → API +
     authorization tests.
 11. Scheduled sweeps + beat wiring (per Q-5).

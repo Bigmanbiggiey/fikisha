@@ -34,3 +34,13 @@ def get_recipient_reported_issue(report_id: Any) -> RecipientReportedIssue:
         return RecipientReportedIssue.objects.select_related("job").get(id=report_id)
     except RecipientReportedIssue.DoesNotExist as exc:
         raise Http404("No such recipient report.") from exc
+
+
+def current_config_version() -> Any:
+    """The live ``PlatformConfigVersion`` row — an immutable snapshot (Step 9
+    pins this onto every ``CommissionRecord``/``CommissionAdjustment`` so a
+    historical financial row stays explainable after the config changes)."""
+    from fikisha.platform_config.models import PlatformConfig
+
+    cfg = PlatformConfig.objects.select_related("current_version").filter(pk=1).first()
+    return cfg.current_version if cfg and cfg.current_version_id else None

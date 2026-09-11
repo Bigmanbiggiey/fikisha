@@ -237,3 +237,13 @@ class RecipientIssueCategory(models.TextChoices):
     MISSING_GOODS = "MISSING_GOODS", "Missing goods"
     WRONG_GOODS = "WRONG_GOODS", "Wrong goods"
     OTHER = "OTHER", "Other"
+
+
+#: Step 9 (Commission) — a CommissionAdjustment always *reduces* the
+#: platform's commission entitlement (``amount_kes`` is always negative, DB
+#: ``CheckConstraint`` enforced); this only names the shape of that
+#: reduction for readability/audit — never an increase, never an invented
+#: compensation rule (plan §19 Step 9 brief §10/§13).
+class CommissionAdjustmentKind(models.TextChoices):
+    REDUCTION = "REDUCTION", "Partial reduction"
+    WAIVER = "WAIVER", "Full waiver"

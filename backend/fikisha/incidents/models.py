@@ -175,9 +175,16 @@ class Resolution(AppendOnlyModel):
     """One per dispute, append-only, immutable once written (FR-D-6/D-7). The
     financial-adjustment **boundary** for Step 8 (brief §14): records the
     decision (``commission_treatment`` / ``reduced_amount_kes`` /
-    ``agreed_compensation_kes``) without touching any commission ledger row —
-    none exists yet (Step 9). ``actions`` are recorded intents only; Step 8
-    executes none of them (ADR-2D-21)."""
+    ``agreed_compensation_kes``) without itself touching any commission
+    ledger row. Step 9 built the ledger (``jobs.CommissionRecord`` /
+    ``CommissionAdjustment``) and reads these fields from
+    ``incidents.services.resolve_dispute()`` to create an adjustment when
+    ``commission_treatment`` is ``REDUCE``/``WAIVE`` — this row itself is
+    still just the recorded decision, never mutated afterward.
+    ``agreed_compensation_kes`` is deliberately never wired to commission (it
+    is party-to-party compensation intent; Fikisha still never holds the
+    transport fare). ``actions`` are recorded intents only; Step 8 executes
+    none of them (ADR-2D-21)."""
 
     dispute = models.OneToOneField(Dispute, on_delete=models.PROTECT, related_name="resolution")
     outcome_code = models.CharField(max_length=20, choices=ResolutionOutcome.choices)

@@ -17,6 +17,8 @@ from fikisha.jobs.tests.conftest import (  # noqa: F401 - re-exported fixtures
     actor_for,
     admin_actor,
     business_actor,
+    complete_job,
+    delivered_job,
     do_transition,
     driver_actor,
     driver_and_vehicle,

@@ -17,21 +17,34 @@ the ``ProofOf*`` row **and** the method-specific custody ``job_event``
 is known (ADR-2D-15).
 
 Dispute side effects (Step 8, plan §19): ``freeze`` / ``freeze_post_completion``
-/ ``resolve_completed`` / ``resolve_failed`` / ``resolve_cancelled`` are ``noop``
-here **by design**, not a stub. The Job-lifecycle module boundary rule (sibling
-apps depend inward on ``jobs``, never the reverse) means this module must not
-import or write ``fikisha.incidents`` models. ``fikisha.incidents.services``
-owns creating the ``Dispute`` row (stamping ``pre_dispute_status`` from the
+/ ``resolve_failed`` / ``resolve_cancelled`` are ``noop`` here **by design**,
+not a stub. The Job-lifecycle module boundary rule (sibling apps depend
+inward on ``jobs``, never the reverse) means this module must not import or
+write ``fikisha.incidents`` models. ``fikisha.incidents.services`` owns
+creating the ``Dispute`` row (stamping ``pre_dispute_status`` from the
 still-pre-write, row-locked ``job.status`` it reads itself, ADR-2D-07) and
 marking a resolved ``Dispute`` — both **before** calling
 ``JobLifecycleService.transition()`` inside the *same* outer
 ``transaction.atomic()`` (a nested atomic block is a savepoint on the same
 locked row, so both reads see the identical, consistent job state). The DISPUTED
 status write itself — plus the ``job_event`` / audit / outbox rows the engine
-already produces — is the entire job-side effect of a freeze or a resolution;
-there is nothing left for these apply fns to do. ``complete`` (the ordinary
-``DELIVERED → COMPLETED`` completion + commission path) remains deferred to
-Step 9 — untouched here.
+already produces — is the entire job-side effect of a freeze or of a
+non-completing resolution; there is nothing left for these four apply fns to
+do. ``resolve_completed`` (``DISPUTED → COMPLETED``) is the one resolution
+route with a real job-side effect — see "Completion + commission" below.
+
+Completion + commission (Step 9, plan §19): ``complete`` calls
+``fikisha.jobs.commission.create_commission_record_locked`` — a same-app
+domain-surface module (mirrors ``jobs.otp`` / ``jobs.recipient``; no
+cross-app boundary question at all, since commission is Job-lifecycle
+financial data, not a separate bounded workflow the way Incidents is). This
+keeps commission creation *literally* inside the transition's own
+transaction rather than wrapping it from outside (ADR-2D-22's pattern,
+adapted): if it fails, the whole ``DELIVERED → COMPLETED`` (or
+``DISPUTED → COMPLETED``) transition — including the status write — rolls
+back with it. ``resolve_completed`` is a plain alias of ``complete``: both
+routes to ``COMPLETED`` need the identical, idempotent "ensure a
+CommissionRecord exists" side effect (ADR-2D-23).
 """
 
 from __future__ import annotations
@@ -41,6 +54,7 @@ from typing import Any
 
 from django.db.models import Max
 
+from fikisha.jobs import commission as commission_service
 from fikisha.jobs import eligibility
 from fikisha.jobs.constants import (
     HIGH_VALUE_BANDS,
@@ -57,7 +71,7 @@ from fikisha.jobs.constants import (
     ValueBand,
     compute_penalty_class,
 )
-from fikisha.jobs.errors import GuardFailed, NotImplementedInThisIncrement, OtpNotIssued
+from fikisha.jobs.errors import GuardFailed, OtpNotIssued
 from fikisha.jobs.models import (
     Agreement,
     Assignment,
@@ -67,15 +81,9 @@ from fikisha.jobs.models import (
     ProofOfDelivery,
     ProofOfPickup,
 )
+from fikisha.jobs.selectors import current_config_version
 
 ApplyFn = Callable[[Any, Any, dict[str, Any]], None]
-
-
-def _current_config_version() -> Any:
-    from fikisha.platform_config.models import PlatformConfig
-
-    cfg = PlatformConfig.objects.select_related("current_version").filter(pk=1).first()
-    return cfg.current_version if cfg and cfg.current_version_id else None
 
 
 def _actor_user(actor: Any) -> Any:
@@ -199,7 +207,7 @@ def publish(job: Any, actor: Any, ctx: dict[str, Any]) -> None:
     job.required_trust_level = eligibility.band_min_trust_level(band) or TrustLevel.L1
     job.is_high_value = band in HIGH_VALUE_BANDS
     if job.config_version_id is None:
-        job.config_version = _current_config_version()
+        job.config_version = current_config_version()
 
 
 # ── cancel / fail (terminal-reason rows) ─────────────────────────────
@@ -266,7 +274,7 @@ def assign(job: Any, actor: Any, ctx: dict[str, Any]) -> None:
         reassigned_from_id=ctx.get("reassigned_from_id"),
         admin_override_reason=(ctx.get("admin_override_reason") or "").strip(),
         driver_trust_level=eligibility.interim_driver_trust_level(driver) or TrustLevel.L1,
-        config_version=_current_config_version(),
+        config_version=current_config_version(),
     )
     job.assignment = assignment
 
@@ -367,18 +375,28 @@ def confirm_delivery(job: Any, actor: Any, ctx: dict[str, Any]) -> None:
         otp_service.consume_otp(purpose=ctx["_otp_purpose"], challenge_id=ctx["_otp_challenge_id"])
 
 
-# ── deferred to later increments ────────────────────────────────────
-def _deferred(what: str) -> ApplyFn:
-    def _fn(job: Any, actor: Any, ctx: dict[str, Any]) -> None:
-        raise NotImplementedInThisIncrement(
-            f"The {what} transition path is delivered in a later Phase 2D increment "
-            f"(plan §19); the lifecycle engine, guards and DB backstop for it are complete."
-        )
+# ── complete (Step 9 — commission) ───────────────────────────────────
+# As of Step 9, every transition in ALLOWED_TRANSITIONS has a real apply fn
+# (``noop`` counts as real — an intentional no-op, not "not built yet"); the
+# ``_deferred(...)`` placeholder-stub helper that Increments 1-8 used for
+# ``freeze`` / ``resolve_*`` / ``complete`` is retired (Steps 10-15 add no new
+# Job transitions). ``NotImplementedInThisIncrement`` itself stays in
+# ``jobs.errors`` — harmless, and removing an exception class is more
+# disruptive than the dead code it would save.
+def complete(job: Any, actor: Any, ctx: dict[str, Any]) -> None:
+    """``DELIVERED -> COMPLETED`` *and* ``DISPUTED -> COMPLETED``
+    (``resolve_completed`` is a literal alias — see below) share this body:
+    ensure exactly one ``CommissionRecord`` exists for this job, computed
+    from its frozen ``Agreement`` under the row lock this apply fn already
+    runs inside (job-state-machine.md §2.1 — apply fns run *before* the
+    status write, in the same transaction the engine commits or rolls back
+    as one unit; a failure here aborts the whole transition, so ``job.status``
+    never reaches ``COMPLETED`` with a missing commission record). Idempotent:
+    a job that reaches ``COMPLETED`` a second time (a post-completion dispute
+    resolved back to ``COMPLETED``, Step 8 ADR-2D-20) already has its record
+    from the first pass and gets no second one (plan §19 Step 9 brief §18-19)."""
+    commission_service.create_commission_record_locked(job=job, actor=actor)
 
-    return _fn
-
-
-complete = _deferred("completion + commission")
 
 # Dispute freeze / resolution: the job-side effect is exactly the status write
 # the engine already performs — see the module docstring. ``fikisha.incidents
@@ -386,7 +404,7 @@ complete = _deferred("completion + commission")
 # call, in the same transaction.
 freeze = noop
 freeze_post_completion = noop
-resolve_completed = noop
+resolve_completed = complete
 resolve_failed = noop
 resolve_cancelled = noop
 

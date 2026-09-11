@@ -125,6 +125,49 @@ class RecipientActionNotAllowed(DomainError):
     default_detail = "This action is not available on this link."
 
 
+class CommissionAgreementMissing(GuardFailed):
+    """Defensive — a job that legitimately reaches ``COMPLETED`` always has a
+    frozen ``Agreement`` (CONFIRMED requires one); this guards against a
+    silent ``AttributeError`` if that invariant is ever violated."""
+
+    default_code = "commission_agreement_missing"
+    default_detail = "The job has no confirmed agreement to base commission on."
+
+
+class CommissionConfigInvalid(DomainError):
+    """``platform_config.commission.model`` names a model that is syntactically
+    valid (``defaults.py``'s ``_ALLOWED_COMMISSION_MODELS``) but not actually
+    implemented — only ``FLAT_WITH_MIN_CAP`` is (Step 9 brief §2/§6)."""
+
+    default_code = "commission_config_invalid"
+    status_code = status.HTTP_501_NOT_IMPLEMENTED
+    default_detail = "The configured commission model is not implemented."
+
+
+class NotAuthorisedForCommissionAdjustment(DomainError):
+    default_code = "not_authorised_for_commission_adjustment"
+    status_code = status.HTTP_403_FORBIDDEN
+    default_detail = "Commission adjustments require Platform Administrator authority."
+
+
+class CommissionAdjustmentReasonRequired(DomainError):
+    default_code = "commission_adjustment_reason_required"
+    status_code = status.HTTP_422_UNPROCESSABLE_ENTITY
+    default_detail = "A reason is required to adjust commission."
+
+
+class InvalidCommissionAdjustmentAmount(DomainError):
+    default_code = "invalid_commission_adjustment_amount"
+    status_code = status.HTTP_422_UNPROCESSABLE_ENTITY
+    default_detail = "That commission adjustment amount is not valid."
+
+
+class CommissionRecordNotFound(DomainError):
+    default_code = "commission_record_not_found"
+    status_code = status.HTTP_404_NOT_FOUND
+    default_detail = "No commission record exists for that job."
+
+
 class NotImplementedInThisIncrement(DomainError):
     """Raised by transition paths whose initiating service is not built yet
     (Phase 2D increment 1 covers the lifecycle engine + pure-jobs transitions;

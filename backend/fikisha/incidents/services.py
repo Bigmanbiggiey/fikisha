@@ -26,6 +26,7 @@ from fikisha.incidents import authz as incidents_authz
 from fikisha.incidents.constants import (
     DEFAULT_SEVERITY,
     ROUTABLE_JOB_STATUSES,
+    CommissionTreatment,
     DisputeStatus,
     IncidentSeverity,
     IncidentStatus,
@@ -58,12 +59,22 @@ from fikisha.incidents.models import (
     IncidentStatement,
     Resolution,
 )
-from fikisha.jobs.constants import JobStatus, RecipientIssueCategory
+from fikisha.jobs import commission as commission_service
+from fikisha.jobs.constants import CommissionAdjustmentKind, JobStatus, RecipientIssueCategory
+from fikisha.jobs.errors import (
+    InvalidCommissionAdjustmentAmount,
+    NotAuthorisedForCommissionAdjustment,
+)
 from fikisha.jobs.selectors import get_job, get_recipient_reported_issue, job_for_update
 from fikisha.jobs.service import TransitionContext
 from fikisha.jobs.service import transition as job_transition
 from fikisha.outbox.services import emit
 from fikisha.platform_config import services as config
+
+#: incidents.constants.CommissionTreatment values that require an actual
+#: CommissionAdjustment (APPLY never does — Step 9 brief §11: not every
+#: dispute reduces commission, only an explicit authorized resolution).
+_COMMISSION_TREATMENTS_REQUIRING_ADJUSTMENT = frozenset({"REDUCE", "WAIVE"})
 
 # RecipientReportedIssue.category -> IncidentType (Founder-confirmed mapping;
 # WRONG_GOODS has no dedicated incident type — recorded as OTHER + a label).
@@ -471,13 +482,35 @@ def resolve_dispute(
     ``Resolution.actions`` records admin-declared intent flags **only**
     (``RATING_IMPACT`` / ``TRUST_CHANGE`` / ``SUSPENSION`` / ``NONE``) — this
     function executes none of them; no rating, trust, or suspension side
-    effect happens in Step 8 (ADR-2D-21)."""
+    effect happens in Step 8 (ADR-2D-21).
+
+    Step 9: a ``commission_treatment`` other than ``APPLY`` is a **separate**
+    authority from resolving the dispute itself — a Platform Admin only
+    (``jobs.commission.can_adjust_commission``); an Operations Officer may
+    still resolve a Standard-band dispute (``incidents_authz.is_admin``) but
+    may not reduce or waive commission while doing it (Step 9 brief §12).
+    Only ``REDUCE``/``WAIVE`` ever create a ``CommissionAdjustment`` — never
+    automatically, and never for a job that has no ``CommissionRecord`` at
+    all (nothing to adjust)."""
     if not incidents_authz.is_admin(actor):
         raise NotAuthorisedForBindingResolution()
     if routed_job_status not in ROUTABLE_JOB_STATUSES:
         raise InvalidResolutionRouting()
     if outcome_code not in ResolutionOutcome.values:
         raise InvalidResolutionOutcome()
+    if commission_treatment not in CommissionTreatment.values:
+        raise InvalidResolutionRouting(
+            f"{commission_treatment!r} is not a recognised commission treatment."
+        )
+    if commission_treatment in _COMMISSION_TREATMENTS_REQUIRING_ADJUSTMENT:
+        if not commission_service.can_adjust_commission(actor):
+            raise NotAuthorisedForCommissionAdjustment()
+        if commission_treatment == CommissionTreatment.REDUCE and (
+            reduced_amount_kes is None or reduced_amount_kes <= 0
+        ):
+            raise InvalidCommissionAdjustmentAmount(
+                "A positive reduced_amount_kes is required to reduce commission."
+            )
     rationale = (rationale or "").strip()
     if not rationale:
         raise RationaleRequired()
@@ -524,6 +557,29 @@ def resolve_dispute(
     Incident.objects.filter(id__in=dispute.incident_ids).exclude(
         status=IncidentStatus.RESOLVED
     ).update(status=IncidentStatus.RESOLVED)
+
+    if commission_treatment in _COMMISSION_TREATMENTS_REQUIRING_ADJUSTMENT:
+        commission_record = commission_service.get_commission_record(job)
+        if commission_record is not None:
+            if commission_treatment == CommissionTreatment.WAIVE:
+                kind = CommissionAdjustmentKind.WAIVER
+                amount_kes = -commission_service.effective_commission_kes(commission_record)
+            else:  # REDUCE — validated positive above
+                kind = CommissionAdjustmentKind.REDUCTION
+                amount_kes = -int(reduced_amount_kes)  # type: ignore[arg-type]
+            if amount_kes < 0:
+                commission_service.create_adjustment(
+                    commission_record=commission_record,
+                    actor=actor,
+                    kind=kind,
+                    amount_kes=amount_kes,
+                    reason=rationale,
+                    source_dispute_id=dispute.id,
+                    source_resolution_id=resolution.id,
+                )
+            # amount_kes == 0 (e.g. a WAIVE on an already-fully-waived
+            # record): nothing left to adjust — the Resolution row still
+            # records the admin's decision; no adjustment row is created.
 
     audit.record(
         actor=actor,
