@@ -39,7 +39,9 @@ from fikisha.jobs.apply_fns import APPLY
 from fikisha.jobs.constants import (
     CUSTODY_EVENT_TYPES,
     TERMINAL_STATES,
+    GeoState,
     JobEventCategory,
+    JobEventType,
     JobStatus,
 )
 from fikisha.jobs.dto import job_view
@@ -162,8 +164,41 @@ def _next_seq(job: Job) -> int:
     return int(current) + 1
 
 
+# Custody rows for these transition targets carry a single event-based location
+# reading if the client provided one (chain-of-custody.md §5 — no continuous GPS).
+_GEO_CAPTURE_EVENTS = frozenset(
+    {
+        JobEventType.ARRIVED_AT_PICKUP,
+        JobEventType.GOODS_RECEIVED,
+        JobEventType.ARRIVED_AT_DESTINATION,
+        JobEventType.DELIVERY_CONFIRMED,
+    }
+)
+
+
+def _geo_fields(ctx: dict[str, Any], event_type: str) -> dict[str, Any]:
+    if event_type not in _GEO_CAPTURE_EVENTS:
+        return {}
+    geo = ctx.get("geo")
+    if not geo:
+        return {"geo_state": GeoState.NOT_CAPTURED}
+    return {
+        "lat": geo.get("lat"),
+        "lng": geo.get("lng"),
+        "geo_accuracy_m": geo.get("accuracy_m"),
+        "geo_state": GeoState.CAPTURED,
+    }
+
+
 def _write_events(
-    *, job: Job, rule: Rule, from_status: str, to_status: str, actor: Any, config_version_id: Any
+    *,
+    job: Job,
+    rule: Rule,
+    from_status: str,
+    to_status: str,
+    actor: Any,
+    config_version_id: Any,
+    ctx: dict[str, Any],
 ) -> None:
     user = getattr(actor, "user", actor)
     actor_user = user if getattr(user, "pk", None) else None
@@ -187,6 +222,7 @@ def _write_events(
                 "is_custody": True,
                 "from_status": from_status,
                 "to_status": to_status,
+                **_geo_fields(ctx, rule.event_type),
             }
         )
     for extra in rule.extra_events:
@@ -198,6 +234,7 @@ def _write_events(
                 "is_custody": is_custody,
                 "from_status": None,
                 "to_status": None,
+                **(_geo_fields(ctx, extra) if is_custody else {}),
             }
         )
 
@@ -316,6 +353,7 @@ def transition(
             to_status=to,
             actor=actor,
             config_version_id=job.config_version_id,
+            ctx=ctx.data,
         )
 
         audit.record(

@@ -282,13 +282,17 @@ def pickup_proof_valid_for_band(job: Any, actor: Any, ctx: dict[str, Any]) -> No
     method = ctx.get("pickup_method")  # OTP | BUSINESS_CONFIRM | ATTESTED
     band = job.value_band or ValueBand.STANDARD
     if method == "OTP":
-        from fikisha.jobs.models import PickupOtpChallenge
-
-        challenge = PickupOtpChallenge.objects.filter(job=job).order_by("-created_at").first()
-        if challenge is None or challenge.consumed_at is None:
+        # the proof service validated the code this call (challenge id threaded in)
+        if not ctx.get("_otp_challenge_id"):
             raise PickupConfirmationRequired("The pickup OTP has not been verified.")
         return
     if method == "BUSINESS_CONFIRM":
+        # server-confirmed: the proof service resolved the caller as an
+        # owner/dispatcher of this job's business before setting this method
+        if not ctx.get("actor_is_business_party"):
+            raise PickupConfirmationRequired(
+                "In-app pickup confirmation must come from the business owner or dispatcher."
+            )
         return
     if method == "ATTESTED":
         if band != ValueBand.STANDARD:
@@ -318,6 +322,8 @@ def delivery_proof_valid_for_band(job: Any, actor: Any, ctx: dict[str, Any]) -> 
     photos = ctx.get("photo_evidence_ids") or []
     if not name:
         raise DeliveryProofIncomplete("The recipient's name is required.")
+    if otp_ok and not ctx.get("_otp_challenge_id"):
+        raise DeliveryProofIncomplete("The recipient OTP has not been verified.")
     if band in HIGH_VALUE_BANDS or band == ValueBand.ELEVATED:
         if not (otp_ok and photos):
             raise DeliveryProofIncomplete(

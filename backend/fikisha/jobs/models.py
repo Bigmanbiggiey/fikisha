@@ -449,6 +449,22 @@ class OtpChallengeBase(TimestampedModel):
     class Meta:
         abstract = True
 
+    @property
+    def is_consumed(self) -> bool:
+        return self.consumed_at is not None
+
+    @property
+    def is_locked(self) -> bool:
+        return self.attempts >= self.max_attempts
+
+    def is_expired(self, *, now: Any = None) -> bool:
+        from django.utils import timezone
+
+        return self.expires_at <= (now or timezone.now())
+
+    def is_usable(self, *, now: Any = None) -> bool:
+        return not (self.is_consumed or self.is_locked or self.is_expired(now=now))
+
 
 class PickupOtpChallenge(OtpChallengeBase):
     class Meta:
@@ -478,8 +494,15 @@ class RecipientAccessLink(TimestampedModel):
 
 
 class RecipientOtpChallenge(OtpChallengeBase):
+    # nullable: the recipient OTP is issued to ``job.recipient_phone`` on arrival
+    # at destination, independent of (and usually before) the recipient access
+    # link — which is a later increment (plan §19 Step 7). ADR-2D-16.
     link = models.ForeignKey(
-        RecipientAccessLink, on_delete=models.PROTECT, related_name="otp_challenges"
+        RecipientAccessLink,
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="otp_challenges",
     )
 
     class Meta:

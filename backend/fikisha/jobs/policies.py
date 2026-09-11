@@ -50,6 +50,18 @@ def _job_assign(actor: Any, _action: str, _resource: Any) -> Decision:
     return ALLOW if getattr(actor, "is_authenticated", False) else deny("authz.unauthenticated")
 
 
+@policy("job.proof.pickup")
+def _job_proof_pickup(actor: Any, _action: str, _resource: Any) -> Decision:
+    """Coarse gate — the driver-vs-business-party resolution and the band matrix
+    run in :mod:`fikisha.jobs.custody` / the guards."""
+    return _authed_or_system(actor)
+
+
+@policy("job.proof.delivery")
+def _job_proof_delivery(actor: Any, _action: str, _resource: Any) -> Decision:
+    return _authed_or_system(actor)
+
+
 @policy("highvalue.approve")
 def _highvalue_approve(actor: Any, _action: str, _resource: Any) -> Decision:
     """Coarse gate — HIGH vs VERY_HIGH admin-tier resolution is in

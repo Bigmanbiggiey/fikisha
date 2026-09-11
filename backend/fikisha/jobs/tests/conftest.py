@@ -17,13 +17,19 @@ def verified_business(db: Any, user: Any) -> Any:
     from fikisha.business.models import (
         BusinessAccount,
         BusinessLocation,
+        BusinessMembership,
+        BusinessRole,
         BusinessVerificationStatus,
+        MembershipStatus,
     )
 
     biz = BusinessAccount.objects.create(
         owner_user=user,
         trading_name="Kitengela Traders",
         verification_status=BusinessVerificationStatus.VERIFIED,
+    )
+    BusinessMembership.objects.create(
+        business=biz, user=user, role=BusinessRole.OWNER, status=MembershipStatus.ACTIVE
     )
     BusinessLocation.objects.create(business=biz, label="Main", type="MAIN")
     return biz
@@ -250,6 +256,71 @@ def make_confirmed_job(
         return job
 
     return _make
+
+
+@pytest.fixture
+def actor_for() -> Callable[[Any], Any]:
+    from fikisha.identity.authz.actors import actor_from_user
+
+    return actor_from_user
+
+
+@pytest.fixture
+def make_assigned_job(
+    db: Any,
+    make_confirmed_job: Callable,
+    eligible_driver: Any,
+    eligible_vehicle: Any,
+    actor_for: Callable,
+) -> Callable[..., Any]:
+    """``make_assigned_job(declared_value_kes=..., pickup_contact_phone=...,
+    recipient_phone=...)`` -> an ASSIGNED job with a verified driver + vehicle."""
+    from fikisha.jobs.assignment import assign_job
+
+    def _make(
+        *,
+        declared_value_kes: int = 1_200_000,
+        pickup_contact_phone: str = "+254700900001",
+        recipient_phone: str = "+254700900002",
+    ) -> Any:
+        job = make_confirmed_job(operator=eligible_driver, declared_value_kes=declared_value_kes)
+        if pickup_contact_phone is not None:
+            job.pickup_location.contact_phone = pickup_contact_phone
+            job.pickup_location.save(update_fields=["contact_phone"])
+        job.recipient_phone = recipient_phone or ""
+        job.save(update_fields=["recipient_phone"])
+        # STANDARD -> operator self-assigns; ELEVATED+ -> an admin assigns with
+        # the interim trust-ceiling override (ADR-2D-05: L2/L3 are unreachable).
+        job.refresh_from_db()
+        if job.value_band == "STANDARD":
+            assign_job(
+                actor=actor_for(eligible_driver.user),
+                job_id=job.id,
+                driver_profile_id=eligible_driver.id,
+                vehicle_id=eligible_vehicle.id,
+            )
+        else:
+            from fikisha.identity.models import AdminProfile, AdminRole, RoleAssignment, User
+
+            admin_user = User.objects.create_user(phone="+254700900777", is_staff=True)
+            AdminProfile.objects.create(user=admin_user, active=True)
+            RoleAssignment.objects.create(user=admin_user, role=AdminRole.PLATFORM_ADMIN)
+            assign_job(
+                actor=actor_for(admin_user),
+                job_id=job.id,
+                driver_profile_id=eligible_driver.id,
+                vehicle_id=eligible_vehicle.id,
+                admin_override_reason="test: interim trust-ceiling override",
+            )
+        job.refresh_from_db()
+        return job
+
+    return _make
+
+
+@pytest.fixture
+def driver_actor(eligible_driver: Any, actor_for: Callable) -> Any:
+    return actor_for(eligible_driver.user)
 
 
 @pytest.fixture

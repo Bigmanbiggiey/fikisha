@@ -76,6 +76,30 @@ class NotAuthorisedToAssign(DomainError):
     default_detail = "You may not assign a driver and vehicle to this job."
 
 
+class OtpNotIssued(DomainError):
+    default_code = "otp_not_issued"
+    status_code = status.HTTP_409_CONFLICT
+    default_detail = "No OTP has been issued for this step."
+
+
+class OtpInvalid(DomainError):
+    default_code = "otp_invalid"
+    status_code = status.HTTP_422_UNPROCESSABLE_ENTITY
+    default_detail = "Incorrect or unknown code."
+
+
+class OtpExpired(DomainError):
+    default_code = "otp_expired"
+    status_code = status.HTTP_422_UNPROCESSABLE_ENTITY
+    default_detail = "This code has expired; request a new one."
+
+
+class OtpLocked(DomainError):
+    default_code = "otp_too_many_attempts"
+    status_code = status.HTTP_429_TOO_MANY_REQUESTS
+    default_detail = "Too many attempts. Request a new code."
+
+
 class NotImplementedInThisIncrement(DomainError):
     """Raised by transition paths whose initiating service is not built yet
     (Phase 2D increment 1 covers the lifecycle engine + pure-jobs transitions;

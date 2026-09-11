@@ -134,7 +134,6 @@ ALLOWED_TRANSITIONS: dict[tuple[str, str], Rule] = {
         events=("ArrivedAtPickup", "otp.pickup.requested"),
         is_custody=True,
         event_type=JobEventType.ARRIVED_AT_PICKUP,
-        extra_events=(JobEventType.PICKUP_OTP_ISSUED,),
     ),
     (S.ASSIGNED, S.CANCELLED): Rule(
         initiators=("BUSINESS_PARTY", "OPERATOR_PARTY", "GROUP_MANAGER", "ADMIN"),
@@ -209,7 +208,6 @@ ALLOWED_TRANSITIONS: dict[tuple[str, str], Rule] = {
         events=("JobAtDestination", "otp.recipient.requested"),
         is_custody=True,
         event_type=JobEventType.ARRIVED_AT_DESTINATION,
-        extra_events=(JobEventType.RECIPIENT_OTP_ISSUED,),
     ),
     (S.IN_TRANSIT, S.DISPUTED): Rule(
         initiators=("ANY_PARTICIPANT", "ADMIN"),
@@ -231,7 +229,7 @@ ALLOWED_TRANSITIONS: dict[tuple[str, str], Rule] = {
         events=("JobDelivered",),
         is_custody=True,
         event_type=JobEventType.DELIVERY_CONFIRMED,
-        extra_events=(JobEventType.RECIPIENT_VERIFIED,),
+        # RECIPIENT_VERIFIED is written by the apply fn with the method detail.
     ),
     (S.AT_DESTINATION, S.DISPUTED): Rule(
         initiators=("ANY_PARTICIPANT", "RECIPIENT", "ADMIN"),

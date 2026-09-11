@@ -246,9 +246,11 @@ def test_full_custody_chain_to_delivered(
     ):
         data: dict[str, Any] = {}
         if to == JobStatus.PICKED_UP:
-            data = {"pickup_method": "BUSINESS_CONFIRM"}
+            # engine-level: assert the guard contract for the business-confirm path
+            data = {"pickup_method": "BUSINESS_CONFIRM", "actor_is_business_party": True}
         if to == JobStatus.DELIVERED:
-            data = {"party_name": "J. Mwangi", "otp_verified": True, "photo_evidence_ids": ["p1"]}
+            # STANDARD band -> name + a photo POD is sufficient (no OTP)
+            data = {"party_name": "J. Mwangi", "photo_evidence_ids": ["p1"]}
         do_transition(j, to, driver_actor, data=data)
         j.refresh_from_db()
         assert j.status == to

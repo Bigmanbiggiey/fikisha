@@ -9,11 +9,13 @@ and may set domain fields on ``job`` (e.g. ``value_band`` at publish). It must
 the ``job_event`` rows, the audit row, or the outbox rows — the service owns
 those (§2.1 steps 8-12).
 
-Increment 1 (this file) implements the transitions whose side-effect rows live
-in the ``jobs`` app itself. ``freeze`` / ``complete`` / ``resolve_*`` need the
-``incidents`` and ``commission`` apps (plan §19 Steps 8-9) and raise
-``NotImplementedInThisIncrement`` until those land — the transition table, the
-guards, and the DB backstop for them are already complete and tested.
+Custody side effects (Increment 4): ``arrive_pickup`` / ``arrive_destination``
+issue the pickup / recipient OTP; ``confirm_pickup`` / ``confirm_delivery`` write
+the ``ProofOf*`` row **and** the method-specific custody ``job_event``
+(``PICKUP_OTP_CONFIRMED`` / ``PICKUP_BUSINESS_CONFIRMED`` /
+``PICKUP_OPERATOR_ATTESTED`` / ``RECIPIENT_VERIFIED``) — the one place the method
+is known (ADR-2D-15). ``freeze`` / ``complete`` / ``resolve_*`` still raise
+``NotImplementedInThisIncrement`` (plan §19 Steps 8-9).
 """
 
 from __future__ import annotations
@@ -21,11 +23,16 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Any
 
+from django.db.models import Max
+
 from fikisha.jobs import eligibility
 from fikisha.jobs.constants import (
     HIGH_VALUE_BANDS,
     Attestation,
     CancellationReason,
+    ConfirmationMethod,
+    JobEventCategory,
+    JobEventType,
     JobStatus,
     OperatorParty,
     ProofCapturedBy,
@@ -34,12 +41,13 @@ from fikisha.jobs.constants import (
     ValueBand,
     compute_penalty_class,
 )
-from fikisha.jobs.errors import GuardFailed, NotImplementedInThisIncrement
+from fikisha.jobs.errors import GuardFailed, NotImplementedInThisIncrement, OtpNotIssued
 from fikisha.jobs.models import (
     Agreement,
     Assignment,
     CancellationRecord,
     FailureRecord,
+    JobEvent,
     ProofOfDelivery,
     ProofOfPickup,
 )
@@ -78,15 +86,82 @@ def _resolve_party(ctx: dict[str, Any]) -> tuple[str, Any, Any]:
     return party, operator_id, group_id
 
 
-# ── no-op transitions (custody arrival / transit start — the job_event the
-#    service writes is the whole record; no extra rows) ─────────────────
+# ── no-op transitions (the job_event the service writes is the whole record) ──
 def noop(job: Any, actor: Any, ctx: dict[str, Any]) -> None:
     return None
 
 
-arrive_pickup = noop
 start_transit = noop
-arrive_destination = noop
+
+
+def _append_event(
+    job: Any,
+    *,
+    event_type: str,
+    actor: Any,
+    category: str = JobEventCategory.CUSTODY,
+    is_custody: bool = True,
+    confirmation_method: str | None = None,
+    evidence_ids: list[Any] | None = None,
+    source_meta: dict[str, Any] | None = None,
+    note: str = "",
+) -> None:
+    """Write one ``job_event`` inside the transition txn (append-only). The
+    service's ``_write_events`` continues the ``seq`` after it."""
+    seq = (JobEvent.objects.filter(job=job).aggregate(m=Max("seq"))["m"] or 0) + 1
+    user = getattr(actor, "user", actor)
+    JobEvent.objects.create(
+        job=job,
+        seq=seq,
+        category=category,
+        type=event_type,
+        is_custody=is_custody,
+        actor_user=user if getattr(user, "pk", None) else None,
+        actor_role=str(getattr(actor, "audit_role", "") or ""),
+        confirmation_method=confirmation_method,
+        evidence_ids=[str(e) for e in (evidence_ids or []) if e],
+        source_meta=source_meta or {},
+        note=note,
+        config_version_id=job.config_version_id,
+    )
+
+
+_OTP_ISSUED_EVENT = {
+    "PICKUP_HANDOVER": JobEventType.PICKUP_OTP_ISSUED,
+    "RECIPIENT_VERIFY": JobEventType.RECIPIENT_OTP_ISSUED,
+}
+
+
+def _issue_step_otp(job: Any, actor: Any, ctx: dict[str, Any], *, purpose: str, phone: str) -> None:
+    """Best-effort OTP issuance on arrival. A missing contact phone does **not**
+    block the arrival transition — the driver can still use in-app business
+    confirmation (or, STANDARD only, the attested fallback). The
+    ``*_OTP_ISSUED`` timeline event is written only when a code was actually
+    issued."""
+    from fikisha.jobs import otp as otp_service
+
+    try:
+        issued = otp_service.issue_otp(job=job, purpose=purpose, phone=phone or "", actor=actor)
+    except OtpNotIssued:
+        return
+    ctx[f"_dev_otp_{purpose}"] = issued.dev_code
+    _append_event(
+        job,
+        event_type=_OTP_ISSUED_EVENT[purpose],
+        actor=actor,
+        category=JobEventCategory.SYSTEM,
+        is_custody=False,
+        source_meta={"challenge_id": issued.challenge_id, "sent_to_phone": issued.sent_to_phone},
+    )
+
+
+def arrive_pickup(job: Any, actor: Any, ctx: dict[str, Any]) -> None:
+    phone = getattr(job.pickup_location, "contact_phone", "") if job.pickup_location_id else ""
+    _issue_step_otp(job, actor, ctx, purpose="PICKUP_HANDOVER", phone=phone)
+
+
+def arrive_destination(job: Any, actor: Any, ctx: dict[str, Any]) -> None:
+    _issue_step_otp(job, actor, ctx, purpose="RECIPIENT_VERIFY", phone=job.recipient_phone or "")
 
 
 # ── publish ──────────────────────────────────────────────────────────
@@ -170,26 +245,37 @@ def assign(job: Any, actor: Any, ctx: dict[str, Any]) -> None:
     job.assignment = assignment
 
 
-# ── custody proofs ────────────────────────────────────────────────
+# ── custody proofs (chain-of-custody.md §2 / §4, D-CUS-2 / D-TRU-5) ──
+_PICKUP_METHOD_EVENT = {
+    "OTP": (JobEventType.PICKUP_OTP_CONFIRMED, ConfirmationMethod.OTP),
+    "BUSINESS_CONFIRM": (JobEventType.PICKUP_BUSINESS_CONFIRMED, ConfirmationMethod.IN_APP),
+    "ATTESTED": (JobEventType.PICKUP_OPERATOR_ATTESTED, ConfirmationMethod.PHOTO),
+}
+
+
 def confirm_pickup(job: Any, actor: Any, ctx: dict[str, Any]) -> None:
-    """Write ``ProofOfPickup``. The operator-attested Standard-band fallback caps
-    the job at STANDARD (D-CUS-2); the guard has already refused it for any
-    higher band. ``picked_up_at`` is stamped by the service."""
-    method = ctx.get("pickup_method")
+    """Write ``ProofOfPickup`` + the method-specific custody event. The
+    operator-attested STANDARD-band fallback records
+    ``attestation = OPERATOR_ATTESTED_UNVERIFIED`` and **caps the job at
+    STANDARD** (the guard has already refused it for any higher band).
+    ``picked_up_at`` is stamped by the service."""
+    method = str(ctx.get("pickup_method") or "")
     attested = method == "ATTESTED"
-    methods = {
-        "OTP": ["OTP"],
-        "BUSINESS_CONFIRM": ["IN_APP"],
-        "ATTESTED": ["PHOTO"],
-    }.get(method or "", [])
+    event_type, conf_method = _PICKUP_METHOD_EVENT.get(
+        method, (JobEventType.GOODS_RECEIVED, ConfirmationMethod.NONE)
+    )
+    photo_ids = list(ctx.get("photo_evidence_ids") or [])
+    if attested and ctx.get("fallback_photo_id"):
+        photo_ids = [ctx["fallback_photo_id"], *photo_ids]
+
     ProofOfPickup.objects.create(
         job=job,
         kind=ProofKind.PICKUP,
         party_name=(ctx.get("pickup_contact_name") or "").strip(),
-        methods=methods,
+        methods=[conf_method] if conf_method != ConfirmationMethod.NONE else [],
         otp_verified=method == "OTP",
         signature_evidence_id=ctx.get("signature_evidence_id"),
-        photo_evidence_ids=list(ctx.get("photo_evidence_ids") or []),
+        photo_evidence_ids=photo_ids,
         captured_by=ctx.get("captured_by")
         or (
             ProofCapturedBy.BUSINESS_CONTACT
@@ -199,30 +285,60 @@ def confirm_pickup(job: Any, actor: Any, ctx: dict[str, Any]) -> None:
         condition_note=(ctx.get("condition_note") or "").strip(),
         attestation=Attestation.OPERATOR_ATTESTED_UNVERIFIED if attested else Attestation.VERIFIED,
     )
+    _append_event(
+        job,
+        event_type=event_type,
+        actor=actor,
+        confirmation_method=conf_method,
+        evidence_ids=photo_ids,
+        note=(ctx.get("condition_note") or "").strip(),
+    )
+    if ctx.get("_otp_challenge_id"):
+        from fikisha.jobs import otp as otp_service
+
+        otp_service.consume_otp(purpose=ctx["_otp_purpose"], challenge_id=ctx["_otp_challenge_id"])
     if attested:
         job.value_band = ValueBand.STANDARD
 
 
 def confirm_delivery(job: Any, actor: Any, ctx: dict[str, Any]) -> None:
-    """Write ``ProofOfDelivery``. ``delivered_at`` is stamped by the service."""
+    """Write ``ProofOfDelivery`` + the ``RECIPIENT_VERIFIED`` custody event.
+    ``delivered_at`` is stamped by the service."""
+    otp_ok = bool(ctx.get("otp_verified"))
+    photos = list(ctx.get("photo_evidence_ids") or [])
+    sig = ctx.get("signature_evidence_id")
     methods: list[str] = []
-    if ctx.get("otp_verified"):
-        methods.append("OTP")
-    if ctx.get("signature_evidence_id"):
-        methods.append("SIGNATURE")
-    if ctx.get("photo_evidence_ids"):
-        methods.append("PHOTO")
+    if otp_ok:
+        methods.append(ConfirmationMethod.OTP)
+    if sig:
+        methods.append(ConfirmationMethod.SIGNATURE)
+    if photos:
+        methods.append(ConfirmationMethod.PHOTO)
+    conf_method = methods[0] if methods else ConfirmationMethod.NONE
+
     ProofOfDelivery.objects.create(
         job=job,
         kind=ProofKind.DELIVERY,
         party_name=(ctx.get("party_name") or "").strip(),
         methods=methods,
-        otp_verified=bool(ctx.get("otp_verified")),
-        signature_evidence_id=ctx.get("signature_evidence_id"),
-        photo_evidence_ids=list(ctx.get("photo_evidence_ids") or []),
+        otp_verified=otp_ok,
+        signature_evidence_id=sig,
+        photo_evidence_ids=photos,
         captured_by=ctx.get("captured_by") or ProofCapturedBy.OPERATOR,
         condition_note=(ctx.get("condition_note") or "").strip(),
     )
+    _append_event(
+        job,
+        event_type=JobEventType.RECIPIENT_VERIFIED,
+        actor=actor,
+        confirmation_method=conf_method,
+        evidence_ids=[*([sig] if sig else []), *photos],
+        note=(ctx.get("condition_note") or "").strip(),
+    )
+    if ctx.get("_otp_challenge_id"):
+        from fikisha.jobs import otp as otp_service
+
+        otp_service.consume_otp(purpose=ctx["_otp_purpose"], challenge_id=ctx["_otp_challenge_id"])
 
 
 # ── deferred to later increments ────────────────────────────────────

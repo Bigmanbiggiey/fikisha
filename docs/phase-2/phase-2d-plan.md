@@ -643,6 +643,30 @@ new code; **security and invariant tests are not optional**.
   `created_at` (unreliable at Windows clock granularity for same-transaction
   entries); it compares the new figure against the standing offer / posted price
   passed in by the caller. No behaviour change; removes a latent flaky path.
+- **ADR-2D-15** *(Increment 4 — Custody & proof)* — the method-specific custody
+  `job_event` (`PICKUP_OTP_CONFIRMED` / `PICKUP_BUSINESS_CONFIRMED` /
+  `PICKUP_OPERATOR_ATTESTED` / `RECIPIENT_VERIFIED`) is written by the
+  `confirm_pickup` / `confirm_delivery` **apply fns**, not by a static
+  `Rule.event_type` — the method is only known once the proof is being written.
+  `JobLifecycleService._write_events` continues the same per-job `seq` after it
+  (still one gapless, hash-chain-audited transaction). `_write_events` also now
+  takes the transition `ctx` so a single event-based `geo` reading (lat/lng/
+  accuracy, or `NOT_CAPTURED`) lands on the right custody row
+  (`ARRIVED_AT_PICKUP` / `GOODS_RECEIVED` / `ARRIVED_AT_DESTINATION` /
+  `DELIVERY_CONFIRMED`) — chain-of-custody.md §5: **no continuous GPS**, a
+  single reading per step, `NOT_CAPTURED` is an acceptable recorded value. The
+  `PICKUP_OTP_ISSUED` / `RECIPIENT_OTP_ISSUED` timeline events (category
+  `SYSTEM`, not custody) are written only when a code is actually issued (a
+  missing contact phone no longer produces a misleading "issued" row).
+- **ADR-2D-16** *(Increment 4)* — `RecipientOtpChallenge.link` is now nullable.
+  The recipient OTP is issued to `job.recipient_phone` on
+  `IN_TRANSIT → AT_DESTINATION`, independent of (and before) the recipient
+  access link, which is plan §19 Step 7. OTP verification is split
+  `verify_otp(consume=False)` (validates in its own committed transaction so a
+  wrong code's `attempts` increment survives a later guard failure) +
+  `consume_otp()` (called by the apply fn once the transition's other guards
+  have passed) — so a driver who enters the right code but forgets a required
+  photo does not have to ask the recipient/pickup-contact for a fresh one.
 
 ---
 
