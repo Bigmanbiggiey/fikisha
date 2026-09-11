@@ -4,7 +4,8 @@
   "nav": {
     "home": "Nyumbani",
     "diagnostics": "Uchunguzi",
-    "signOut": "Toka"
+    "signOut": "Toka",
+    "signIn": "Ingia"
   },
   "language": {
     "label": "Lugha",

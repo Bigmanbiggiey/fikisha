@@ -1,0 +1,26 @@
+{
+  "hero": {
+    "tagline": "Delivered, tracked and trusted.",
+    "lead": "Fikisha connects businesses in Kitengela and the surrounding area with verified local transport operators — from a motorcycle parcel to a full trailer load.",
+    "signIn": "Sign in",
+    "signInNote": "New to Fikisha? Signing in with your phone number creates your account automatically."
+  },
+  "how": {
+    "title": "How it works",
+    "body": "We digitise how the network already works — stages and yards, direct contact, prices negotiated between the parties, and disputes settled amicably first — with a shared, auditable record from pickup to delivery."
+  },
+  "audiences": {
+    "business": {
+      "title": "Moving goods?",
+      "body": "Post what you need moved, agree a price directly with an operator, and follow the job through to delivery."
+    },
+    "operator": {
+      "title": "Driving for work?",
+      "body": "Find loads near your stage, negotiate your own price, and build a trusted record as you complete jobs."
+    }
+  },
+  "footer": {
+    "cta": "Ready to get started?",
+    "signIn": "Sign in with your phone number"
+  }
+}

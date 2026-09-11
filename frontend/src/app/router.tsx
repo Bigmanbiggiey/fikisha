@@ -1,9 +1,10 @@
-import { Navigate, Route, Routes } from 'react-router-dom';
+import { Navigate, Outlet, Route, Routes } from 'react-router-dom';
 
 import { LoginPage } from '@/features/auth/LoginPage';
 import { RequireAuth } from '@/features/auth/RequireAuth';
 import { DiagnosticsPage } from '@/features/diagnostics/DiagnosticsPage';
 import { HomePage } from '@/features/home/HomePage';
+import { HomeOrLanding } from '@/features/landing/HomeOrLanding';
 import { BusinessDetailPage } from '@/features/org/BusinessDetailPage';
 import { BusinessesPage } from '@/features/org/BusinessesPage';
 import { GroupDetailPage } from '@/features/org/GroupDetailPage';
@@ -16,29 +17,39 @@ import { VerificationQueuePage } from '@/features/verification/VerificationQueue
 import { VerificationRecordPage } from '@/features/verification/VerificationRecordPage';
 import { AppShell } from '@/shell/AppShell';
 
+/**
+ * `/` is public (the landing page for a signed-out or first-time visitor —
+ * `HomeOrLanding` sends an already-authenticated visitor on to `/home`).
+ * Everything else that touches account data stays behind `RequireAuth`,
+ * which redirects to `/login` and back (`state.from`) — a new user is only
+ * ever prompted to sign in once they reach a route that actually needs it.
+ */
 export function AppRoutes(): JSX.Element {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
-      <Route
-        element={
-          <RequireAuth>
-            <AppShell />
-          </RequireAuth>
-        }
-      >
-        <Route index element={<HomePage />} />
-        <Route path="businesses" element={<BusinessesPage />} />
-        <Route path="businesses/:businessId" element={<BusinessDetailPage />} />
-        <Route path="operator" element={<OperatorProfilePage />} />
-        <Route path="groups" element={<GroupsPage />} />
-        <Route path="groups/:groupId" element={<GroupDetailPage />} />
-        <Route path="operating-locations" element={<OperatingLocationsPage />} />
-        <Route path="vehicles" element={<VehiclesPage />} />
-        <Route path="vehicles/:vehicleId" element={<VehicleDetailPage />} />
-        <Route path="verification" element={<VerificationQueuePage />} />
-        <Route path="verification/:recordId" element={<VerificationRecordPage />} />
-        <Route path="diagnostics" element={<DiagnosticsPage />} />
+      <Route element={<AppShell />}>
+        <Route index element={<HomeOrLanding />} />
+        <Route
+          element={
+            <RequireAuth>
+              <Outlet />
+            </RequireAuth>
+          }
+        >
+          <Route path="home" element={<HomePage />} />
+          <Route path="businesses" element={<BusinessesPage />} />
+          <Route path="businesses/:businessId" element={<BusinessDetailPage />} />
+          <Route path="operator" element={<OperatorProfilePage />} />
+          <Route path="groups" element={<GroupsPage />} />
+          <Route path="groups/:groupId" element={<GroupDetailPage />} />
+          <Route path="operating-locations" element={<OperatingLocationsPage />} />
+          <Route path="vehicles" element={<VehiclesPage />} />
+          <Route path="vehicles/:vehicleId" element={<VehicleDetailPage />} />
+          <Route path="verification" element={<VerificationQueuePage />} />
+          <Route path="verification/:recordId" element={<VerificationRecordPage />} />
+          <Route path="diagnostics" element={<DiagnosticsPage />} />
+        </Route>
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

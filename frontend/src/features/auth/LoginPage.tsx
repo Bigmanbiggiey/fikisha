@@ -22,7 +22,7 @@ export function LoginPage(): JSX.Element {
   const { t } = useTranslation(['auth', 'common', 'errors']);
   const { status, completeLogin } = useAuth();
   const location = useLocation();
-  const from = (location.state as LocationState | null)?.from ?? '/';
+  const from = (location.state as LocationState | null)?.from ?? '/home';
 
   const [step, setStep] = useState<Step>('phone');
   const [phone, setPhone] = useState('');

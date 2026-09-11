@@ -4,7 +4,8 @@
   "nav": {
     "home": "Home",
     "diagnostics": "Diagnostics",
-    "signOut": "Sign out"
+    "signOut": "Sign out",
+    "signIn": "Sign in"
   },
   "language": {
     "label": "Language",

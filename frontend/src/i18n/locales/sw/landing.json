@@ -1,0 +1,26 @@
+{
+  "hero": {
+    "tagline": "Imefikishwa, imefuatiliwa, inaaminika.",
+    "lead": "Fikisha inaunganisha biashara za Kitengela na maeneo jirani na madereva wa usafirishaji wa ndani waliothibitishwa — kutoka kifurushi cha bodaboda hadi mzigo kamili wa trela.",
+    "signIn": "Ingia",
+    "signInNote": "Mgeni Fikisha? Kuingia kwa nambari yako ya simu kunafungua akaunti yako moja kwa moja."
+  },
+  "how": {
+    "title": "Jinsi inavyofanya kazi",
+    "body": "Tunaweka mfumo unaofanya kazi tayari katika mtandao huu — stendi na yadi, mawasiliano ya moja kwa moja, bei zinazokubaliwa kati ya pande husika, na migogoro inayosuluhishwa kwa amani kwanza — pamoja na rekodi moja, inayoweza kukaguliwa kutoka kuchukua hadi kufikisha."
+  },
+  "audiences": {
+    "business": {
+      "title": "Unahamisha mizigo?",
+      "body": "Weka unachohitaji kusafirishwa, kubaliana bei moja kwa moja na dereva, na fuatilia kazi hadi kufikishwa."
+    },
+    "operator": {
+      "title": "Unatafuta kazi ya udereva?",
+      "body": "Pata mizigo karibu na stendi yako, kubaliana bei yako mwenyewe, na jenga rekodi ya kuaminika unapokamilisha kazi."
+    }
+  },
+  "footer": {
+    "cta": "Uko tayari kuanza?",
+    "signIn": "Ingia kwa nambari yako ya simu"
+  }
+}

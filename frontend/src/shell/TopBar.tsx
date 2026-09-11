@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { NavLink } from 'react-router-dom';
+import { Link, NavLink, useNavigate } from 'react-router-dom';
 
 import { Button } from '@/components/Button';
 import { ConnectivityIndicator } from '@/components/ConnectivityIndicator';
@@ -18,6 +18,7 @@ export function TopBar(): JSX.Element {
   const { t } = useTranslation(['common', 'org']);
   const { status, logout } = useAuth();
   const online = useOnline();
+  const navigate = useNavigate();
 
   const linkClass = ({ isActive }: { isActive: boolean }): string =>
     cn(
@@ -30,11 +31,13 @@ export function TopBar(): JSX.Element {
   return (
     <header className="border-b border-line bg-surface-nav">
       <div className="mx-auto flex max-w-3xl flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3">
-        <span className="text-h3 font-bold text-action-primary">{t('common:appName')}</span>
+        <Link to="/" className="text-h3 font-bold text-action-primary">
+          {t('common:appName')}
+        </Link>
 
         {status === 'authenticated' && (
           <nav className="flex flex-wrap items-center gap-1" aria-label={t('common:appName')}>
-            <NavLink to="/" end className={linkClass}>
+            <NavLink to="/home" className={linkClass}>
               {t('common:nav.home')}
             </NavLink>
             <NavLink to="/businesses" className={linkClass}>
@@ -67,6 +70,11 @@ export function TopBar(): JSX.Element {
           {status === 'authenticated' && (
             <Button variant="tertiary" size="compact" onClick={() => void logout()}>
               {t('common:nav.signOut')}
+            </Button>
+          )}
+          {status === 'anonymous' && (
+            <Button variant="secondary" size="compact" onClick={() => navigate('/login')}>
+              {t('common:nav.signIn')}
             </Button>
           )}
         </div>
