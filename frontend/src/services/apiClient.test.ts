@@ -78,4 +78,19 @@ describe('apiRequest', () => {
     expect(lost).toHaveBeenCalledOnce();
     unsubscribe();
   });
+
+  it('attaches Idempotency-Key when given, and omits it when not', async () => {
+    const fetchMock = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(jsonResponse({ ok: true }))
+      .mockResolvedValueOnce(jsonResponse({ ok: true }));
+
+    await apiRequest('/jobs/1/submit', { method: 'POST', idempotencyKey: 'key-abc' });
+    const withKey = new Headers(fetchMock.mock.calls[0]![1]!.headers as HeadersInit);
+    expect(withKey.get('Idempotency-Key')).toBe('key-abc');
+
+    await apiRequest('/jobs/1', {});
+    const withoutKey = new Headers(fetchMock.mock.calls[1]![1]!.headers as HeadersInit);
+    expect(withoutKey.has('Idempotency-Key')).toBe(false);
+  });
 });

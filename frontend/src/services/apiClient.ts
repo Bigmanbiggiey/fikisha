@@ -42,6 +42,15 @@ export interface RequestOptions {
   /** Attempt one refresh-and-retry on a 401 (default true). */
   retryOnUnauthorized?: boolean;
   signal?: AbortSignal;
+  /**
+   * Sent as `Idempotency-Key` — required by the backend for job-creation and
+   * every lifecycle-transition call (submit, cancel, assign, custody
+   * confirms, negotiation accept, dispute resolve; see phase-2d-api.md §1).
+   * Generate once per user-initiated attempt (e.g. `crypto.randomUUID()`)
+   * and reuse it across a retry of the *same* attempt — a fresh key per
+   * retry defeats the point.
+   */
+  idempotencyKey?: string;
 }
 
 async function parseBody(response: Response): Promise<unknown> {
@@ -78,12 +87,20 @@ export async function apiRequest<T = unknown>(
   path: string,
   options: RequestOptions = {},
 ): Promise<T> {
-  const { method = 'GET', body, auth = true, retryOnUnauthorized = true, signal } = options;
+  const {
+    method = 'GET',
+    body,
+    auth = true,
+    retryOnUnauthorized = true,
+    signal,
+    idempotencyKey,
+  } = options;
   const isForm = typeof FormData !== 'undefined' && body instanceof FormData;
 
   const headers: Record<string, string> = { Accept: 'application/json' };
   if (body !== undefined && !isForm) headers['Content-Type'] = 'application/json';
   if (auth && accessToken) headers.Authorization = `Bearer ${accessToken}`;
+  if (idempotencyKey) headers['Idempotency-Key'] = idempotencyKey;
 
   let response: Response;
   try {

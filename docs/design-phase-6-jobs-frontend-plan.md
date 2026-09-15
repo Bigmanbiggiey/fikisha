@@ -212,11 +212,30 @@ Sequenced by the approved priority order (P2 §85: Core Marketplace → Physical
 Delivery → Trust & Safety → Management → Administrative), adapted to ship in
 reviewable increments the way Phase 2D's eleven increments did.
 
-### Increment 1 — Frontend infrastructure (no screens)
+### Increment 1 — Frontend infrastructure (no screens) — DONE, 2026-09-15
 
-API client modules (§5), new shared components' skeletons (§6, built and
-unit-tested in isolation, not yet composed into screens), role-aware shell
-(§4), the `Idempotency-Key` `apiClient.ts` addition (§3.3).
+API client modules (§5) and the `Idempotency-Key` `apiClient.ts` addition
+(§3.3): `jobsApi`/`recipientApi`/`negotiationApi`/`incidentsApi` + their
+`types.ts`, every field/enum verified directly against the backend
+serializers/DTOs rather than re-guessed (this caught and fixed one real
+doc error: `phase-2d-api.md` had said the recipient `/r/<token>` routes are
+mounted outside `/api/v1/` — they aren't, confirmed against
+`config/urls.py`). The workspace-resolution half of the role-aware shell
+(§4) — `useWorkspaces()`, built on the codebase's established
+`@tanstack/react-query` pattern (not plain `useState`/`useEffect` as
+first drafted — corrected after discovering react-query is already the
+convention every other feature page uses), resolving Business/Operator/
+Group-Manager/Ops-Officer/Platform-Admin workspaces from the existing org
+endpoints. 89/89 frontend tests, lint/typecheck/build clean (103.36 kB
+gzip).
+
+**Scope refinement from this section's original text:** the 17 new shared
+components (§6) are **not** pre-built in isolation here. Building them
+against guessed prop shapes before any consuming screen exists risks
+rework; they're built just-in-time as each increment's screens need them
+instead — still unit-tested, just not batched up front. `RoleTabBar`/
+`RoleSidebar` (the presentational half of §4) are deferred the same way,
+to Increment 2, since there's nothing to navigate to yet.
 
 ### Increment 2 — Business: create & monitor a Job (P2 Flow Family A, P3 §6)
 

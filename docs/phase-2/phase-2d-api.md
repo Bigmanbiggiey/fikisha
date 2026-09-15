@@ -9,10 +9,13 @@ lifecycle, negotiation, assignment, proof, incident, dispute, or commission
 rule is implemented in this layer** — see `phase-2d-decisions.md` for why
 each module is placed where it is.
 
-All routes are mounted under `/api/v1/` via `fikisha.api.urls`, except the
-recipient-scoped routes, which are mounted at the API root (`/r/<token>...`,
-outside `/api/v1/` — they authenticate via the link token itself, not a
-bearer session).
+All routes, including the recipient-scoped ones, are mounted under
+`/api/v1/` via `fikisha.api.urls` (`jobs.api.urls`'s `/r/<token>...` routes
+included the same way as everything else — confirmed directly against
+`config/urls.py` + `fikisha/api/urls.py` while building the frontend API
+client, correcting an earlier version of this doc that said "outside
+/api/v1/"). What actually makes them different is auth: they authenticate
+via the link token itself, not a bearer session.
 
 ---
 
