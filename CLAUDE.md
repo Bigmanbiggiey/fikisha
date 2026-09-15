@@ -263,25 +263,58 @@ The full policy is `docs/team-skills-policy.md`; the inventory and rationale are
 | Design Phase 0 — Product Design Foundation (`docs/design-brief.md`) | APPROVED |
 | Design Phase 1 — Information Architecture (`docs/design-phase-1-ia.md`) | APPROVED |
 | Design Phase 2 — User Flows (`docs/design-phase-2-user-flows.md`) | APPROVED |
-| Design Phase 3 — Wireframes | **NOT STARTED** |
+| Design Phase 3 — Wireframes (`docs/design-phase-3-wireframes.md`) | APPROVED (documentation baseline) |
+| Design Phase 4 — Visual System (`docs/design-phase-4-visual-system.md`) | APPROVED (visual system baseline; final brand hex values were gated separately — see Phase 5A) |
+| Design Phase 5A — Brand Palette (`docs/design-phase-5-brand-palette.md`) | APPROVED — Option A "Stage & Yard" |
+| Design Phase 5B — Production Tokens (`docs/design-phase-5-implementation.md`) | COMPLETE — tokens + 13 foundational primitives implemented in `frontend/` |
+| Design Phase 5C — Screen Migration (`docs/design-phase-5c-screen-migration.md`) | PARTIAL — all 15 pre-existing screens migrated; the Job/workspace screens (Business/Operator/Driver/Ops/Platform Admin/Recipient) are **escalated, not built** — they need a Jobs backend, which did not exist when 5C ran |
+| Phase 2D — Jobs & Core Coordination (backend) (`docs/phase-2/phase-2d-plan.md`, `-final-verification.md`) | Increments 1–11 implemented + 2 verification corrective passes (BLOCKER-1, tiebreaker fix) done. §19 Steps 12–15 (property/invariant tests, full CI, `-summary.md`/`-decisions.md`/`-api.md` doc promotion) **NOT started**. No frontend for Jobs yet — 5C's escalation above is why. |
 
-Working branch: `feat/phase-2c-vehicles-verification` (design-track docs committed
-here; **not merged to `main`**).
+**Process exception — read before assuming `main` reflects an approved gate.**
+On 2026-09-11 21:24 +0300, `feat/phase-2d-jobs` was fast-forward-merged into
+`main` and pushed to `origin/main` (GitHub) in a local operation with no
+founder approval recorded and no PR — a direct violation of §5's "founder
+approves before any merge" rule. It happened shortly after (ordering not
+fully reconstructable) the Phase 2D final-verification report identified a
+still-open **MERGE BLOCKER** (`docs/phase-2/phase-2d-final-verification.md`
+§"Phase 2D Flaky-Test Investigation") — i.e. it was not merged from an
+approved-clean state either way. Discovered 2026-09-15; the MERGE BLOCKER
+was fixed the same day (`fix/phase-2d-tiebreaker-defects`, commit `66f3b8c`,
+see the report's "Tiebreaker Corrective Verification" section). The Founder
+reviewed this finding on 2026-09-15 and **retroactively ratified `main`'s
+current state** rather than reverting/force-pushing over public history —
+the code itself is real, tested, and now blocker-free; the failure was
+procedural. Hardening in progress: GitHub branch protection on `main`
+(require PRs, block direct pushes) — **not yet applied**, no GitHub API
+access from this environment; see `docs/phase-2/phase-2d-final-verification.md`
+for full forensic detail. Treat any future direct push/fast-forward to
+`main` outside an explicit founder instruction as the same class of
+violation, branch protection or not.
 
-> **CURRENT STOP LINE — Do not begin Design Phase 3 until separately instructed.**
-> Also not started / not permitted without explicit founder approval: any Jobs,
-> job lifecycle, negotiation, pricing, assignment, dispatch, trust score / trust
-> levels / value-band eligibility engine, ratings, incidents, disputes, custody,
-> pickup OTP, delivery, recipient links, commission, payments, M-Pesa, eTIMS,
-> SMS, WhatsApp, GPS, route optimisation, AI matching, fleet scheduling, or
-> native apps. Recommended next build phase = Trust & Reputation, then Jobs.
+Working branch for open work: `fix/phase-2d-tiebreaker-defects` (off
+`main`/`feat/phase-2d-jobs` tip `b7529df`) — not yet merged.
+
+> **CURRENT STOP LINE.** Design Phase 3–5B are approved/complete; 5C's
+> workspace Job screens are escalated pending a founder decision on which
+> phase builds them (see table above). Phase 2D backend implementation is
+> functionally on `main` (see Process Exception), but §19 Steps 12–15 are
+> not done and this was never taken through a founder approval gate as a
+> phase — do not treat "it's on `main`" as "Phase 2D is APPROVED."
+> Still not started / not permitted without explicit founder approval: a
+> real Trust & Reputation engine (Phase 2D uses only the interim
+> conservative deterministic rule, ADR-2D-05 Option b) · ratings ·
+> `RESUME_PRIOR` preconditions (still an open Phase-0 item) · any wired
+> SMS/WhatsApp/M-Pesa/eTIMS provider · GPS/route optimisation · AI dispatch
+> · fleet scheduling · native apps · deploy · merging further work to `main`
+> without asking first.
 
 ---
 
 ## 8. Quick pointers
 
-- Backend modules: `backend/fikisha/{common,audit,outbox,platform_config,identity,storage,business,operators,groups,evidence,vehicles,verification}`.
-- ADRs: `docs/phase-2/phase-2a-decisions.md`, `phase-2b-decisions.md`, `phase-2c-decisions.md`.
-- Repro/verify commands: `docs/phase-2/phase-2X-summary.md` files; `scripts/smoke-test.sh`.
-- Design lineage: `design-brief.md` (P0) → `design-phase-1-ia.md` (P1) → `design-phase-2-user-flows.md` (P2) → Design Phase 3 (wireframes, not started).
+- Backend modules: `backend/fikisha/{common,audit,outbox,platform_config,identity,storage,business,operators,groups,evidence,vehicles,verification,jobs,negotiation,incidents}`.
+- ADRs: `docs/phase-2/phase-2a-decisions.md`, `phase-2b-decisions.md`, `phase-2c-decisions.md`; Phase 2D's ADRs (2D-01–2D-30) are embedded in `docs/phase-2/phase-2d-plan.md` (no separate `-decisions.md` yet — one of the §19 Steps 12–15 doc-promotion items).
+- Repro/verify commands: `docs/phase-2/phase-2X-summary.md` files; `scripts/smoke-test.sh`; Phase 2D's own evidence is in `docs/phase-2/phase-2d-final-verification.md`.
+- Design lineage: `design-brief.md` (P0) → `design-phase-1-ia.md` (P1) → `design-phase-2-user-flows.md` (P2) → `design-phase-3-wireframes.md` (P3) → `design-phase-4-visual-system.md` (P4) → `design-phase-5-brand-palette.md` (P5A) → `design-phase-5-implementation.md` (P5B, tokens live in `frontend/src/design/tokens.ts`) → `design-phase-5c-screen-migration.md` (P5C, partial — see §7).
 - Memory index for cross-session context lives outside the repo (Claude auto-memory).
+- **Before assuming `main` is a clean, founder-approved baseline, read §7's Process Exception note.**
