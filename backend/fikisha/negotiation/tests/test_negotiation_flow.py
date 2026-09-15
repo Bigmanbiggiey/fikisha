@@ -83,6 +83,33 @@ def test_entries_stay_correctly_ordered_when_created_at_ties(
     }
 
 
+def test_a_downstream_audit_failure_rolls_back_the_whole_propose_call(
+    requested_job: Any, operator_a: Any, _actor: Any, monkeypatch: Any
+) -> None:
+    """Phase 2D Step 12 (audit/outbox atomicity sweep): ``propose()`` is
+    ``@transaction.atomic``, but that was previously true only by inspection.
+    Here the thread + seeded business entry are created successfully *before*
+    the forced failure (inside the same call) — proving a downstream audit
+    failure rolls back not just the entry mid-write, but everything the
+    function already committed earlier in its own scope, matching the
+    BLOCKER-1 corrective pass's standard for `incidents.services`."""
+    from fikisha.negotiation.models import NegotiationEntry, NegotiationThread
+
+    def _boom(*_a: Any, **_kw: Any) -> Any:
+        raise RuntimeError("simulated downstream failure")
+
+    monkeypatch.setattr(services.audit, "record", _boom)
+    op = _actor(operator_a.user)
+    with pytest.raises(RuntimeError):
+        services.propose(
+            actor=op, job_id=requested_job.id, operator_id=operator_a.id, amount_kes=230_000
+        )
+    assert NegotiationThread.objects.filter(job=requested_job).count() == 0
+    assert NegotiationEntry.objects.filter(job=requested_job).count() == 0
+    requested_job.refresh_from_db()
+    assert requested_job.status == JobStatus.REQUESTED  # unchanged, not NEGOTIATING
+
+
 def test_operator_accepts_posted_price_then_business_accepts_confirms(
     requested_job: Any, operator_a: Any, owner_actor: Any, _actor: Any
 ) -> None:

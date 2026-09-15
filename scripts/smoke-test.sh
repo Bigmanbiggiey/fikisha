@@ -23,7 +23,19 @@ USER_PHONE="+254700000123"
 say()  { printf '\n\033[1;36m== %s\033[0m\n' "$*"; }
 ok()   { printf '   \033[1;32mOK\033[0m  %s\n' "$*"; }
 fail() { printf '   \033[1;31mFAIL\033[0m %s\n' "$*"; exit 1; }
-json() { python3 -c "import sys,json; d=json.load(sys.stdin); print(d$1)"; }
+# Prefer a real interpreter over a bare "python3"/"python" name: on Windows,
+# both can resolve to the App Execution Alias stub (exits nonzero, prints a
+# Microsoft Store prompt) ahead of any real install on PATH. The `py` launcher
+# and python3 are reliable elsewhere; fall back through all three.
+PYTHON_BIN=""
+for candidate in py python3 python; do
+  if command -v "$candidate" >/dev/null 2>&1 && "$candidate" -c "" >/dev/null 2>&1; then
+    PYTHON_BIN="$candidate"
+    break
+  fi
+done
+[ -n "$PYTHON_BIN" ] || { echo "No working Python interpreter found on PATH (tried py, python3, python)." >&2; exit 1; }
+json() { "$PYTHON_BIN" -c "import sys,json; d=json.load(sys.stdin); print(d$1)"; }
 
 say "1. Bring the stack up"
 docker compose up -d --build
@@ -83,9 +95,12 @@ AUDIT_SEQ=$(echo "$DEMO" | json "['audit_seq']")
 
 say "11. The Celery worker drains the outbox event"
 for i in $(seq 1 20); do
+  # `manage.py shell -c` prints a django-extensions shell_plus auto-import
+  # banner ("N objects imported automatically...") before the real output —
+  # take the last non-empty line, not the whole multi-line string.
   STATUS=$(docker compose exec -T backend python manage.py shell -c \
     "from fikisha.outbox.models import OutboxEvent; print(OutboxEvent.objects.get(pk=$OUTBOX_ID).status)" \
-    2>/dev/null | tr -d '\r')
+    2>/dev/null | tr -d '\r' | grep -v '^$' | tail -n1)
   [ "$STATUS" = "PUBLISHED" ] && { ok "outbox event $OUTBOX_ID -> PUBLISHED by the worker"; break; }
   sleep 2
   [ "$i" = 20 ] && fail "outbox event never reached PUBLISHED (last: $STATUS)"

@@ -128,6 +128,49 @@ def test_non_member_driver_rejected(
         )
 
 
+def test_a_driver_role_member_cannot_assign_a_fellow_member(
+    group_setup: Callable,
+    make_verified_operator: Callable,
+    make_confirmed_job: Callable,
+    make_vehicle: Callable,
+    actor_of: Callable,
+) -> None:
+    """Regression for the Phase 2D final-verification report's N-3 coverage
+    gap: no test proved a DRIVER-role member cannot exercise manager
+    authority over the group's assignment, as distinct from self-assign
+    being blocked by mode (already covered above). ``DRIVER_ACCEPTS`` is
+    used here specifically so the mode-gate can't be the reason this fails —
+    isolating `groups.authz.can_manage()` (membership in {OWNER, MANAGER})
+    as the actual thing under test: a DRIVER trying to assign *someone else*
+    always falls through to the "cannot self-assign for another" branch."""
+    from fikisha.groups.models import (
+        AssignmentMode,
+        GroupMemberRole,
+        GroupMembership,
+        GroupMembershipStatus,
+    )
+
+    s = group_setup(mode=AssignmentMode.DRIVER_ACCEPTS)
+    other_driver = make_verified_operator("+254745000003", "Second Driver")
+    GroupMembership.objects.create(
+        group=s["group"],
+        operator=other_driver,
+        role=GroupMemberRole.DRIVER,
+        status=GroupMembershipStatus.ACTIVE,
+    )
+    other_vehicle = make_vehicle(
+        owner_group=s["group"], owner_operator=None, registration="KDA 801G"
+    )
+    job = make_confirmed_job(group=s["group"])
+    with pytest.raises(NotAuthorisedToAssign):
+        assign_job(
+            actor=actor_of(s["member"].user),  # the first DRIVER, not a manager
+            job_id=job.id,
+            driver_profile_id=other_driver.id,  # assigning a fellow member, not self
+            vehicle_id=other_vehicle.id,
+        )
+
+
 def test_suspended_group_cannot_be_assigned(
     group_setup: Callable, make_confirmed_job: Callable, actor_of: Callable
 ) -> None:
