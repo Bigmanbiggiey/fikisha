@@ -268,7 +268,7 @@ The full policy is `docs/team-skills-policy.md`; the inventory and rationale are
 | Design Phase 5A — Brand Palette (`docs/design-phase-5-brand-palette.md`) | APPROVED — Option A "Stage & Yard" |
 | Design Phase 5B — Production Tokens (`docs/design-phase-5-implementation.md`) | COMPLETE — tokens + 13 foundational primitives implemented in `frontend/` |
 | Design Phase 5C — Screen Migration (`docs/design-phase-5c-screen-migration.md`) | PARTIAL — all 15 pre-existing screens migrated; the Job/workspace screens (Business/Operator/Driver/Ops/Platform Admin/Recipient) are **escalated, not built** — they need a Jobs backend, which did not exist when 5C ran |
-| Phase 2D — Jobs & Core Coordination (backend) (`docs/phase-2/phase-2d-summary.md`, `-decisions.md`, `-api.md`, `-final-verification.md`) | **IMPLEMENTATION + VERIFICATION COMPLETE, awaiting the founder's second gate (plan §19 Step 16).** Increments 1–11 + 2 verification corrective passes (BLOCKER-1, tiebreaker fix) + Steps 12–15 (invariant/atomicity tests, static+migration+Docker verification, a manual STRIDE security pass, doc promotion) all done 2026-09-15. 904 backend tests, 90% coverage, full-stack Docker smoke test passed. Not yet a founder-APPROVED phase gate — do not read "implemented" as "approved." No frontend for Jobs yet — 5C's escalation above is why. |
+| Phase 2D — Jobs & Core Coordination (backend) (`docs/phase-2/phase-2d-summary.md`, `-decisions.md`, `-api.md`, `-final-verification.md`) | **APPROVED — second founder gate (plan §19 Step 16) cleared 2026-09-15.** Increments 1–11 + 2 verification corrective passes (BLOCKER-1, tiebreaker fix) + Steps 12–15 (invariant/atomicity tests, static+migration+Docker verification, a manual STRIDE security pass, doc promotion) all done. 904 backend tests, 90% coverage, full-stack Docker smoke test passed. No frontend for Jobs yet — 5C's escalation below is why; still no merge-to-`main` gate exception beyond the ratified Process Exception, no deploy. |
 
 **Process exception — read before assuming `main` reflects an approved gate.**
 On 2026-09-11 21:24 +0300, `feat/phase-2d-jobs` was fast-forward-merged into
@@ -297,14 +297,13 @@ this doc promotion — were done and committed directly to `main` 2026-09-15,
 per explicit founder instruction to close out the phase; see
 `docs/phase-2/phase-2d-summary.md`).
 
-> **CURRENT STOP LINE.** Design Phase 3–5B are approved/complete; 5C's
-> workspace Job screens are escalated pending a founder decision on which
-> phase builds them (see table above). Phase 2D backend is now
-> **implementation + verification complete** (all of plan §19 Steps 1–15
-> done, functionally on `main` — see Process Exception above for how it got
-> there), but this was never taken through a founder approval gate as a
-> phase (§19 Step 16, the second gate, is next) — do not treat "it's
-> implemented" as "Phase 2D is APPROVED."
+> **CURRENT STOP LINE.** Design Phase 3–5B and Phase 2D (backend) are all
+> now founder-APPROVED. 5C's workspace Job screens are escalated pending a
+> founder decision on which phase builds them — this is the immediate open
+> question now that Phase 2D removed the blocker (see table above and §7
+> pointer text below). **Do not begin building the Jobs frontend, a Trust &
+> Reputation phase, or any other next-phase work until the founder names
+> which one is next.**
 > Still not started / not permitted without explicit founder approval: a
 > real Trust & Reputation engine (Phase 2D uses only the interim
 > conservative deterministic rule, ADR-2D-05 Option b) · ratings ·

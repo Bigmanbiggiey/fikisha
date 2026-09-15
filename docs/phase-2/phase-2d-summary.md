@@ -2,7 +2,7 @@
 
 ## 1. Status
 
-**IMPLEMENTATION + VERIFICATION COMPLETE — AWAITING FOUNDER APPROVAL (second gate).**
+**APPROVED — second founder gate (plan §19 Step 16) cleared 2026-09-15.**
 
 Establishes the Job as the fundamental domain object: the 14-state lifecycle,
 two-way sealed negotiation, assignment (solo + group, high-value gating),
@@ -15,11 +15,11 @@ outbox, storage, API conventions, and test infrastructure unchanged.
 **Fikisha still never holds the transport fare; no trust/rating engine
 exists; no SMS/WhatsApp/M-Pesa/eTIMS provider is wired.**
 
-Plan §19 Steps 1–11 (the eleven implementation increments) and Steps 12–15
-(this closing pass: invariant/property tests, static+migration+Docker
-verification, a security review, and this doc-promotion) are done. Step 16
-— the second founder gate — is where this stands now: no merge (beyond what
-is separately recorded in the Process Exception below), no deploy.
+Plan §19 Steps 1–15 (the eleven implementation increments plus this closing
+pass: invariant/property tests, static+migration+Docker verification, a
+security review, and doc-promotion) and Step 16 (the second founder gate)
+are all done as of 2026-09-15. Still true: no additional merge beyond what
+is separately recorded in the Process Exception below, no deploy.
 
 ## 2. Branch history
 
@@ -363,4 +363,4 @@ docker compose down
 
 ## Phase 2D Status
 
-IMPLEMENTATION + VERIFICATION COMPLETE — AWAITING FOUNDER APPROVAL (second gate)
+APPROVED — second founder gate cleared 2026-09-15
