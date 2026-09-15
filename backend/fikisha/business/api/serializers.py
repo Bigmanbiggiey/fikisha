@@ -37,6 +37,12 @@ class BusinessSerializer(serializers.ModelSerializer[BusinessAccount]):
         read_only_fields = fields
 
     def get_my_role(self, obj: BusinessAccount) -> str | None:
+        # List views (`services.businesses_for`) annotate `my_role` per-row via
+        # a subquery — a flat `context["my_role"]` can't vary across a list.
+        # Single-object create/detail views still set it in context.
+        annotated = getattr(obj, "my_role", None)
+        if annotated is not None:
+            return annotated
         return self.context.get("my_role")
 
 
