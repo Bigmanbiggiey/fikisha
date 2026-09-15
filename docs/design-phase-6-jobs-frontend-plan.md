@@ -1,7 +1,8 @@
 # Design Phase 6 — Jobs Frontend: Architecture & Build Plan
 
-**Status:** DRAFT — AWAITING FOUNDER REVIEW (research → plan → architecture gate,
-before any implementation, per `CLAUDE.md` §5's phase model)
+**Status:** APPROVED 2026-09-15 — founder confirmed, including the proposed
+defaults for all 6 open questions in §9. Implementation proceeds per §7's
+increment sequence.
 
 **Continues the design track:** `design-brief.md` (P0) → `design-phase-1-ia.md`
 (P1, IA/nav) → `design-phase-2-user-flows.md` (P2, journeys) →

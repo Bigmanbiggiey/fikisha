@@ -269,7 +269,7 @@ The full policy is `docs/team-skills-policy.md`; the inventory and rationale are
 | Design Phase 5B — Production Tokens (`docs/design-phase-5-implementation.md`) | COMPLETE — tokens + 13 foundational primitives implemented in `frontend/` |
 | Design Phase 5C — Screen Migration (`docs/design-phase-5c-screen-migration.md`) | PARTIAL — all 15 pre-existing screens migrated; the Job/workspace screens (Business/Operator/Driver/Ops/Platform Admin/Recipient) are **escalated, not built** — they need a Jobs backend, which did not exist when 5C ran |
 | Phase 2D — Jobs & Core Coordination (backend) (`docs/phase-2/phase-2d-summary.md`, `-decisions.md`, `-api.md`, `-final-verification.md`) | **APPROVED — second founder gate (plan §19 Step 16) cleared 2026-09-15.** Increments 1–11 + 2 verification corrective passes (BLOCKER-1, tiebreaker fix) + Steps 12–15 (invariant/atomicity tests, static+migration+Docker verification, a manual STRIDE security pass, doc promotion) all done. 904 backend tests, 90% coverage, full-stack Docker smoke test passed. Still no merge-to-`main` gate exception beyond the ratified Process Exception, no deploy. |
-| Design Phase 6 — Jobs Frontend: Architecture & Build Plan (`docs/design-phase-6-jobs-frontend-plan.md`) | **DRAFT — AWAITING FOUNDER REVIEW.** Picks up 5C's escalation now that Phase 2D exists: role-aware shell/routing, new API client modules, ~17 new shared components, a 10-increment screen sequence across all 6 role workspaces, and 6 open architecture questions (Q1–Q6) for the founder gate. **No implementation has started** — do not begin building screens until this plan is approved. |
+| Design Phase 6 — Jobs Frontend: Architecture & Build Plan (`docs/design-phase-6-jobs-frontend-plan.md`) | **APPROVED 2026-09-15**, including the proposed defaults for all 6 open questions (§9 Q1–Q6): single role-aware route tree, no real offline-sync engine this phase, a simple role-switch control, `StaleBadge` presentational-only pending a separate `If-Match` fix, the stated increment order, `RESUME_PRIOR`/rating still out of scope. Implementation begins at Increment 1 (frontend infrastructure). |
 
 **Process exception — read before assuming `main` reflects an approved gate.**
 On 2026-09-11 21:24 +0300, `feat/phase-2d-jobs` was fast-forward-merged into
@@ -298,13 +298,12 @@ Phase 6 plan draft were both done and committed directly to `main`
 proceed to the Jobs frontend; see `docs/phase-2/phase-2d-summary.md` and
 `docs/design-phase-6-jobs-frontend-plan.md`).
 
-> **CURRENT STOP LINE.** Design Phase 3–5B and Phase 2D (backend) are all
-> founder-APPROVED. The founder named the Jobs frontend as the next phase
-> (over a Trust & Reputation phase) and asked for a plan before any code —
-> **Design Phase 6's plan doc is drafted and awaiting founder review; do not
-> write any Jobs-frontend screen or component until it's approved**, and its
-> own §9 has 6 open architecture questions (Q1–Q6) that need an answer
-> first.
+> **CURRENT STOP LINE.** Design Phase 3–5B, Phase 2D (backend), and Design
+> Phase 6 (Jobs-frontend plan) are all founder-APPROVED as of 2026-09-15.
+> Implementation is authorized, increment by increment per the plan's §7
+> sequence, starting at Increment 1 (frontend infrastructure). Each
+> increment should land reviewably, the way Phase 2D's eleven increments
+> did — not as one giant diff.
 > Still not started / not permitted without explicit founder approval: a
 > real Trust & Reputation engine (Phase 2D uses only the interim
 > conservative deterministic rule, ADR-2D-05 Option b) · ratings ·
