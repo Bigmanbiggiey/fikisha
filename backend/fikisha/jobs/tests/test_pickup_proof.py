@@ -114,7 +114,7 @@ def test_wrong_code_increments_attempts_then_locks(at_pickup: Callable, driver_a
     for _ in range(5):
         with pytest.raises((OtpInvalid, OtpLocked)):
             custody.confirm_pickup_with_otp(actor=driver_actor, job_id=job.id, code="999999")
-    challenge = PickupOtpChallenge.objects.filter(job=job).latest("created_at")
+    challenge = PickupOtpChallenge.objects.filter(job=job).latest("seq")
     assert challenge.attempts >= 5 and challenge.is_locked
     # a subsequently-correct code is now refused
     with pytest.raises(OtpLocked):

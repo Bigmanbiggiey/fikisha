@@ -43,6 +43,46 @@ def test_operator_engaging_opens_thread_and_seeds_posted_price(
     assert requested_job.status == JobStatus.NEGOTIATING
 
 
+def test_entries_stay_correctly_ordered_when_created_at_ties(
+    requested_job: Any, operator_a: Any, _actor: Any, monkeypatch: Any
+) -> None:
+    """Regression for the tiebreak defect found in the Phase 2D final
+    verification (2026-09-11): `_entries()` previously ordered by
+    `(created_at, id)`, but the seeded business price and the opening operator
+    offer are written back-to-back in the same call and can receive an
+    identical `auto_now_add` timestamp (measured ~36% under real timing), and
+    `id` (UUIDv7) is only time-ordered at millisecond granularity — on a tie,
+    the operator's later entry could sort *before* the business's earlier one
+    (measured ~18% actual misorder), flipping which offer is "standing".
+    `seq` is a strictly-monotonic tiebreaker that never ties."""
+    from django.utils import timezone
+
+    frozen = timezone.now()
+    monkeypatch.setattr("django.utils.timezone.now", lambda: frozen)
+
+    op = _actor(operator_a.user)
+    view = services.propose(
+        actor=op, job_id=requested_job.id, operator_id=operator_a.id, amount_kes=230_000
+    )
+
+    thread = NegotiationThread.objects.get(job=requested_job, operator=operator_a)
+    entries = list(NegotiationEntry.objects.filter(thread=thread).order_by("seq"))
+    assert len(entries) == 2
+    assert entries[0].created_at == entries[1].created_at  # the tie was actually forced
+    assert entries[0].seq < entries[1].seq
+
+    types = [(e["actor_role"], e["type"], e["amount_kes"]) for e in view["entries"]]
+    assert types == [
+        ("BUSINESS", "PROPOSE", 250_000),  # seeded posted price, written first
+        ("OPERATOR", "PROPOSE", 230_000),  # the opening offer, written second
+    ]
+    assert view["standing_offer"] == {
+        "entry_id": view["entries"][1]["id"],
+        "actor_role": "OPERATOR",
+        "amount_kes": 230_000,
+    }
+
+
 def test_operator_accepts_posted_price_then_business_accepts_confirms(
     requested_job: Any, operator_a: Any, owner_actor: Any, _actor: Any
 ) -> None:

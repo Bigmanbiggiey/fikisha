@@ -6,8 +6,22 @@ from typing import Any, NoReturn
 
 from django.core.exceptions import PermissionDenied
 from django.db import models
+from django.db.models.expressions import RawSQL
 
 from fikisha.common.uuid7 import uuid7
+
+
+def db_sequence_default(sequence_name: str) -> RawSQL:
+    """A ``db_default`` expression drawing from a Postgres sequence the
+    caller's migration creates (``CREATE SEQUENCE <sequence_name>``) — a
+    strictly-monotonic, DB-assigned insertion-order tiebreaker for tables
+    where two rows can otherwise tie: `created_at` (`auto_now_add`'s clock
+    resolution) and `id` (UUIDv7, only time-ordered at millisecond
+    granularity) are not reliable orderings under rapid successive writes.
+    """
+    # `sequence_name` is always a hardcoded literal supplied by our own model
+    # definitions, never external input — no injection surface.
+    return RawSQL(f"nextval('{sequence_name}')", [])  # noqa: S611
 
 
 class UUIDPrimaryKeyModel(models.Model):

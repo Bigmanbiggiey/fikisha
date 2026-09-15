@@ -17,7 +17,12 @@ from __future__ import annotations
 from django.conf import settings
 from django.db import models
 
-from fikisha.common.models import AppendOnlyModel, AppendOnlyQuerySet, TimestampedModel
+from fikisha.common.models import (
+    AppendOnlyModel,
+    AppendOnlyQuerySet,
+    TimestampedModel,
+    db_sequence_default,
+)
 from fikisha.jobs.constants import OperatorParty
 from fikisha.negotiation.constants import EntryActorRole, EntryType, ThreadStatus
 
@@ -85,6 +90,17 @@ class NegotiationEntry(AppendOnlyModel):
     job = models.ForeignKey(
         "jobs.Job", on_delete=models.PROTECT, related_name="negotiation_entries"
     )
+    # Strictly-monotonic insertion order, independent of `created_at`: two
+    # entries written back-to-back in the same call (e.g. the seeded business
+    # price + the opening operator offer) can receive an identical
+    # `auto_now_add` timestamp, and `id` (UUIDv7) is only time-ordered at
+    # millisecond granularity — neither is a safe tiebreaker for deriving
+    # entry status/ordering. Phase 2D final-verification finding, 2026-09-11.
+    seq = models.BigIntegerField(
+        editable=False,
+        unique=True,
+        db_default=db_sequence_default("negotiation_entry_seq"),
+    )
     actor_user = models.ForeignKey(
         settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
     )
@@ -102,7 +118,7 @@ class NegotiationEntry(AppendOnlyModel):
 
     class Meta:
         db_table = "negotiation_entry"
-        ordering = ["created_at"]
+        ordering = ["seq"]
         constraints = [
             models.CheckConstraint(
                 condition=(models.Q(type="REJECT") | models.Q(amount_kes__isnull=False)),

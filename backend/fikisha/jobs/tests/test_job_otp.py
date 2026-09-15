@@ -53,7 +53,7 @@ def test_wrong_code_then_lock(make_assigned_job: Callable) -> None:
             otp_service.verify_otp(job=job, purpose="PICKUP_HANDOVER", code="111111")
     with pytest.raises(OtpLocked):
         otp_service.verify_otp(job=job, purpose="PICKUP_HANDOVER", code="111111")
-    challenge = PickupOtpChallenge.objects.filter(job=job).latest("created_at")
+    challenge = PickupOtpChallenge.objects.filter(job=job).latest("seq")
     assert challenge.attempts == 5
 
 
@@ -82,5 +82,32 @@ def test_reissue_supersedes_the_previous_code(make_assigned_job: Callable) -> No
     otp_service.issue_otp(job=job, purpose="PICKUP_HANDOVER", phone="+254700111222")
     # verify consumes the newest un-consumed challenge; both share the fixed dev code
     otp_service.verify_otp(job=job, purpose="PICKUP_HANDOVER", code="000000")
-    newest = PickupOtpChallenge.objects.filter(job=job).latest("created_at")
+    newest = PickupOtpChallenge.objects.filter(job=job).latest("seq")
     assert newest.consumed_at is not None
+
+
+def test_reissue_still_supersedes_when_created_at_ties(
+    make_assigned_job: Callable, monkeypatch: Any
+) -> None:
+    """Regression for the tiebreak defect found in the Phase 2D final
+    verification (2026-09-11): verify_otp() previously picked the newest
+    challenge via `order_by("-created_at")`, but two challenges issued in
+    immediate succession can receive an identical `auto_now_add` timestamp
+    (measured ~3% under real reissue timing) — on a tie, Postgres's row order
+    is unspecified, so the superseded challenge could be validated instead.
+    `seq` is a strictly-monotonic tiebreaker that never ties."""
+    job = make_assigned_job()
+    frozen = timezone.now()
+    monkeypatch.setattr("django.utils.timezone.now", lambda: frozen)
+    otp_service.issue_otp(job=job, purpose="PICKUP_HANDOVER", phone="+254700111222")
+    otp_service.issue_otp(job=job, purpose="PICKUP_HANDOVER", phone="+254700111222")
+    challenges = list(PickupOtpChallenge.objects.filter(job=job).order_by("seq"))
+    assert len(challenges) == 2
+    assert challenges[0].created_at == challenges[1].created_at  # the tie was actually forced
+    assert challenges[0].seq < challenges[1].seq
+
+    otp_service.verify_otp(job=job, purpose="PICKUP_HANDOVER", code="000000")
+    challenges[0].refresh_from_db()
+    challenges[1].refresh_from_db()
+    assert challenges[1].consumed_at is not None  # the newer (higher-seq) challenge won
+    assert challenges[0].consumed_at is None

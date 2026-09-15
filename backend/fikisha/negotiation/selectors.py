@@ -32,7 +32,12 @@ from fikisha.negotiation.models import NegotiationEntry, NegotiationThread
 
 
 def _entries(thread: NegotiationThread) -> list[NegotiationEntry]:
-    return list(thread.entries.all().order_by("created_at", "id"))
+    # `seq`, not `(created_at, id)`: two entries written back-to-back can tie
+    # on `created_at`, and `id` (UUIDv7) is only time-ordered at millisecond
+    # granularity — neither reliably preserves insertion order under a tie.
+    # `seq` is the only strictly-monotonic column. Phase 2D final-verification
+    # finding, 2026-09-11.
+    return list(thread.entries.all().order_by("seq"))
 
 
 def _effective_status(
@@ -47,7 +52,7 @@ def _effective_status(
     if entry.expires_at is not None and entry.expires_at <= now:
         return EntryStatus.EXPIRED
 
-    later = [e for e in entries if (e.created_at, e.id) > (entry.created_at, entry.id)]
+    later = [e for e in entries if e.seq > entry.seq]
     if entry.type in OFFER_TYPES:
         if any(e.type in OFFER_TYPES and e.actor_role == entry.actor_role for e in later):
             return EntryStatus.SUPERSEDED

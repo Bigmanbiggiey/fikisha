@@ -20,7 +20,12 @@ from typing import Any
 from django.conf import settings
 from django.db import models
 
-from fikisha.common.models import AppendOnlyModel, AppendOnlyQuerySet, TimestampedModel
+from fikisha.common.models import (
+    AppendOnlyModel,
+    AppendOnlyQuerySet,
+    TimestampedModel,
+    db_sequence_default,
+)
 from fikisha.jobs.constants import (
     AssignedBy,
     Attestation,
@@ -469,6 +474,15 @@ class OtpChallengeBase(TimestampedModel):
 
 
 class PickupOtpChallenge(OtpChallengeBase):
+    # Strictly-monotonic insertion order — see `db_sequence_default`.
+    # `verify_otp()` needs a tiebreaker that never ties. Phase 2D
+    # final-verification finding, 2026-09-11.
+    seq = models.BigIntegerField(
+        editable=False,
+        unique=True,
+        db_default=db_sequence_default("pickup_otp_challenge_seq"),
+    )
+
     class Meta:
         db_table = "pickup_otp_challenge"
 
@@ -505,6 +519,14 @@ class RecipientOtpChallenge(OtpChallengeBase):
         blank=True,
         on_delete=models.PROTECT,
         related_name="otp_challenges",
+    )
+    # Strictly-monotonic insertion order — see `db_sequence_default`.
+    # `verify_otp()` needs a tiebreaker that never ties. Phase 2D
+    # final-verification finding, 2026-09-11.
+    seq = models.BigIntegerField(
+        editable=False,
+        unique=True,
+        db_default=db_sequence_default("recipient_otp_challenge_seq"),
     )
 
     class Meta:

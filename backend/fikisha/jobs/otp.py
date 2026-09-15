@@ -129,7 +129,10 @@ def verify_otp(
         challenge = (
             model.objects.select_for_update()
             .filter(job=job, purpose=purpose, consumed_at__isnull=True)
-            .order_by("-created_at")
+            # `-seq`, not `-created_at`: two challenges issued in quick
+            # succession can share a timestamp under auto_now_add's clock
+            # resolution, and `seq` is the only strictly-monotonic column.
+            .order_by("-seq")
             .first()
         )
         if challenge is None:
