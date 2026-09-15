@@ -291,8 +291,9 @@ for full forensic detail. Treat any future direct push/fast-forward to
 `main` outside an explicit founder instruction as the same class of
 violation, branch protection or not.
 
-Working branch for open work: `fix/phase-2d-tiebreaker-defects` (off
-`main`/`feat/phase-2d-jobs` tip `b7529df`) — not yet merged.
+Working branch: `main` (the `fix/phase-2d-tiebreaker-defects` MERGE BLOCKER fix
+and this CLAUDE.md update were merged into `main` and pushed 2026-09-15, with
+explicit founder instruction for that specific merge).
 
 > **CURRENT STOP LINE.** Design Phase 3–5B are approved/complete; 5C's
 > workspace Job screens are escalated pending a founder decision on which
