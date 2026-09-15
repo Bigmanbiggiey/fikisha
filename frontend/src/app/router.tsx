@@ -4,6 +4,10 @@ import { LoginPage } from '@/features/auth/LoginPage';
 import { RequireAuth } from '@/features/auth/RequireAuth';
 import { DiagnosticsPage } from '@/features/diagnostics/DiagnosticsPage';
 import { HomePage } from '@/features/home/HomePage';
+import { CreateJobPage } from '@/features/jobs/CreateJobPage';
+import { JobDetailPage } from '@/features/jobs/JobDetailPage';
+import { JobsListPage } from '@/features/jobs/JobsListPage';
+import { PickupConfirmPage } from '@/features/jobs/PickupConfirmPage';
 import { HomeOrLanding } from '@/features/landing/HomeOrLanding';
 import { BusinessDetailPage } from '@/features/org/BusinessDetailPage';
 import { BusinessesPage } from '@/features/org/BusinessesPage';
@@ -38,6 +42,10 @@ export function AppRoutes(): JSX.Element {
           }
         >
           <Route path="home" element={<HomePage />} />
+          <Route path="jobs" element={<JobsListPage />} />
+          <Route path="jobs/new" element={<CreateJobPage />} />
+          <Route path="jobs/:jobId" element={<JobDetailPage />} />
+          <Route path="jobs/:jobId/confirm-pickup" element={<PickupConfirmPage />} />
           <Route path="businesses" element={<BusinessesPage />} />
           <Route path="businesses/:businessId" element={<BusinessDetailPage />} />
           <Route path="operator" element={<OperatorProfilePage />} />

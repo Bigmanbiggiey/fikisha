@@ -11,11 +11,13 @@ import { initReactI18next } from 'react-i18next';
 import authEn from './locales/en/auth.json';
 import commonEn from './locales/en/common.json';
 import errorsEn from './locales/en/errors.json';
+import jobsEn from './locales/en/jobs.json';
 import landingEn from './locales/en/landing.json';
 import orgEn from './locales/en/org.json';
 import authSw from './locales/sw/auth.json';
 import commonSw from './locales/sw/common.json';
 import errorsSw from './locales/sw/errors.json';
+import jobsSw from './locales/sw/jobs.json';
 import landingSw from './locales/sw/landing.json';
 import orgSw from './locales/sw/org.json';
 
@@ -23,8 +25,8 @@ export const SUPPORTED_LANGUAGES = ['en', 'sw'] as const;
 export type SupportedLanguage = (typeof SUPPORTED_LANGUAGES)[number];
 
 export const resources = {
-  en: { common: commonEn, auth: authEn, errors: errorsEn, org: orgEn, landing: landingEn },
-  sw: { common: commonSw, auth: authSw, errors: errorsSw, org: orgSw, landing: landingSw },
+  en: { common: commonEn, auth: authEn, errors: errorsEn, org: orgEn, landing: landingEn, jobs: jobsEn },
+  sw: { common: commonSw, auth: authSw, errors: errorsSw, org: orgSw, landing: landingSw, jobs: jobsSw },
 } as const;
 
 void i18n
@@ -35,7 +37,7 @@ void i18n
     fallbackLng: 'en',
     supportedLngs: SUPPORTED_LANGUAGES as unknown as string[],
     defaultNS: 'common',
-    ns: ['common', 'auth', 'errors', 'org', 'landing'],
+    ns: ['common', 'auth', 'errors', 'org', 'landing', 'jobs'],
     interpolation: { escapeValue: false },
     detection: {
       order: ['localStorage', 'navigator', 'htmlTag'],

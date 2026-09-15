@@ -1,0 +1,159 @@
+{
+  "status": {
+    "DRAFT": "Draft",
+    "REQUESTED": "Requested",
+    "NEGOTIATING": "Negotiating",
+    "CONFIRMED": "Confirmed",
+    "ASSIGNED": "Assigned",
+    "AT_PICKUP": "At pickup",
+    "PICKED_UP": "Picked up",
+    "IN_TRANSIT": "In transit",
+    "AT_DESTINATION": "At destination",
+    "DELIVERED": "Delivered",
+    "COMPLETED": "Completed",
+    "CANCELLED": "Cancelled",
+    "FAILED": "Couldn't complete",
+    "DISPUTED": "Under dispute"
+  },
+  "statusLine": {
+    "DRAFT": "Not sent yet — finish and send the request when you're ready.",
+    "REQUESTED": "Waiting for an operator to respond.",
+    "NEGOTIATING": "An operator has responded — review their offer.",
+    "CONFIRMED": "Confirmed — waiting for a driver to be assigned.",
+    "ASSIGNED": "A driver has been assigned and is on the way to pickup.",
+    "AT_PICKUP": "The driver is collecting your goods.",
+    "PICKED_UP": "The driver has collected your goods.",
+    "IN_TRANSIT": "Your delivery is on the way.",
+    "AT_DESTINATION": "The driver has arrived at the destination.",
+    "DELIVERED": "Delivered — the platform will complete this shortly.",
+    "COMPLETED": "This delivery is complete.",
+    "CANCELLED": "This request was cancelled.",
+    "FAILED": "This delivery couldn't be completed.",
+    "DISPUTED": "Under dispute — normal steps are paused."
+  },
+  "detail": {
+    "route": "Route",
+    "pickup": "Pickup",
+    "destination": "Drop",
+    "cargo": "Cargo",
+    "price": "Price",
+    "agreed": "agreed",
+    "proposed": "proposed",
+    "timeline": "Timeline",
+    "cancel": "Cancel request",
+    "nothingNeeded": "Nothing needed from you right now.",
+    "draftNote": "This request hasn't been sent yet.",
+    "autoCompleteNote": "This delivery will be marked complete automatically — nothing needed from you.",
+    "comingSoon": "This screen is coming in a later update."
+  },
+  "pickupConfirm": {
+    "whatYoureConfirming": "Confirm that {{cargo}} for Job {{ref}} has been handed to the driver at {{location}}.",
+    "consequence": "This records your side of the handover. The delivery then moves to Picked up.",
+    "acknowledge": "I've read the above and the goods have been handed to the driver.",
+    "confirmPickup": "Confirm pickup",
+    "confirmStep": "Yes, confirm pickup for {{ref}}",
+    "yesConfirm": "Yes, confirm",
+    "movedOn": "This job has moved on — nothing needed here.",
+    "backToJob": "Back to job"
+  },
+  "action": {
+    "continueRequest": "Continue request",
+    "reviewOffers": "Review offers",
+    "confirmPickup": "Confirm pickup",
+    "confirmCompletion": "Confirm completion",
+    "viewSummary": "View summary",
+    "viewDispute": "View dispute",
+    "rateOperator": "Rate operator"
+  },
+  "home": {
+    "title": "Home",
+    "needsAction": "Needs your action",
+    "requestTransport": "Request transport",
+    "activeDeliveries": "Active deliveries",
+    "recent": "Recent",
+    "emptyTitle": "No deliveries in progress",
+    "emptyBody": "When you request transport, it will show up here.",
+    "restrictedBanner": "Some actions are limited — contact support.",
+    "noBusinessTitle": "You need a business account first",
+    "noBusinessBody": "Create a business to start requesting transport.",
+    "noBusinessCta": "Create a business",
+    "asOf": "as of {{time}}"
+  },
+  "create": {
+    "stepOf": "Step {{n}} of {{total}}",
+    "reviewTitle": "Review request",
+    "steps": {
+      "pickup": "Pickup",
+      "destination": "Destination",
+      "cargo": "What are you sending?",
+      "weightSize": "Weight & size",
+      "value": "Declared value",
+      "vehicle": "Vehicle needed",
+      "when": "When",
+      "delivery": "Delivery requirements"
+    },
+    "pickup": {
+      "address": "Pickup location",
+      "contactPhone": "Pickup contact phone"
+    },
+    "destination": {
+      "address": "Destination",
+      "recipientName": "Recipient name",
+      "recipientPhone": "Recipient phone",
+      "phoneHint": "Used for the delivery link and pickup/handover contact."
+    },
+    "cargo": {
+      "description": "Description",
+      "descriptionPlaceholder": "e.g. 8 cartons of electronics",
+      "category": "Category",
+      "flag": {
+        "FRAGILE": "Fragile",
+        "KEEP_UPRIGHT": "Keep upright"
+      },
+      "hazardous": "Hazardous materials",
+      "hazardousWarning": "Hazardous or prohibited goods may not be accepted for transport. Contact support before submitting."
+    },
+    "weight": {
+      "estWeightKg": "Estimated weight (kg)",
+      "bulky": "This is a bulky item (needs dimensions)",
+      "dimsL": "Length (cm)",
+      "dimsW": "Width (cm)",
+      "dimsH": "Height (cm)"
+    },
+    "value": {
+      "label": "What's the approximate value of the goods (KSh)?",
+      "hint": "This sets the right transport and verification requirements.",
+      "invalid": "Enter a value greater than zero."
+    },
+    "when": {
+      "asap": "As soon as possible",
+      "scheduled": "Pick a date and time",
+      "dateTime": "Date and time"
+    },
+    "delivery": {
+      "requirements": "Delivery requirements",
+      "proposedPrice": "Suggest a price (optional)",
+      "proposedPriceHint": "Operators can accept or counter."
+    },
+    "next": "Next",
+    "back": "Back",
+    "reviewRequest": "Review request",
+    "sendRequest": "Send request",
+    "edit": "Edit",
+    "draftBanner": "Draft — not sent yet"
+  },
+  "list": {
+    "title": "Jobs",
+    "segments": {
+      "active": "Active",
+      "requests": "Requests",
+      "completed": "Completed",
+      "cancelled": "Cancelled"
+    },
+    "emptyActive": "No active deliveries.",
+    "emptyRequests": "No pending requests.",
+    "emptyCompleted": "No completed deliveries yet.",
+    "emptyCancelled": "No cancelled or failed deliveries.",
+    "newJob": "New request"
+  }
+}

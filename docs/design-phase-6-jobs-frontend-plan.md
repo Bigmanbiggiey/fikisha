@@ -237,13 +237,36 @@ instead — still unit-tested, just not batched up front. `RoleTabBar`/
 `RoleSidebar` (the presentational half of §4) are deferred the same way,
 to Increment 2, since there's nothing to navigate to yet.
 
-### Increment 2 — Business: create & monitor a Job (P2 Flow Family A, P3 §6)
+### Increment 2 — Business: create & monitor a Job (P2 Flow Family A, P3 §6) — DONE, 2026-09-15
 
 Business Home (§6.1) · Create Job wizard (§6.2, 8-step) · Review & Submit
 (§6.3) · Business Job Detail (§6.4, all 14 states' action table) · Jobs list
 segmented Active/Requests/Completed/Cancelled (§6.5) · Business Pickup
 Confirmation (§6.6, founder-approved O-P2 addition — one of two always-valid
-pickup proofs).
+pickup proofs). `RoleTabBar`-equivalent nav (a "Jobs" link) and role-aware
+`/home` dispatch (§4) landed here, since Business is the first workspace with
+somewhere to go. `jobHelpers.ts` centralizes the 14-state → business-facing
+next-action/segment mapping so it isn't re-derived per screen; `money.ts`
+handles KES minor-unit formatting/parsing (every `*_kes` field is cents).
+
+**Mandatory live-browser verification (CLAUDE.md: "start the dev server and
+use the feature in a browser before reporting complete") caught a real
+backend defect**, not a frontend one: a freshly created business never
+appeared as a workspace on `/home`. Root cause and fix are recorded as
+`ADR‑2B‑11` in `phase-2b-decisions.md` — `GET /businesses` (list) always
+returned `my_role: null` because the generic `paginated()` helper never set
+the serializer context key the single-object create/detail views did; fixed
+by annotating the queryset with a per-row correlated subquery. Verified
+end-to-end after the fix: fresh login → `/home` correctly renders
+`BusinessHomePage` for an owner. 905/905 backend tests, 100/100 frontend
+tests (21 files), lint/typecheck clean on both sides.
+
+**Bug found during this increment's own build, fixed in the same pass (not a
+backend issue):** `CreateJobPage.tsx` originally called `navigate()` directly
+in the render body once the job was created, instead of inside `useEffect` —
+under real user-interaction testing (not static analysis) this produced a
+runaway re-render loop that OOM'd a test run. Fixed by moving the navigate
+call into `useEffect`; verified no other new screen has the same pattern.
 
 ### Increment 3 — Negotiation (shared, P3 §8)
 
