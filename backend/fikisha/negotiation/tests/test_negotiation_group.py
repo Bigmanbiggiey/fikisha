@@ -32,7 +32,10 @@ def test_group_manager_negotiates_and_confirms(
     group, manager = group_with_manager
     mgr = _actor(manager.user)
 
-    services.propose(actor=mgr, job_id=requested_job.id, group_id=group.id, amount_kes=240_000)
+    view = services.propose(
+        actor=mgr, job_id=requested_job.id, group_id=group.id, amount_kes=240_000
+    )
+    assert view["operator_display_name"] == "Kitengela Yard"
     thread = NegotiationThread.objects.get(job=requested_job, group=group)
     assert thread.operator_party == OperatorParty.GROUP
 

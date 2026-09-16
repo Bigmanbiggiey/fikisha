@@ -407,6 +407,90 @@ dispute impossible; there is no separate piece of state left for a sweep to
 flip. Documented as a verified plan-vs-implementation drift, not a silently
 dropped requirement.
 
+## ADR-2D-31 — Negotiation thread payload gains `operator_display_name` + `counterparty_offer` — CONFIRMED (Design Phase 6, Increment 3)
+
+Found while building the Negotiation Thread frontend screen
+(`design-phase-6-jobs-frontend-plan.md` §7 Increment 3), against
+`design-phase-3-wireframes.md` §8.1's explicit offer-card spec (proposer
+*name* on every card; a single-tap "Accept KSh X" primary action) — the
+existing `_thread_payload()` (Step 10) didn't carry either:
+
+1. **`operator_display_name`** — the wireframe names the proposer ("Athi
+   Movers"), but the payload only ever carried `operator_id`/`group_id`, and
+   `operator.read`/`group.read` stay closed to everyone but the profile's own
+   owner (Phase 2B/2C policy, unchanged) — a business negotiating with an
+   operator has no way to resolve that id to a name. Resolved via one new
+   public function per sibling module — `operators.services.
+   display_name_for(operator_id)` / `groups.services.display_name_for
+   (group_id)` — called from `negotiation.services._operator_display_name()`,
+   not a direct model import (module boundary rule). This doesn't reopen
+   `operator.read`/`group.read`: the thread's own `operator`/`group` FK
+   already scopes it to a party of *that* thread, no arbitrary-id lookup is
+   added anywhere.
+2. **`counterparty_offer`** — `standing_offer` (Step 8) is viewer-agnostic
+   (whoever posted last, either side); it is **not** "what the current
+   viewer can accept" — if the viewer's own offer is the most recent, there
+   is nothing of the *counterparty's* to accept yet. The service layer
+   already had this exact logic (`selectors.counterparty_figure_to_accept()`,
+   used internally by `accept()`) but never exposed it in the read payload,
+   which would have forced the frontend to re-derive an authoritative
+   negotiation-state computation itself — directly against this module's own
+   "derived, never stored" selectors.py convention. `_thread_payload()` now
+   takes an optional `viewer_side` (every call site already computes the
+   caller's side for its own authz/business-logic purposes) and includes
+   `counterparty_offer: {entry_id, amount_kes} | null`.
+
+Both are read-only additions to an already-approved response shape — no new
+endpoint, no relaxed authorization, no negotiation business rule changed.
+Regression tests: two businesses/operators with *different* resolved names
+(not a same-value-everywhere false pass), and a same-thread two-sided check
+that `counterparty_offer` is genuinely viewer-relative (right after an
+operator opens a thread, both the operator's and the business's seeded
+figures are simultaneously live, so each side's `counterparty_offer` must be
+the *other* side's entry, not their own).
+
+## ADR-2D-32 — `_effective_status()`'s blanket-supersede only applies to a SUPERSEDED thread, not CLOSED — CONFIRMED (Design Phase 6, Increment 3)
+
+Found via the same Increment 3 live-browser verification as ADR-2D-31, on the
+very next step: after a business accepted an operator's offer and the
+operator accepted back (mutual acceptance, job → `CONFIRMED`), reloading the
+Negotiation Thread screen showed "This thread was declined" instead of the
+wireframe's pinned "Agreed: KSh X" banner — even though the deal had
+genuinely gone through.
+
+Root cause: `selectors._effective_status()`'s first check was
+`if thread_status != ThreadStatus.ACTIVE: return SUPERSEDED` — true for
+**both** `SUPERSEDED` (a sibling thread that lost — the case
+`test_confirming_one_thread_supersedes_the_siblings` correctly covers) and
+`CLOSED` (a thread that *won*, or was declined). Since `mutual_acceptance()`
+only counts entries whose `effective_status` is `ACTIVE`, once
+`_close_threads_on_confirm()` flipped the winning thread's own status to
+`CLOSED` — inside the very same `accept()` call that just computed
+`reached=True` — every *subsequent* read (a page reload, `view_thread()`
+called later) recomputed `reached=False` forever after. The bug was invisible
+throughout Phase 2D Step 10's own tests because none of them re-read a thread
+*after* it closed to check `mutual_acceptance`/`entries` again — every
+assertion was made using the same call's own return value, before the
+status flip that (silently) invalidated the next read.
+
+Fix: the blanket rule now checks `thread_status == ThreadStatus.SUPERSEDED`
+specifically, not `!= ACTIVE`. A `CLOSED` thread's entries now fall through
+to the normal per-entry rules — which already correctly resolve historical
+ACCEPT/PROPOSE/COUNTER entries — instead of every entry reading as
+`SUPERSEDED` regardless of what actually happened. `annotate_entries()` and
+`standing_offer()`/`counterparty_figure_to_accept()` inherit the same fix
+since they all key off `_effective_status()`; none of their own call sites
+gate on `ACTIVE` specifically, so the fix flows through correctly (the
+frontend separately gates *composing a new offer* on `thread.status ===
+'ACTIVE'`, which is unaffected — the bug was only ever about *reading back*
+what already happened). No change to any accept/counter/decline write path,
+no new negotiation business rule. Regression test:
+`test_mutual_acceptance_stays_readable_after_the_thread_closes` re-reads a
+just-confirmed thread via a fresh `view_thread()` call, as a page reload
+would. All 33 existing negotiation tests (including the SUPERSEDED-sibling
+one) still pass unchanged — the fix narrows an over-broad rule rather than
+removing it.
+
 ---
 
 ## Self-caught defects fixed during implementation

@@ -9,6 +9,8 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+from corsheaders.defaults import default_headers
+
 from config import env
 
 # ─── Paths ──────────────────────────────────────────────────────────────
@@ -248,6 +250,16 @@ AUTH_CONFIG: dict[str, Any] = {
 # ─── CORS ────────────────────────────────────────────────────────────
 CORS_ALLOWED_ORIGINS = env.list_("API_CORS_ALLOWED_ORIGINS", [])
 CORS_ALLOW_CREDENTIALS = True  # refresh cookie
+# django-cors-headers' own default allow-list (accept, authorization,
+# content-type, etc.) doesn't include this app's custom request header —
+# every job-creation / lifecycle-transition call sends `Idempotency-Key`
+# (`apiClient.ts`), and a real browser's CORS preflight silently strips the
+# actual request client-side (no request ever reaches Django, surfacing as
+# a bare "network error") when a header isn't explicitly allowed here.
+# Invisible to the jsdom-based frontend test suite, which doesn't enforce
+# real CORS — only caught by a live cross-origin browser request
+# (Design Phase 6 Increment 3 verification, 2026-09-15).
+CORS_ALLOW_HEADERS = [*default_headers, "idempotency-key"]
 
 # ─── Dev-only demo endpoints (also gated by the `demo_endpoints` feature flag) ─
 # Proves the audit + outbox atomicity path. Off by default; dev/test turn it on;

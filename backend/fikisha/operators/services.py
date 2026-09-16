@@ -34,6 +34,19 @@ def profile_for(user: User) -> OperatorProfile | None:
     return OperatorProfile.objects.filter(user=user).first()
 
 
+def display_name_for(operator_id: Any) -> str | None:
+    """The operator's public display name — for another module (e.g.
+    negotiation) to label a counterparty without reaching through the FK
+    into this module's model fields directly (module boundary rule)."""
+    row = OperatorProfile.objects.filter(id=operator_id).values_list(
+        "display_name", "full_name"
+    ).first()
+    if row is None:
+        return None
+    display_name, full_name = row
+    return display_name or full_name
+
+
 @transaction.atomic
 def create_profile(
     *, actor: Any, full_name: str, display_name: str = "", phones: list[str] | None = None

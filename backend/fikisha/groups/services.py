@@ -34,6 +34,13 @@ def _audit_actor(actor: Any) -> Any:
     return getattr(actor, "user", actor)
 
 
+def display_name_for(group_id: Any) -> str | None:
+    """The group's public name — for another module (e.g. negotiation) to
+    label a counterparty without reaching through the FK into this module's
+    model fields directly (module boundary rule)."""
+    return OperatorGroup.objects.filter(id=group_id).values_list("name", flat=True).first()
+
+
 def groups_for(user: User) -> QuerySet[OperatorGroup]:
     return (
         OperatorGroup.objects.filter(
