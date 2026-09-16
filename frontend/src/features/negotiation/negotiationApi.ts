@@ -1,6 +1,13 @@
 import { apiRequest } from '@/services/apiClient';
 
-import type { AcceptBody, CounterBody, DeclineBody, NegotiationThread, ProposeBody } from './types';
+import type {
+  AcceptBody,
+  AcceptResult,
+  CounterBody,
+  DeclineBody,
+  NegotiationThread,
+  ProposeBody,
+} from './types';
 
 export const negotiationApi = {
   listThreads: (jobId: string) =>
@@ -20,7 +27,7 @@ export const negotiationApi = {
       idempotencyKey,
     }),
   accept: (threadId: string, body: AcceptBody, idempotencyKey: string) =>
-    apiRequest<NegotiationThread>(`/negotiation/threads/${threadId}/accept`, {
+    apiRequest<AcceptResult>(`/negotiation/threads/${threadId}/accept`, {
       method: 'POST',
       body,
       idempotencyKey,

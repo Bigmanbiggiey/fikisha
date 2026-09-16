@@ -53,10 +53,10 @@ export type BusinessActionKey =
  *   at `DELIVERED`, but there is no such endpoint — `DELIVERED -> COMPLETED`
  *   only ever happens automatically (`jobs.tasks.autocomplete_delivered`,
  *   ADR-2D-29). The UI renders this as informational, not a real button.
- * - **`reviewOffers`** (→ Negotiation) and **`viewDispute`** (→ dispute
- *   detail) point at screens this increment doesn't build yet (Increments 3
- *   and 7) — rendered as a disabled/informational state with a "coming in a
- *   later update" note, not a dead link. */
+ * - **`viewDispute`** (→ dispute detail) points at a screen that doesn't
+ *   exist yet (Increment 7) — rendered as an informational state with a
+ *   "coming in a later update" note, not a dead link. `reviewOffers` (→
+ *   Negotiation) was the same until Increment 3, which built it. */
 /** The subset of `businessNextAction` states worth surfacing under "Needs
  * your action" on Business Home (§6.1's example: a counter-offer and a
  * pending delivery confirmation) — narrower than every state that merely

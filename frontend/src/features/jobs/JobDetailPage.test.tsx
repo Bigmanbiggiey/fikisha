@@ -15,6 +15,7 @@ function renderAtJob(jobId: string): ReturnType<typeof renderWithProviders> {
   return renderWithProviders(
     <Routes>
       <Route path="/jobs/:jobId" element={<JobDetailPage />} />
+      <Route path="/jobs/:jobId/negotiation" element={<div>Negotiation screen</div>} />
     </Routes>,
     { route: `/jobs/${jobId}` },
   );
@@ -106,6 +107,17 @@ describe('JobDetailPage', () => {
       { reason_code: 'BUSINESS_CHANGED_MIND' },
       expect.any(String),
     );
+  });
+
+  it('navigates to the negotiation thread from "Review offers" while NEGOTIATING', async () => {
+    get.mockResolvedValue(
+      baseJob({ status: 'NEGOTIATING', next_allowed_statuses: ['CONFIRMED', 'CANCELLED'] }),
+    );
+    const user = userEvent.setup();
+    renderAtJob('01a0a4123456');
+
+    await user.click(await screen.findByRole('button', { name: 'Review offers' }));
+    expect(await screen.findByText('Negotiation screen')).toBeInTheDocument();
   });
 
   it('does not show Cancel once the job cannot be cancelled', async () => {

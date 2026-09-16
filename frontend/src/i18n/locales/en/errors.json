@@ -18,5 +18,15 @@
   },
   "authz": {
     "forbidden": "You do not have permission to do that."
-  }
+  },
+  "required_fields_incomplete": "Some required details are missing from this request.",
+  "business_not_verified": "Your business needs to be verified before you can request transport.",
+  "business_no_active_location": "Your business needs at least one active location before you can request transport.",
+  "cargo_prohibited": "Hazardous cargo is not accepted.",
+  "job_not_open_for_negotiation": "This job is no longer open for negotiation.",
+  "thread_not_active": "This offer thread is closed.",
+  "no_negotiation_thread": "There is no offer thread yet — the operator must make the first offer.",
+  "invalid_offer": "The operator changed their offer — here's the latest.",
+  "nothing_to_accept": "There is nothing to accept right now.",
+  "not_a_negotiation_party": "You are not a party to this negotiation."
 }

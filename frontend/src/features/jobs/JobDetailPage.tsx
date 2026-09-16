@@ -162,7 +162,14 @@ function NextActionSection({
     // only happens automatically (see jobHelpers.ts businessNextAction doc).
     return <NextActionCard emptyLabel={t('jobs:detail.autoCompleteNote')} />;
   }
-  if (action === 'reviewOffers' || action === 'viewDispute') {
+  if (action === 'reviewOffers') {
+    return (
+      <NextActionCard
+        action={{ label: t('jobs:action.reviewOffers'), onClick: () => navigate(`/jobs/${jobId}/negotiation`) }}
+      />
+    );
+  }
+  if (action === 'viewDispute') {
     return <NextActionCard emptyLabel={t(`jobs:action.${action}`)} note={t('jobs:detail.comingSoon')} />;
   }
   // viewSummary — informational only, the read-only detail below already shows it.

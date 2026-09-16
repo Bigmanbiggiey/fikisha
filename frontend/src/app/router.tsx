@@ -9,6 +9,7 @@ import { JobDetailPage } from '@/features/jobs/JobDetailPage';
 import { JobsListPage } from '@/features/jobs/JobsListPage';
 import { PickupConfirmPage } from '@/features/jobs/PickupConfirmPage';
 import { HomeOrLanding } from '@/features/landing/HomeOrLanding';
+import { NegotiationPage } from '@/features/negotiation/NegotiationPage';
 import { BusinessDetailPage } from '@/features/org/BusinessDetailPage';
 import { BusinessesPage } from '@/features/org/BusinessesPage';
 import { GroupDetailPage } from '@/features/org/GroupDetailPage';
@@ -46,6 +47,7 @@ export function AppRoutes(): JSX.Element {
           <Route path="jobs/new" element={<CreateJobPage />} />
           <Route path="jobs/:jobId" element={<JobDetailPage />} />
           <Route path="jobs/:jobId/confirm-pickup" element={<PickupConfirmPage />} />
+          <Route path="jobs/:jobId/negotiation" element={<NegotiationPage />} />
           <Route path="businesses" element={<BusinessesPage />} />
           <Route path="businesses/:businessId" element={<BusinessDetailPage />} />
           <Route path="operator" element={<OperatorProfilePage />} />

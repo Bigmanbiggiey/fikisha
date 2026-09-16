@@ -32,6 +32,17 @@ export interface StandingOffer {
   amount_kes: number;
 }
 
+/** The *viewer's* own counterparty offer — what they specifically could
+ * accept right now, as opposed to `standing_offer` (whoever posted last,
+ * either side). `null` when there's nothing of the counterparty's to
+ * accept (e.g. the viewer's own offer is the most recent one on the
+ * table). Server-computed (`counterparty_figure_to_accept()`), not
+ * re-derived here. */
+export interface CounterpartyOffer {
+  entry_id: string;
+  amount_kes: number;
+}
+
 export interface MutualAcceptance {
   reached: boolean;
   amount_kes: number | null;
@@ -46,7 +57,14 @@ export interface NegotiationThread {
   operator_party: 'OPERATOR' | 'GROUP';
   operator_id: string | null;
   group_id: string | null;
+  /** The operator's (or group's) public name — resolved server-side so the
+   * frontend never needs `operator.read`/`group.read` access to an
+   * arbitrary id (those stay closed to everyone but the profile's own
+   * owner). `null` is a genuine gap (e.g. a since-deleted profile), not
+   * "loading". */
+  operator_display_name: string | null;
   standing_offer: StandingOffer | null;
+  counterparty_offer: CounterpartyOffer | null;
   mutual_acceptance: MutualAcceptance;
   entries: NegotiationEntry[];
   /** Only present on a `propose()` response when the figure is a notable
@@ -77,4 +95,12 @@ export interface AcceptBody {
 
 export interface DeclineBody {
   note?: string;
+}
+
+/** `accept()`'s response is the thread payload plus whether *this* accept
+ * reached mutual acceptance — both sides must independently accept for the
+ * same amount (`mutual_acceptance.reached`); a single accept only writes
+ * this side's entry and leaves the thread `ACTIVE`. */
+export interface AcceptResult extends NegotiationThread {
+  confirmed: boolean;
 }

@@ -1,0 +1,38 @@
+{
+  "title": "Offers",
+  "jobRef": "Job {{ref}}",
+  "thread": {
+    "you": "You",
+    "admin": "Platform Admin",
+    "operatorFallback": "Operator",
+    "entryStatus": {
+      "current": "Current",
+      "countered": "Countered",
+      "accepted": "Accepted",
+      "declined": "Declined",
+      "expired": "Expired"
+    }
+  },
+  "noThreadsTitle": "No offers yet",
+  "noThreadsBody": "Waiting for an operator to respond to your request.",
+  "threadListTitle": "Offers ({{count}})",
+  "backToOffers": "Back to offers",
+  "agreedBanner": "Agreed: {{amount}}",
+  "openJob": "Open Job",
+  "closedDeclined": "This thread was declined.",
+  "closedSuperseded": "No longer available — another offer was accepted.",
+  "composer": {
+    "amountLabel": "Your counter-offer (KSh)",
+    "amountInvalid": "Enter an amount greater than zero.",
+    "noteLabel": "Add a short note (optional)",
+    "send": "Send"
+  },
+  "action": {
+    "accept": "Accept {{amount}}",
+    "sendCounter": "Send counter",
+    "decline": "Decline",
+    "askAgain": "Ask again"
+  },
+  "nothingToAcceptYet": "Waiting for the operator's next move.",
+  "invalidOfferRefreshed": "The operator changed their offer — here's the latest."
+}
