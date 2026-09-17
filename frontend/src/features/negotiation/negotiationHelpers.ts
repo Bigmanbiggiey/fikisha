@@ -10,8 +10,17 @@ import type { EntryStatus, EntryType, NegotiationEntry } from './types';
  * reject entries get their own fixed words below since they're terminal by
  * construction). */
 export function entryStatusLabel(entry: Pick<NegotiationEntry, 'type' | 'effective_status'>): string {
-  if (entry.type === 'ACCEPT') return 'accepted';
   if (entry.type === 'REJECT') return 'declined';
+  if (entry.type === 'ACCEPT') {
+    switch (entry.effective_status) {
+      case 'EXPIRED':
+        return 'declined';
+      case 'SUPERSEDED':
+        return 'countered';
+      default:
+        return 'accepted';
+    }
+  }
   switch (entry.effective_status) {
     case 'ACTIVE':
       return 'current';

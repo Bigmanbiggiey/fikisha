@@ -45,6 +45,7 @@ def test_operator_engaging_opens_thread_and_seeds_posted_price(
     # reopen operator.read for an arbitrary id)
     assert view["operator_display_name"] == "A. Otieno"
     requested_job.refresh_from_db()
+    assert requested_job.status == JobStatus.NEGOTIATING
 
 
 def test_thread_payload_carries_the_viewers_own_counterparty_offer(

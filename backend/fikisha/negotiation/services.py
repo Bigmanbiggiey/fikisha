@@ -406,6 +406,16 @@ def accept(
     job = job_for_update(thread.job_id)
     side = authz.actor_side_for_thread(actor, job, thread)
 
+    # Authorization for *this* thread must run before any idempotency replay:
+    # `peek_idempotent` matches on (actor, job_id, key) alone, not thread_id,
+    # so without this ordering an actor who legitimately accepted one thread
+    # on a job could reuse that key against a different, unrelated thread on
+    # the same job and get its payload back without ever being a party to it
+    # (admin "record-only" intervention accepts are deferred to the disputes
+    # increment, so ADMIN is excluded here too).
+    if side not in (EntryActorRole.BUSINESS, EntryActorRole.OPERATOR):
+        raise NotANegotiationParty()
+
     replay = peek_idempotent(actor=actor, job_id=job.id, idempotency_key=idempotency_key)
     if replay is not None:
         payload = _thread_payload(thread, job, viewer_side=side)
@@ -413,9 +423,6 @@ def accept(
         payload["job"] = replay
         return payload
 
-    if side not in (EntryActorRole.BUSINESS, EntryActorRole.OPERATOR):
-        # admin "record-only" intervention accepts are deferred to the disputes increment
-        raise NotANegotiationParty()
     if job.status not in _OPEN_STATES:
         raise JobNotOpenForNegotiation()
     if thread.status != ThreadStatus.ACTIVE:

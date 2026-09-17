@@ -135,6 +135,26 @@ def test_decline_closes_the_thread_and_leaves_the_job_open(
         services.counter(actor=owner_actor, thread_id=thread.id, amount_kes=100_000)
 
 
+def test_declined_threads_last_offer_stops_reading_as_active(
+    requested_job: Any, operator_a: Any, owner_actor: Any, _actor: Any
+) -> None:
+    """Regression: ADR-2D-32 narrowed the blanket-supersede rule from
+    "thread_status != ACTIVE" to "thread_status == SUPERSEDED" so a CLOSED
+    thread's winning ACCEPT pair keeps reading ACTIVE (the whole point of
+    that fix) — but that also stopped covering a CLOSED-via-decline() thread,
+    whose last standing offer isn't accompanied by any ACCEPT and used to
+    keep reading ACTIVE forever, as if it were still open for acceptance."""
+    op = _actor(operator_a.user)
+    thread = _open_thread(requested_job, operator_a, _actor, amount=250_000)
+    services.decline(actor=owner_actor, thread_id=thread.id, note="not this time")
+
+    view = services.view_thread(actor=op, thread_id=thread.id)
+    assert view["standing_offer"] is None
+    assert view["mutual_acceptance"]["reached"] is False
+    offer_entries = [e for e in view["entries"] if e["type"] in ("PROPOSE", "COUNTER")]
+    assert all(e["effective_status"] == EntryStatus.SUPERSEDED for e in offer_entries)
+
+
 def test_accept_is_idempotent_on_replay(
     requested_job: Any, operator_a: Any, owner_actor: Any, _actor: Any
 ) -> None:

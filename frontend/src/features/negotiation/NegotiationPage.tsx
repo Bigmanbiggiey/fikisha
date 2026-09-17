@@ -12,6 +12,7 @@ import { Field } from '@/components/Field';
 import { Input } from '@/components/Input';
 import { NegotiationThread as NegotiationThreadList } from '@/components/NegotiationThread';
 import { PageLoader } from '@/components/PageLoader';
+import { jobReference } from '@/features/jobs/jobHelpers';
 import { formatKes, parseKesToMinorUnits } from '@/features/jobs/money';
 import { jobsApi } from '@/features/jobs/jobsApi';
 import { localizeError } from '@/services/errorMessage';
@@ -71,7 +72,7 @@ export function NegotiationPage(): JSX.Element {
 
   const jobData = job.data!;
   const threadList = threads.data!.data;
-  const ref = jobData.id.slice(-6).toUpperCase();
+  const ref = jobReference(jobData.id);
   const route = [jobData.pickup_location?.address_text, jobData.destination_location?.address_text]
     .filter(Boolean)
     .join(' → ');
@@ -203,9 +204,12 @@ function ThreadDetail({ thread, jobId }: { thread: NegotiationThread; jobId: str
       if (result.confirmed) navigate(`/jobs/${jobId}`, { replace: true });
     },
     onError: (err) => {
-      // The counterparty moved since we loaded the page — refresh so the
-      // stale amount is never (silently) what gets accepted on a retry.
-      if (err instanceof ApiError && err.code === 'invalid_offer') invalidateAll();
+      // The counterparty moved (or withdrew entirely) since we loaded the
+      // page — refresh so a stale/gone offer is never (silently) what a
+      // retry click acts on.
+      if (err instanceof ApiError && (err.code === 'invalid_offer' || err.code === 'nothing_to_accept')) {
+        invalidateAll();
+      }
     },
   });
 

@@ -89,3 +89,27 @@ def test_operator_from_another_thread_cannot_act_on_this_one(
     _thread_for(requested_job, operator_b, _actor)
     with pytest.raises(NotANegotiationParty):
         services.counter(actor=_actor(operator_b.user), thread_id=thread_a.id, amount_kes=1_000)
+
+
+def test_accept_replay_cannot_leak_a_different_threads_payload(
+    requested_job: Any, operator_a: Any, operator_b: Any, owner_actor: Any, _actor: Any
+) -> None:
+    """`peek_idempotent` matches on (actor, job_id, idempotency_key) alone, not
+    thread_id. Before this was fixed, an operator who used an idempotency key
+    to confirm their *own* thread could reuse that same key against a rival
+    operator's sealed thread on the same job and get its full payload back —
+    entries, standing offer, mutual acceptance — without ever being a party
+    to it, because the replay short-circuit ran before the party check."""
+    op_a = _actor(operator_a.user)
+    services.propose(
+        actor=op_a, job_id=requested_job.id, operator_id=operator_a.id, amount_kes=250_000
+    )
+    thread_a = NegotiationThread.objects.get(job=requested_job, operator=operator_a)
+    thread_b = _thread_for(requested_job, operator_b, _actor)
+
+    services.accept(actor=owner_actor, thread_id=thread_a.id)  # not yet mutual
+    confirmed = services.accept(actor=op_a, thread_id=thread_a.id, idempotency_key="shared-key")
+    assert confirmed["confirmed"] is True
+
+    with pytest.raises(NotANegotiationParty):
+        services.accept(actor=op_a, thread_id=thread_b.id, idempotency_key="shared-key")

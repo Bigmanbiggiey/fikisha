@@ -3,6 +3,12 @@
 An entry's status is **computed**, never stored:
 
 * thread SUPERSEDED (lost to a sibling thread) → SUPERSEDED, unconditionally
+* thread CLOSED **via decline()** (i.e. it holds a REJECT entry) → SUPERSEDED,
+  unconditionally, for every entry — a REJECT entry is the reliable signal,
+  since `decline()` and a winning `accept()` are mutually-exclusive terminal
+  writes to a thread (a CLOSED thread that confirmed the job instead, with no
+  REJECT entry, is deliberately *not* covered here — its ACCEPT pair must
+  stay ACTIVE forever, per ADR-2D-32 below)
 * ``expires_at`` in the past                → EXPIRED
 * PROPOSE / COUNTER: a later PROPOSE/COUNTER **from the same side** exists
   (that side revised its figure)            → SUPERSEDED
@@ -53,6 +59,15 @@ def _entries(thread: NegotiationThread) -> list[NegotiationEntry]:
     return list(thread.entries.all().order_by("seq"))
 
 
+def _declined(entries: list[NegotiationEntry], thread_status: str) -> bool:
+    """A CLOSED thread that holds a REJECT entry closed via `decline()`, not
+    via a winning `accept()` (the two are mutually exclusive terminal writes
+    — see module docstring)."""
+    return thread_status == ThreadStatus.CLOSED and any(
+        e.type == EntryType.REJECT for e in entries
+    )
+
+
 def _effective_status(
     entry: NegotiationEntry,
     entries: list[NegotiationEntry],
@@ -60,7 +75,7 @@ def _effective_status(
     now: Any,
     thread_status: str,
 ) -> str:
-    if thread_status == ThreadStatus.SUPERSEDED:
+    if thread_status == ThreadStatus.SUPERSEDED or _declined(entries, thread_status):
         return EntryStatus.SUPERSEDED
     if entry.expires_at is not None and entry.expires_at <= now:
         return EntryStatus.EXPIRED

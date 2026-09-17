@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Route, Routes } from 'react-router-dom';
 
+import { ApiError } from '@/services/problem';
 import { renderWithProviders } from '@/test/renderWithProviders';
 
 import { NegotiationPage } from './NegotiationPage';
@@ -112,6 +113,35 @@ describe('NegotiationPage', () => {
     await user.click(acceptButton);
 
     expect(accept).toHaveBeenCalledWith('th1', { amount_kes: 780_000 }, expect.any(String));
+  });
+
+  it('refetches the thread when accept fails because the counterparty offer is gone', async () => {
+    // Regression: onError previously only refreshed for 'invalid_offer',
+    // leaving a stale Accept button visible after 'nothing_to_accept'
+    // (raised when the counterparty's offer disappeared between page load
+    // and the click) — a retry would just repeat the same error forever.
+    listThreads.mockResolvedValue({ data: [baseThread()] });
+    const user = userEvent.setup();
+    renderAtJob('01a0a4123456');
+
+    const acceptButton = await screen.findByRole('button', { name: 'Accept KSh 7,800' });
+    accept.mockRejectedValueOnce(
+      new ApiError(
+        {
+          type: 'about:blank',
+          title: 'Nothing to accept',
+          status: 409,
+          code: 'nothing_to_accept',
+          detail: 'The counterparty offer is no longer available.',
+        },
+        409,
+        'The counterparty offer is no longer available.',
+      ),
+    );
+    const callsBeforeRetry = listThreads.mock.calls.length;
+    await user.click(acceptButton);
+
+    await waitFor(() => expect(listThreads.mock.calls.length).toBeGreaterThan(callsBeforeRetry));
   });
 
   it('sends a counter-offer through the composer', async () => {
