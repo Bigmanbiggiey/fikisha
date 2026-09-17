@@ -18,5 +18,15 @@
   },
   "authz": {
     "forbidden": "Huna ruhusa ya kufanya hivyo."
-  }
+  },
+  "required_fields_incomplete": "Baadhi ya maelezo yanayohitajika hayapo kwenye ombi hili.",
+  "business_not_verified": "Biashara yako inahitaji kuthibitishwa kabla ya kuomba usafiri.",
+  "business_no_active_location": "Biashara yako inahitaji angalau eneo moja linalotumika kabla ya kuomba usafiri.",
+  "cargo_prohibited": "Bidhaa hatari hazikubaliwi.",
+  "job_not_open_for_negotiation": "Kazi hii haipatikani tena kwa majadiliano.",
+  "thread_not_active": "Mazungumzo haya ya ofa yamefungwa.",
+  "no_negotiation_thread": "Bado hakuna mazungumzo ya ofa — opereta lazima atoe ofa ya kwanza.",
+  "invalid_offer": "Opereta amebadilisha ofa yao — hii ndiyo ya hivi karibuni.",
+  "nothing_to_accept": "Hakuna kinachoweza kukubaliwa kwa sasa.",
+  "not_a_negotiation_party": "Wewe si sehemu ya mazungumzo haya."
 }

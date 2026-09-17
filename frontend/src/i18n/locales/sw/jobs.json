@@ -1,0 +1,159 @@
+{
+  "status": {
+    "DRAFT": "Rasimu",
+    "REQUESTED": "Imeombwa",
+    "NEGOTIATING": "Inajadiliwa",
+    "CONFIRMED": "Imethibitishwa",
+    "ASSIGNED": "Imepangiwa",
+    "AT_PICKUP": "Mahali pa kuchukua",
+    "PICKED_UP": "Imechukuliwa",
+    "IN_TRANSIT": "Safarini",
+    "AT_DESTINATION": "Mahali pa kufikishwa",
+    "DELIVERED": "Imefikishwa",
+    "COMPLETED": "Imekamilika",
+    "CANCELLED": "Imeghairiwa",
+    "FAILED": "Haikukamilika",
+    "DISPUTED": "Ina mgogoro"
+  },
+  "statusLine": {
+    "DRAFT": "Bado haijatumwa — kamilisha na utume ombi ukiwa tayari.",
+    "REQUESTED": "Inasubiri opereta kujibu.",
+    "NEGOTIATING": "Opereta amejibu — pitia ofa yao.",
+    "CONFIRMED": "Imethibitishwa — inasubiri dereva apangiwe.",
+    "ASSIGNED": "Dereva amepangiwa na yuko njiani kuelekea mahali pa kuchukua.",
+    "AT_PICKUP": "Dereva anachukua bidhaa zako.",
+    "PICKED_UP": "Dereva amechukua bidhaa zako.",
+    "IN_TRANSIT": "Usafirishaji wako uko njiani.",
+    "AT_DESTINATION": "Dereva amefika mahali pa kufikishwa.",
+    "DELIVERED": "Imefikishwa — mfumo utakamilisha hivi karibuni.",
+    "COMPLETED": "Usafirishaji huu umekamilika.",
+    "CANCELLED": "Ombi hili lilighairiwa.",
+    "FAILED": "Usafirishaji huu haukukamilika.",
+    "DISPUTED": "Ina mgogoro — hatua za kawaida zimesimamishwa."
+  },
+  "detail": {
+    "route": "Njia",
+    "pickup": "Kuchukua",
+    "destination": "Kufikisha",
+    "cargo": "Mzigo",
+    "price": "Bei",
+    "agreed": "iliyokubaliwa",
+    "proposed": "iliyopendekezwa",
+    "timeline": "Ratiba",
+    "cancel": "Ghairi ombi",
+    "nothingNeeded": "Hakuna kinachohitajika kwako sasa.",
+    "draftNote": "Ombi hili bado halijatumwa.",
+    "autoCompleteNote": "Usafirishaji huu utakamilishwa kiotomatiki — hakuna kinachohitajika kwako.",
+    "comingSoon": "Skrini hii inakuja katika toleo lijalo."
+  },
+  "pickupConfirm": {
+    "whatYoureConfirming": "Thibitisha kwamba {{cargo}} za Kazi {{ref}} zimekabidhiwa kwa dereva mahali {{location}}.",
+    "consequence": "Hii inarekodi upande wako wa kukabidhi. Usafirishaji kisha utahamia Imechukuliwa.",
+    "acknowledge": "Nimesoma yaliyo hapo juu na bidhaa zimekabidhiwa kwa dereva.",
+    "confirmPickup": "Thibitisha uchukuzi",
+    "confirmStep": "Ndiyo, thibitisha uchukuzi wa {{ref}}",
+    "yesConfirm": "Ndiyo, thibitisha",
+    "movedOn": "Kazi hii imeendelea — hakuna kinachohitajika hapa.",
+    "backToJob": "Rudi kwenye kazi"
+  },
+  "action": {
+    "continueRequest": "Endelea na ombi",
+    "reviewOffers": "Pitia ofa",
+    "confirmPickup": "Thibitisha uchukuzi",
+    "confirmCompletion": "Thibitisha ukamilishaji",
+    "viewSummary": "Ona muhtasari",
+    "viewDispute": "Ona mgogoro",
+    "rateOperator": "Kadiria opereta"
+  },
+  "home": {
+    "title": "Nyumbani",
+    "needsAction": "Inahitaji hatua yako",
+    "requestTransport": "Omba usafiri",
+    "activeDeliveries": "Usafirishaji unaoendelea",
+    "recent": "Hivi karibuni",
+    "emptyTitle": "Hakuna usafirishaji unaoendelea",
+    "emptyBody": "Ukiomba usafiri, utaonekana hapa.",
+    "restrictedBanner": "Baadhi ya vitendo vimezuiliwa — wasiliana na usaidizi.",
+    "noBusinessTitle": "Unahitaji akaunti ya biashara kwanza",
+    "noBusinessBody": "Unda biashara ili kuanza kuomba usafiri.",
+    "noBusinessCta": "Unda biashara",
+    "asOf": "kama ya {{time}}"
+  },
+  "create": {
+    "stepOf": "Hatua {{n}} kati ya {{total}}",
+    "reviewTitle": "Pitia ombi",
+    "steps": {
+      "pickup": "Mahali pa kuchukua",
+      "destination": "Mahali pa kufikishwa",
+      "cargo": "Unatuma nini?",
+      "weightSize": "Uzito na ukubwa",
+      "value": "Thamani iliyotangazwa",
+      "vehicle": "Gari linalohitajika",
+      "when": "Lini",
+      "delivery": "Mahitaji ya kufikisha"
+    },
+    "pickup": {
+      "address": "Mahali pa kuchukua",
+      "contactPhone": "Simu ya mawasiliano ya kuchukua"
+    },
+    "destination": {
+      "address": "Mahali pa kufikishwa",
+      "recipientName": "Jina la mpokezi",
+      "recipientPhone": "Simu ya mpokezi",
+      "phoneHint": "Inatumika kwa kiungo cha kufuatilia na mawasiliano ya kuchukua/kukabidhi."
+    },
+    "cargo": {
+      "description": "Maelezo",
+      "descriptionPlaceholder": "mfano, masanduku 8 ya vifaa vya umeme",
+      "category": "Aina",
+      "flag": {
+        "FRAGILE": "Rahisi kuvunjika",
+        "KEEP_UPRIGHT": "Weka wima"
+      },
+      "hazardous": "Vifaa hatari",
+      "hazardousWarning": "Bidhaa hatari au zilizozuiliwa huenda zisikubaliwe kusafirishwa. Wasiliana na usaidizi kabla ya kuwasilisha."
+    },
+    "weight": {
+      "estWeightKg": "Uzito unaokadiriwa (kg)",
+      "bulky": "Hii ni bidhaa kubwa (inahitaji vipimo)",
+      "dimsL": "Urefu (cm)",
+      "dimsW": "Upana (cm)",
+      "dimsH": "Kimo (cm)"
+    },
+    "value": {
+      "label": "Ni thamani gani ya bidhaa (KSh)?",
+      "hint": "Hii huweka mahitaji sahihi ya usafirishaji na uthibitishaji.",
+      "invalid": "Weka thamani kubwa kuliko sifuri."
+    },
+    "when": {
+      "asap": "Haraka iwezekanavyo",
+      "scheduled": "Chagua tarehe na saa",
+      "dateTime": "Tarehe na saa"
+    },
+    "delivery": {
+      "requirements": "Mahitaji ya kufikisha",
+      "proposedPrice": "Pendekeza bei (si lazima)",
+      "proposedPriceHint": "Waendeshaji wanaweza kukubali au kutoa ofa nyingine."
+    },
+    "next": "Endelea",
+    "back": "Rudi",
+    "reviewRequest": "Pitia ombi",
+    "sendRequest": "Tuma ombi",
+    "edit": "Hariri",
+    "draftBanner": "Rasimu — bado haijatumwa"
+  },
+  "list": {
+    "title": "Kazi",
+    "segments": {
+      "active": "Zinazoendelea",
+      "requests": "Maombi",
+      "completed": "Zilizokamilika",
+      "cancelled": "Zilizoghairiwa"
+    },
+    "emptyActive": "Hakuna usafirishaji unaoendelea.",
+    "emptyRequests": "Hakuna maombi yanayosubiri.",
+    "emptyCompleted": "Bado hakuna usafirishaji uliokamilika.",
+    "emptyCancelled": "Hakuna usafirishaji uliyoghairiwa au kushindwa.",
+    "newJob": "Ombi jipya"
+  }
+}

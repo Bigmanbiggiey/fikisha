@@ -3,6 +3,10 @@
  * projections — `fikisha.jobs.dto.job_view()` / `creation.job_detail()` for
  * `Job`/`JobTransitionResult`, `api/serializers.py` for the write shapes —
  * not re-guessed. See `docs/phase-2/phase-2d-api.md`.
+ *
+ * Every `*_kes` field is an integer in KES **minor units** (cents) —
+ * `fikisha.common.money.Money`, `CLAUDE.md` §4. Use `money.ts`'s
+ * `formatKes()`/`parseKesToMinorUnits()`, never display or parse these raw.
  */
 
 export type Paged<T> = { data: T[]; page: { next_cursor: string | null; prev_cursor: string | null } };

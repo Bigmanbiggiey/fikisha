@@ -12,7 +12,7 @@ from __future__ import annotations
 from typing import Any
 
 from django.db import transaction
-from django.db.models import QuerySet
+from django.db.models import OuterRef, QuerySet, Subquery
 from django.utils import timezone
 
 from fikisha.audit import services as audit
@@ -36,10 +36,20 @@ _EDITABLE_FIELDS = ("trading_name", "category", "contact_name", "contact_phone",
 
 
 def businesses_for(user: User) -> QuerySet[BusinessAccount]:
+    """List a user's businesses, each annotated with ``my_role`` (the
+    requesting user's own active role on that business) so
+    ``BusinessSerializer`` — a per-object ``SerializerMethodField`` — can
+    render it correctly across a list, not just the single-object
+    create/detail views (see ADR: list `my_role` regression, phase-2d-
+    decisions.md)."""
+    my_active_role = BusinessMembership.objects.filter(
+        business_id=OuterRef("pk"), user=user, status=MembershipStatus.ACTIVE
+    ).values("role")[:1]
     return (
         BusinessAccount.objects.filter(
             memberships__user=user, memberships__status=MembershipStatus.ACTIVE
         )
+        .annotate(my_role=Subquery(my_active_role))
         .distinct()
         .order_by("-created_at")
     )

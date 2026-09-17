@@ -1,0 +1,38 @@
+{
+  "title": "Ofa",
+  "jobRef": "Kazi {{ref}}",
+  "thread": {
+    "you": "Wewe",
+    "admin": "Msimamizi wa Jukwaa",
+    "operatorFallback": "Opereta",
+    "entryStatus": {
+      "current": "Ya sasa",
+      "countered": "Imejibiwa kwa ofa nyingine",
+      "accepted": "Imekubaliwa",
+      "declined": "Imekataliwa",
+      "expired": "Muda umeisha"
+    }
+  },
+  "noThreadsTitle": "Bado hakuna ofa",
+  "noThreadsBody": "Inasubiri opereta kujibu ombi lako.",
+  "threadListTitle": "Ofa ({{count}})",
+  "backToOffers": "Rudi kwenye ofa",
+  "agreedBanner": "Imekubaliwa: {{amount}}",
+  "openJob": "Fungua Kazi",
+  "closedDeclined": "Mazungumzo haya yalikataliwa.",
+  "closedSuperseded": "Haipatikani tena — ofa nyingine ilikubaliwa.",
+  "composer": {
+    "amountLabel": "Ofa yako mpya (KSh)",
+    "amountInvalid": "Weka kiasi kikubwa kuliko sifuri.",
+    "noteLabel": "Ongeza ujumbe mfupi (si lazima)",
+    "send": "Tuma"
+  },
+  "action": {
+    "accept": "Kubali {{amount}}",
+    "sendCounter": "Tuma ofa nyingine",
+    "decline": "Kataa",
+    "askAgain": "Uliza tena"
+  },
+  "nothingToAcceptYet": "Inasubiri hatua inayofuata ya opereta.",
+  "invalidOfferRefreshed": "Opereta amebadilisha ofa yao — hii ndiyo ya hivi karibuni."
+}

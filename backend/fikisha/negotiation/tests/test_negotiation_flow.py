@@ -39,8 +39,38 @@ def test_operator_engaging_opens_thread_and_seeds_posted_price(
         "actor_role": "OPERATOR",
         "amount_kes": 230_000,
     }
+    # the wireframe (design-phase-3-wireframes.md §8.1) shows the proposer's
+    # name on every offer card — resolved via operators.services, not a raw
+    # FK reach-through, and scoped to this thread's own operator (doesn't
+    # reopen operator.read for an arbitrary id)
+    assert view["operator_display_name"] == "A. Otieno"
     requested_job.refresh_from_db()
     assert requested_job.status == JobStatus.NEGOTIATING
+
+
+def test_thread_payload_carries_the_viewers_own_counterparty_offer(
+    requested_job: Any, operator_a: Any, owner_actor: Any, _actor: Any
+) -> None:
+    """`counterparty_offer` is viewer-relative. Right after the operator
+    opens the thread, *both* sides have a live figure on the table (the
+    seeded business price, and the operator's own) — so each side's
+    `counterparty_offer` is the *other* side's entry, not their own."""
+    op = _actor(operator_a.user)
+    view = services.propose(
+        actor=op, job_id=requested_job.id, operator_id=operator_a.id, amount_kes=230_000
+    )
+    thread_id = view["thread_id"]
+    # the operator can accept the business's originally seeded posted price
+    assert view["counterparty_offer"] == {
+        "entry_id": view["entries"][0]["id"],
+        "amount_kes": 250_000,
+    }
+
+    from_business = services.view_thread(actor=owner_actor, thread_id=thread_id)
+    assert from_business["counterparty_offer"] == {
+        "entry_id": view["entries"][1]["id"],
+        "amount_kes": 230_000,
+    }
 
 
 def test_entries_stay_correctly_ordered_when_created_at_ties(
@@ -163,6 +193,38 @@ def test_counter_then_mutual_accept_confirms_at_agreed_price(
 
     requested_job.refresh_from_db()
     assert requested_job.agreement.agreed_price_kes == 240_000
+
+
+def test_mutual_acceptance_stays_readable_after_the_thread_closes(
+    requested_job: Any, operator_a: Any, owner_actor: Any, _actor: Any
+) -> None:
+    """Regression: `mutual_acceptance()`/`annotate_entries()` are meant to be
+    re-derived on every read (ADR-2D-11) — including a page reload well after
+    the deal closed, which is exactly when the Negotiation Thread frontend
+    screen needs to render the pinned "Agreed: KSh X" banner
+    (`design-phase-3-wireframes.md` §8.1). The old blanket rule
+    (`thread_status != ACTIVE -> SUPERSEDED` for every entry) meant
+    `mutual_acceptance()` could only ever report `reached=True` in the exact
+    instant it first became true, before `_close_threads_on_confirm()` flips
+    the thread's own status to CLOSED — every later read recomputed
+    `reached=False` forever after. See ADR-2D-32."""
+    op = _actor(operator_a.user)
+    services.propose(
+        actor=op, job_id=requested_job.id, operator_id=operator_a.id, amount_kes=230_000
+    )
+    thread = NegotiationThread.objects.get(job=requested_job, operator=operator_a)
+    # the operator accepts the business's seeded 250k posted price (still the
+    # other side's latest live figure); the business's own accept then
+    # naturally targets *that* acceptance, not the operator's now-moot 230k
+    services.accept(actor=op, thread_id=thread.id)
+    services.accept(actor=owner_actor, thread_id=thread.id)
+
+    # a fresh read, as if the page were reloaded well after the fact
+    later_view = services.view_thread(actor=owner_actor, thread_id=thread.id)
+    assert later_view["status"] == ThreadStatus.CLOSED
+    assert later_view["mutual_acceptance"]["reached"] is True
+    assert later_view["mutual_acceptance"]["amount_kes"] == 250_000
+    assert len(later_view["mutual_acceptance"]["entry_ids"]) == 2
 
 
 def test_confirming_one_thread_supersedes_the_siblings(

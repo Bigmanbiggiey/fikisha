@@ -100,6 +100,35 @@ Needed for the `ArrayField` on `OperatorProfile.phones` (Phase 1:
 `operator_profile.phones TEXT[]`). It is a Django contrib app, not a new
 dependency.
 
+## ADR‑2B‑11 — `GET /businesses` always returned `my_role: null` — DEFECT FIX (2026‑09‑15)
+
+Found during Design Phase 6 Increment 2's mandatory live‑browser verification
+(`design-phase-6-jobs-frontend-plan.md`): a freshly created business never
+appeared as a workspace on `/home`, because `useWorkspaces()` filters on
+`business.my_role`, and the **list** endpoint's response always had it `null`.
+
+Root cause: `BusinessSerializer.my_role` is a `SerializerMethodField` that
+reads a flat `context["my_role"]`. The single‑object create/detail views
+(`_business_ctx()` in `business/api/views.py`) set that context key correctly,
+but `BusinessCollectionView.get()` goes through the generic `paginated()`
+helper (`common/api.py`), which only ever sets `context={"request": request}`
+— so every row's `my_role` silently resolved to `None`. No existing test
+caught it: `test_list_returns_only_my_businesses` checked only `id`s, and the
+one test asserting `my_role == "OWNER"` (`test_owner_is_created_with_the_
+business`) exercises the **create** response, not the list.
+
+Fix: `business/services.py::businesses_for()` now annotates each row with the
+requesting user's role via a correlated subquery (`Subquery(... .values("role")
+[:1])`), and `BusinessSerializer.get_my_role()` prefers that per‑row annotation
+over the old flat context value (kept for the single‑object views, which don't
+carry the annotation). Added `test_list_includes_my_role_per_business`,
+exercising two businesses with *different* roles for the same user so a
+naive same‑role‑everywhere fix couldn't pass it.
+
+This is a bug fix to already‑approved Phase 2B behaviour (`my_role` was
+always meant to be populated — the create/detail contract already did it
+correctly), not a product or architecture change.
+
 ---
 
 ## Deviations summary

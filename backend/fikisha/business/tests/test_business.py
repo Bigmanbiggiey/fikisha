@@ -41,6 +41,32 @@ class TestBusinessCrud:
         ids = [b["id"] for b in r.data["data"]]
         assert ids == [mine]
 
+    def test_list_includes_my_role_per_business(
+        self, user: Any, other_user: Any, client_for: Any
+    ) -> None:
+        """Regression: the list endpoint used to always return `my_role: null`
+        because `paginated()` never set the flat `context["my_role"]` the
+        serializer's `SerializerMethodField` relied on — invisible on a
+        single-business smoke test, but it silently broke every list-based
+        consumer (e.g. the frontend's workspace detection). Exercised with
+        two businesses carrying *different* roles for the same user, since a
+        naive fix (e.g. reusing one role for every row) would still pass a
+        same-role-everywhere test."""
+        owner_client = client_for(user)
+        owned_id = _create_business(owner_client)["id"]
+
+        other_client = client_for(other_user)
+        other_id = _create_business(other_client, trading_name="Someone Else Ltd")["id"]
+        other_client.post(
+            f"/api/v1/businesses/{other_id}/members",
+            {"phone": "+254700000001", "role": "DISPATCHER"},
+            format="json",
+        )
+
+        r = owner_client.get("/api/v1/businesses")
+        roles_by_id = {b["id"]: b["my_role"] for b in r.data["data"]}
+        assert roles_by_id == {owned_id: "OWNER", other_id: "DISPATCHER"}
+
     def test_owner_can_update_profile(self, user: Any, client_for: Any) -> None:
         client = client_for(user)
         bid = _create_business(client)["id"]

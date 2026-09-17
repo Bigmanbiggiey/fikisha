@@ -2,10 +2,27 @@ import { useTranslation } from 'react-i18next';
 
 import { Alert } from '@/components/Alert';
 import { Card } from '@/components/Card';
+import { PageLoader } from '@/components/PageLoader';
 import { StatusBadge } from '@/components/StatusBadge';
 import { useAuth } from '@/features/auth/useAuth';
+import { BusinessHomePage } from '@/features/jobs/BusinessHomePage';
+import { useWorkspaces } from '@/shell/useWorkspaces';
 
+/**
+ * `/home` is one route for every workspace (`design-phase-6-jobs-frontend-
+ * plan.md` §3.1) — it dispatches on which workspace(s) the signed-in user
+ * actually holds rather than being six separate home routes. Only the
+ * Business workspace exists yet (Increment 2); everyone else still sees the
+ * Phase 2A placeholder below until their workspace's Home is built.
+ */
 export function HomePage(): JSX.Element {
+  const { loading, workspaces } = useWorkspaces();
+  if (loading) return <PageLoader />;
+  if (workspaces.some((w) => w.kind === 'BUSINESS')) return <BusinessHomePage />;
+  return <GenericHomePlaceholder />;
+}
+
+function GenericHomePlaceholder(): JSX.Element {
   const { t } = useTranslation('common');
   const { user } = useAuth();
   if (!user) return <></>;

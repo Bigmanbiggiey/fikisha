@@ -212,9 +212,40 @@ def _close_threads_on_confirm(job: Any, winning: NegotiationThread) -> None:
     ).update(status=ThreadStatus.SUPERSEDED, closed_at=now)
 
 
-def _thread_payload(thread: NegotiationThread, job: Any) -> dict[str, Any]:
+def _operator_display_name(thread: NegotiationThread) -> str | None:
+    """Resolved via the sibling modules' public services, not a direct model
+    import (module boundary rule) — the thread's own `operator`/`group` FKs
+    already scope this to a party of *this* thread, so it doesn't reopen the
+    `operator.read`/`group.read` policies which stay closed to arbitrary ids."""
+    if thread.operator_id:
+        from fikisha.operators import services as operators_services
+
+        return operators_services.display_name_for(thread.operator_id)
+    if thread.group_id:
+        from fikisha.groups import services as groups_services
+
+        return groups_services.display_name_for(thread.group_id)
+    return None
+
+
+def _thread_payload(
+    thread: NegotiationThread, job: Any, *, viewer_side: str | None = None
+) -> dict[str, Any]:
     offer = standing_offer(thread)
     reached, amount, ids = mutual_acceptance(thread)
+    # What *this viewer* could accept right now — the UI needs this to decide
+    # whether to show "Accept KSh X" at all, and the exact amount to send as
+    # AcceptBody's defence-in-depth confirmation. `standing_offer` above is
+    # viewer-agnostic (whoever posted last, either side) and is NOT the same
+    # thing: if the viewer's own offer is the most recent, there is nothing
+    # for *them* to accept yet. Computed here (once, server-side) rather than
+    # re-derived in the frontend, matching this module's own "derived, never
+    # stored — and never re-derived downstream" selectors.py convention.
+    counterparty_offer = None
+    if viewer_side in (EntryActorRole.BUSINESS, EntryActorRole.OPERATOR):
+        target = counterparty_figure_to_accept(thread, for_role=viewer_side)
+        if target is not None:
+            counterparty_offer = {"entry_id": str(target.id), "amount_kes": target.amount_kes}
     return {
         "thread_id": str(thread.id),
         "job_id": str(job.id),
@@ -223,6 +254,7 @@ def _thread_payload(thread: NegotiationThread, job: Any) -> dict[str, Any]:
         "operator_party": thread.operator_party,
         "operator_id": str(thread.operator_id) if thread.operator_id else None,
         "group_id": str(thread.group_id) if thread.group_id else None,
+        "operator_display_name": _operator_display_name(thread),
         "standing_offer": (
             {
                 "entry_id": str(offer.id),
@@ -232,6 +264,7 @@ def _thread_payload(thread: NegotiationThread, job: Any) -> dict[str, Any]:
             if offer
             else None
         ),
+        "counterparty_offer": counterparty_offer,
         "mutual_acceptance": {"reached": reached, "amount_kes": amount, "entry_ids": ids},
         "entries": annotate_entries(thread),
     }
@@ -241,9 +274,10 @@ def _thread_payload(thread: NegotiationThread, job: Any) -> dict[str, Any]:
 def view_thread(*, actor: Any, thread_id: Any) -> dict[str, Any]:
     thread = _get_thread(thread_id)
     job = thread.job
-    if not authz.can_read_thread(actor, job, thread):
+    side = authz.actor_side_for_thread(actor, job, thread)
+    if side is None:
         raise NotANegotiationParty()
-    return _thread_payload(thread, job)
+    return _thread_payload(thread, job, viewer_side=side)
 
 
 def list_threads(*, actor: Any, job_id: Any) -> list[dict[str, Any]]:
@@ -251,11 +285,12 @@ def list_threads(*, actor: Any, job_id: Any) -> list[dict[str, Any]]:
 
     job = get_job(job_id)
     threads = list(NegotiationThread.objects.filter(job=job).order_by("created_at"))
-    visible = [t for t in threads if authz.can_read_thread(actor, job, t)]
+    sides = [authz.actor_side_for_thread(actor, job, t) for t in threads]
+    visible = [(t, side) for t, side in zip(threads, sides, strict=True) if side is not None]
     if not visible and threads:
         # a non-party sees an empty list, not a 403 (existence is not leaked)
         return []
-    return [_thread_payload(t, job) for t in visible]
+    return [_thread_payload(t, job, viewer_side=side) for t, side in visible]
 
 
 # ─── writes ────────────────────────────────────────────────────────────
@@ -317,7 +352,7 @@ def propose(
     )
     _to_negotiating(job, actor, thread, side)
     job.refresh_from_db()
-    payload = _thread_payload(thread, job)
+    payload = _thread_payload(thread, job, viewer_side=side)
     if warning:
         payload["warning"] = warning
     return payload
@@ -350,7 +385,7 @@ def counter(*, actor: Any, thread_id: Any, amount_kes: int, note: str = "") -> d
     )
     _to_negotiating(job, actor, thread, side)
     job.refresh_from_db()
-    payload = _thread_payload(thread, job)
+    payload = _thread_payload(thread, job, viewer_side=side)
     if warning:
         payload["warning"] = warning
     return payload
@@ -369,18 +404,25 @@ def accept(
     in this transaction."""
     thread = _get_thread(thread_id, lock=True)
     job = job_for_update(thread.job_id)
+    side = authz.actor_side_for_thread(actor, job, thread)
+
+    # Authorization for *this* thread must run before any idempotency replay:
+    # `peek_idempotent` matches on (actor, job_id, key) alone, not thread_id,
+    # so without this ordering an actor who legitimately accepted one thread
+    # on a job could reuse that key against a different, unrelated thread on
+    # the same job and get its payload back without ever being a party to it
+    # (admin "record-only" intervention accepts are deferred to the disputes
+    # increment, so ADMIN is excluded here too).
+    if side not in (EntryActorRole.BUSINESS, EntryActorRole.OPERATOR):
+        raise NotANegotiationParty()
 
     replay = peek_idempotent(actor=actor, job_id=job.id, idempotency_key=idempotency_key)
     if replay is not None:
-        payload = _thread_payload(thread, job)
+        payload = _thread_payload(thread, job, viewer_side=side)
         payload["confirmed"] = True
         payload["job"] = replay
         return payload
 
-    side = authz.actor_side_for_thread(actor, job, thread)
-    if side not in (EntryActorRole.BUSINESS, EntryActorRole.OPERATOR):
-        # admin "record-only" intervention accepts are deferred to the disputes increment
-        raise NotANegotiationParty()
     if job.status not in _OPEN_STATES:
         raise JobNotOpenForNegotiation()
     if thread.status != ThreadStatus.ACTIVE:
@@ -405,7 +447,7 @@ def accept(
 
     reached, agreed_amount, accepting_ids = mutual_acceptance(thread)
     if not reached:
-        payload = _thread_payload(thread, job)
+        payload = _thread_payload(thread, job, viewer_side=side)
         payload["confirmed"] = False
         return payload
 
@@ -430,7 +472,7 @@ def accept(
     _close_threads_on_confirm(job, winning=thread)
     thread.refresh_from_db()
     job.refresh_from_db()
-    payload = _thread_payload(thread, job)
+    payload = _thread_payload(thread, job, viewer_side=side)
     payload["confirmed"] = True
     payload["job"] = job_view
     return payload
@@ -461,4 +503,4 @@ def decline(*, actor: Any, thread_id: Any, note: str = "") -> dict[str, Any]:
     thread.status = ThreadStatus.CLOSED
     thread.closed_at = timezone.now()
     thread.save(update_fields=["status", "closed_at", "updated_at"])
-    return _thread_payload(thread, job)
+    return _thread_payload(thread, job, viewer_side=side)

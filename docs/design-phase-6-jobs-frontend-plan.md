@@ -237,19 +237,100 @@ instead — still unit-tested, just not batched up front. `RoleTabBar`/
 `RoleSidebar` (the presentational half of §4) are deferred the same way,
 to Increment 2, since there's nothing to navigate to yet.
 
-### Increment 2 — Business: create & monitor a Job (P2 Flow Family A, P3 §6)
+### Increment 2 — Business: create & monitor a Job (P2 Flow Family A, P3 §6) — DONE, 2026-09-15
 
 Business Home (§6.1) · Create Job wizard (§6.2, 8-step) · Review & Submit
 (§6.3) · Business Job Detail (§6.4, all 14 states' action table) · Jobs list
 segmented Active/Requests/Completed/Cancelled (§6.5) · Business Pickup
 Confirmation (§6.6, founder-approved O-P2 addition — one of two always-valid
-pickup proofs).
+pickup proofs). `RoleTabBar`-equivalent nav (a "Jobs" link) and role-aware
+`/home` dispatch (§4) landed here, since Business is the first workspace with
+somewhere to go. `jobHelpers.ts` centralizes the 14-state → business-facing
+next-action/segment mapping so it isn't re-derived per screen; `money.ts`
+handles KES minor-unit formatting/parsing (every `*_kes` field is cents).
 
-### Increment 3 — Negotiation (shared, P3 §8)
+**Mandatory live-browser verification (CLAUDE.md: "start the dev server and
+use the feature in a browser before reporting complete") caught a real
+backend defect**, not a frontend one: a freshly created business never
+appeared as a workspace on `/home`. Root cause and fix are recorded as
+`ADR‑2B‑11` in `phase-2b-decisions.md` — `GET /businesses` (list) always
+returned `my_role: null` because the generic `paginated()` helper never set
+the serializer context key the single-object create/detail views did; fixed
+by annotating the queryset with a per-row correlated subquery. Verified
+end-to-end after the fix: fresh login → `/home` correctly renders
+`BusinessHomePage` for an owner. 905/905 backend tests, 100/100 frontend
+tests (21 files), lint/typecheck clean on both sides.
 
-Negotiation Thread screen; wired into both Business (from Job Detail) and
-Operator (Increment 4) once both exist. Built here since it's on Business's
-own critical path to `CONFIRMED`.
+**Bug found during this increment's own build, fixed in the same pass (not a
+backend issue):** `CreateJobPage.tsx` originally called `navigate()` directly
+in the render body once the job was created, instead of inside `useEffect` —
+under real user-interaction testing (not static analysis) this produced a
+runaway re-render loop that OOM'd a test run. Fixed by moving the navigate
+call into `useEffect`; verified no other new screen has the same pattern.
+
+### Increment 3 — Negotiation (shared, P3 §8) — DONE, 2026-09-16
+
+Negotiation Thread screen (`features/negotiation/NegotiationPage.tsx`),
+wired from Business Job Detail's "Review offers" (`NEGOTIATING` state).
+Shared presentational components `OfferCard`/`NegotiationThread`
+(`src/components/`) render the offer/counter history; Operator's own use
+of them arrives in Increment 4 (its actions/composer are Business-specific
+this increment). Business can counter, accept, or decline; on mutual
+acceptance the pinned "Agreed: KSh X" banner + "Open Job" appear, matching
+§8.1's exact spec. Composer uses `counter()` uniformly for the business's
+outgoing figure (never `propose()`, which requires an existing thread
+anyway once a thread exists to view) — "Ask again" vs. "Send counter"
+wording distinguishes only whether there's currently something to accept.
+
+**Known simplification:** the wireframe's desktop split-panel (thread list
++ open thread side-by-side) is a single mobile-first flow instead — a
+plain list when more than one operator has responded, tap through to the
+full-screen thread — consistent with the mobile-first stack; a `lg:`
+responsive enhancement can be added later without a data-flow change.
+
+**Three real defects found and fixed during this increment's mandatory
+live-browser verification** (none were reachable by the jsdom-based test
+suite or caught by static analysis):
+
+1. **CORS gap (all environments, since Increment 1):** the backend never
+   allowed the `Idempotency-Key` header for cross-origin requests
+   (`django-cors-headers`' own defaults don't include custom headers) — a
+   real browser's preflight silently dropped every job-creation/lifecycle
+   request before it ever reached Django, surfacing only as a bare
+   "Cannot reach Fikisha" network error. Invisible to vitest/jsdom, which
+   doesn't enforce real CORS. This had silently blocked *every* Increment 2
+   screen's actual submit path in a real browser the whole time — Increment
+   2's own live verification happened to stop short of exercising it.
+   Fixed in `config/settings/base.py` (`CORS_ALLOW_HEADERS`).
+2. **`operator_display_name` + `counterparty_offer` missing from the
+   negotiation thread payload** (`ADR-2D-31`) — the wireframe names the
+   proposer on every offer card and shows a single "Accept KSh X" action,
+   neither of which the existing payload supported for a real (non-test)
+   caller.
+3. **`_effective_status()`'s blanket-supersede covered `CLOSED` as well as
+   `SUPERSEDED`** (`ADR-2D-32`) — a *just-agreed* thread's own re-read (a
+   page reload) could never again report `mutual_acceptance.reached: true`,
+   so the "Agreed" banner only ever worked in the instant it was created,
+   never on revisit. Caught by reloading the negotiation screen after
+   confirming, exactly the real user flow the wireframe describes.
+
+Also fixed the same pass: `jobs.guards`' `business_not_verified` /
+`business_no_active_location` / `cargo_prohibited` / `required_fields_
+incomplete` codes had no `errors:` translation, showing the raw snake_case
+code to the user (hit while setting up test data for this increment — the
+same pre-existing gap Increment 2 never happened to trigger live).
+
+905 → 907 backend tests (2 new: `ADR-2D-31`'s counterparty-offer-is-
+viewer-relative test, `ADR-2D-32`'s reload-after-close regression), 100 →
+110 frontend tests (`NegotiationPage`, `NegotiationThread`, plus a
+`JobDetailPage` navigation regression), all green; lint/typecheck/build
+clean. Live-verified the full happy path end-to-end: create a job → open a
+thread as an operator (no Operator UI yet, driven directly) → counter →
+accept → operator accepts back → Agreed banner → Open Job → Job Detail
+shows `CONFIRMED` at the agreed price.
+
+Stopped here for review, per the plan's per-increment discipline —
+Increment 4 (Operator) not started.
 
 ### Increment 4 — Operator: discover, negotiate, assign (P2 Flow Family B, P3 §7, §9)
 

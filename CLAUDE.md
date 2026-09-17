@@ -269,7 +269,7 @@ The full policy is `docs/team-skills-policy.md`; the inventory and rationale are
 | Design Phase 5B — Production Tokens (`docs/design-phase-5-implementation.md`) | COMPLETE — tokens + 13 foundational primitives implemented in `frontend/` |
 | Design Phase 5C — Screen Migration (`docs/design-phase-5c-screen-migration.md`) | PARTIAL — all 15 pre-existing screens migrated; the Job/workspace screens (Business/Operator/Driver/Ops/Platform Admin/Recipient) are **escalated, not built** — they need a Jobs backend, which did not exist when 5C ran |
 | Phase 2D — Jobs & Core Coordination (backend) (`docs/phase-2/phase-2d-summary.md`, `-decisions.md`, `-api.md`, `-final-verification.md`) | **APPROVED — second founder gate (plan §19 Step 16) cleared 2026-09-15.** Increments 1–11 + 2 verification corrective passes (BLOCKER-1, tiebreaker fix) + Steps 12–15 (invariant/atomicity tests, static+migration+Docker verification, a manual STRIDE security pass, doc promotion) all done. 904 backend tests, 90% coverage, full-stack Docker smoke test passed. Still no merge-to-`main` gate exception beyond the ratified Process Exception, no deploy. |
-| Design Phase 6 — Jobs Frontend: Architecture & Build Plan (`docs/design-phase-6-jobs-frontend-plan.md`) | **APPROVED 2026-09-15**, including the proposed defaults for all 6 open questions (§9 Q1–Q6): single role-aware route tree, no real offline-sync engine this phase, a simple role-switch control, `StaleBadge` presentational-only pending a separate `If-Match` fix, the stated increment order, `RESUME_PRIOR`/rating still out of scope. Implementation begins at Increment 1 (frontend infrastructure). |
+| Design Phase 6 — Jobs Frontend: Architecture & Build Plan (`docs/design-phase-6-jobs-frontend-plan.md`) | **APPROVED 2026-09-15**, including the proposed defaults for all 6 open questions (§9 Q1–Q6): single role-aware route tree, no real offline-sync engine this phase, a simple role-switch control, `StaleBadge` presentational-only pending a separate `If-Match` fix, the stated increment order, `RESUME_PRIOR`/rating still out of scope. **Increments 1–3 DONE** (1: frontend infrastructure, 2026-09-15; 2: Business create/monitor a Job, 2026-09-15; 3: Negotiation, 2026-09-16) — see plan §7. Each increment's mandatory live-browser verification caught real defects invisible to the jsdom-based test suite: Increment 2 found `ADR-2B-11` (`GET /businesses` never populated `my_role`, so a fresh business never showed up as a workspace); Increment 3 found a backend CORS gap blocking every job-creation/lifecycle request in a real browser (missing `Idempotency-Key` in `CORS_ALLOW_HEADERS`, present since Increment 1) plus `ADR-2D-31`/`ADR-2D-32` (negotiation thread payload gaps). All backend + frontend tests green. Next: Increment 4 (Operator), pending founder review of Increment 3. |
 
 **Process exception — read before assuming `main` reflects an approved gate.**
 On 2026-09-11 21:24 +0300, `feat/phase-2d-jobs` was fast-forward-merged into
@@ -292,18 +292,19 @@ for full forensic detail. Treat any future direct push/fast-forward to
 `main` outside an explicit founder instruction as the same class of
 violation, branch protection or not.
 
-Working branch: `main` (Phase 2D's Steps 12–15 closing work and the Design
-Phase 6 plan draft were both done and committed directly to `main`
-2026-09-15, per explicit founder instruction to close out Phase 2D and then
-proceed to the Jobs frontend; see `docs/phase-2/phase-2d-summary.md` and
-`docs/design-phase-6-jobs-frontend-plan.md`).
+Working branch: `main` (Phase 2D's Steps 12–15 closing work, the Design
+Phase 6 plan, and the plan's Increments 1–3 were all done and committed
+directly to `main` 2026-09-15/16, per explicit founder instruction to close
+out Phase 2D and then proceed to the Jobs frontend; see
+`docs/phase-2/phase-2d-summary.md` and `docs/design-phase-6-jobs-frontend-plan.md`).
 
 > **CURRENT STOP LINE.** Design Phase 3–5B, Phase 2D (backend), and Design
 > Phase 6 (Jobs-frontend plan) are all founder-APPROVED as of 2026-09-15.
 > Implementation is authorized, increment by increment per the plan's §7
-> sequence, starting at Increment 1 (frontend infrastructure). Each
-> increment should land reviewably, the way Phase 2D's eleven increments
-> did — not as one giant diff.
+> sequence; Increments 1–3 are done (frontend infrastructure; Business
+> create/monitor a Job; Negotiation). Each increment should land reviewably,
+> the way Phase 2D's eleven increments did — not as one giant diff.
+> Increment 4 (Operator) is next, pending founder review of Increment 3.
 > Still not started / not permitted without explicit founder approval: a
 > real Trust & Reputation engine (Phase 2D uses only the interim
 > conservative deterministic rule, ADR-2D-05 Option b) · ratings ·
@@ -319,6 +320,6 @@ proceed to the Jobs frontend; see `docs/phase-2/phase-2d-summary.md` and
 - Backend modules: `backend/fikisha/{common,audit,outbox,platform_config,identity,storage,business,operators,groups,evidence,vehicles,verification,jobs,negotiation,incidents}`.
 - ADRs: `docs/phase-2/phase-2a-decisions.md`, `phase-2b-decisions.md`, `phase-2c-decisions.md`, `phase-2d-decisions.md` (2D-01–2D-30, promoted out of `phase-2d-plan.md` §14 in Step 15).
 - Repro/verify commands: `docs/phase-2/phase-2X-summary.md` files (incl. `phase-2d-summary.md`); `scripts/smoke-test.sh`; Phase 2D's full endpoint reference is `docs/phase-2/phase-2d-api.md`; its verification evidence is `docs/phase-2/phase-2d-final-verification.md`.
-- Design lineage: `design-brief.md` (P0) → `design-phase-1-ia.md` (P1) → `design-phase-2-user-flows.md` (P2) → `design-phase-3-wireframes.md` (P3) → `design-phase-4-visual-system.md` (P4) → `design-phase-5-brand-palette.md` (P5A) → `design-phase-5-implementation.md` (P5B, tokens live in `frontend/src/design/tokens.ts`) → `design-phase-5c-screen-migration.md` (P5C, partial — see §7) → `design-phase-6-jobs-frontend-plan.md` (P6, DRAFT — the actual Jobs-frontend build plan, awaiting founder review).
+- Design lineage: `design-brief.md` (P0) → `design-phase-1-ia.md` (P1) → `design-phase-2-user-flows.md` (P2) → `design-phase-3-wireframes.md` (P3) → `design-phase-4-visual-system.md` (P4) → `design-phase-5-brand-palette.md` (P5A) → `design-phase-5-implementation.md` (P5B, tokens live in `frontend/src/design/tokens.ts`) → `design-phase-5c-screen-migration.md` (P5C, partial — see §7) → `design-phase-6-jobs-frontend-plan.md` (P6, APPROVED — the actual Jobs-frontend build plan; Increments 1–2 done, see §7 status table).
 - Memory index for cross-session context lives outside the repo (Claude auto-memory).
 - **Before assuming `main` is a clean, founder-approved baseline, read §7's Process Exception note.**
