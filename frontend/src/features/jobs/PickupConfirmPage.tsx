@@ -10,6 +10,7 @@ import { ErrorState } from '@/components/ErrorState';
 import { PageLoader } from '@/components/PageLoader';
 import { localizeError } from '@/services/errorMessage';
 
+import { jobReference } from './jobHelpers';
 import { jobsApi } from './jobsApi';
 
 /**
@@ -75,7 +76,7 @@ export function PickupConfirmPage(): JSX.Element {
         <p className="text-body text-fg">
           {t('jobs:pickupConfirm.whatYoureConfirming', {
             cargo: data.cargo?.description ?? '',
-            ref: data.id.slice(-6).toUpperCase(),
+            ref: jobReference(data.id),
             location: data.pickup_location?.address_text ?? '',
           })}
         </p>
@@ -100,7 +101,7 @@ export function PickupConfirmPage(): JSX.Element {
         ) : (
           <div className="mt-4 space-y-2 rounded-md border border-line-strong bg-surface-sunken p-3">
             <p className="text-body-sm text-fg">
-              {t('jobs:pickupConfirm.confirmStep', { ref: data.id.slice(-6).toUpperCase() })}
+              {t('jobs:pickupConfirm.confirmStep', { ref: jobReference(data.id) })}
             </p>
             <div className="flex gap-2">
               <Button

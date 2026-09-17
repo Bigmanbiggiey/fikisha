@@ -12,7 +12,7 @@ import { PageLoader } from '@/components/PageLoader';
 import { localizeError } from '@/services/errorMessage';
 
 import { jobsApi } from './jobsApi';
-import { businessNextAction, needsBusinessAttention } from './jobHelpers';
+import { businessNextAction, jobReference, needsBusinessAttention } from './jobHelpers';
 import { formatKes } from './money';
 import type { Job, JobStatus } from './types';
 
@@ -76,7 +76,7 @@ export function BusinessHomePage(): JSX.Element {
             {active.map((job) => (
               <JobCard
                 key={job.id}
-                reference={job.id.slice(-6).toUpperCase()}
+                reference={jobReference(job.id)}
                 state={job.status}
                 stateLabel={statusLabel(t, job.status)}
                 route={{
@@ -102,7 +102,7 @@ export function BusinessHomePage(): JSX.Element {
               <li key={job.id}>
                 <Link to={`/jobs/${job.id}`} className="flex items-center gap-2 py-1 text-body-sm">
                   <JobStatusChip state={job.status} label={statusLabel(t, job.status)} />
-                  <span className="text-fg">{job.id.slice(-6).toUpperCase()}</span>
+                  <span className="text-fg">{jobReference(job.id)}</span>
                   <span className="text-fg-muted">
                     {job.destination_location?.address_text}
                   </span>
@@ -123,7 +123,7 @@ function AttentionRow({ job }: { job: Job }): JSX.Element {
     <Link to={`/jobs/${job.id}`} className="block rounded-md">
       <Card interactive className="flex items-center justify-between gap-3">
         <div>
-          <p className="font-semibold text-fg">{job.id.slice(-6).toUpperCase()}</p>
+          <p className="font-semibold text-fg">{jobReference(job.id)}</p>
           <p className="text-body-sm text-fg-secondary">
             {job.destination_location?.address_text}
           </p>

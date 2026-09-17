@@ -89,6 +89,13 @@ export function happyPathIndex(status: JobStatus): number {
   return HAPPY_PATH_STATUSES.indexOf(status);
 }
 
+/** The short human-friendly reference shown for a Job across every screen
+ * (last 6 chars of the UUIDv7 id, uppercased) — a single source so the
+ * derivation rule only has to change in one place. */
+export function jobReference(id: string): string {
+  return id.slice(-6).toUpperCase();
+}
+
 export function businessNextAction(status: JobStatus): BusinessActionKey | null {
   switch (status) {
     case 'DRAFT':

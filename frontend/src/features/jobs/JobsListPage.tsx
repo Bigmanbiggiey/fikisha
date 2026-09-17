@@ -11,7 +11,7 @@ import { PageLoader } from '@/components/PageLoader';
 import { localizeError } from '@/services/errorMessage';
 
 import { jobsApi } from './jobsApi';
-import { type JobSegment, segmentFor } from './jobHelpers';
+import { type JobSegment, jobReference, segmentFor } from './jobHelpers';
 import { formatKes } from './money';
 
 const SEGMENTS: JobSegment[] = ['active', 'requests', 'completed', 'cancelled'];
@@ -66,7 +66,7 @@ export function JobsListPage(): JSX.Element {
               {rows.map((job) => (
                 <JobCard
                   key={job.id}
-                  reference={job.id.slice(-6).toUpperCase()}
+                  reference={jobReference(job.id)}
                   state={job.status}
                   stateLabel={t(`jobs:status.${job.status}`)}
                   route={{

@@ -178,9 +178,9 @@ function NextActionSection({
 
 function Timeline({ job }: { job: Job }): JSX.Element {
   const { t } = useTranslation('jobs');
-  const currentIndex = happyPathIndex(job.status);
   const isTerminalNegative = job.status === 'CANCELLED' || job.status === 'FAILED';
   const isDisputed = job.status === 'DISPUTED';
+  const isFrozen = isTerminalNegative || isDisputed;
 
   const timestampByStatus: Partial<Record<JobStatus, string | null>> = {
     REQUESTED: job.timestamps.published_at,
@@ -191,10 +191,21 @@ function Timeline({ job }: { job: Job }): JSX.Element {
     COMPLETED: job.timestamps.completed_at,
   };
 
+  // CANCELLED/FAILED/DISPUTED aren't HAPPY_PATH_STATUSES members, so
+  // happyPathIndex(job.status) would return -1 for a frozen job and hide
+  // every prior step's checkmark. Derive "how far did it get" from the
+  // last populated timestamp instead — a later step's timestamp only ever
+  // appears once every preceding happy-path step has actually happened.
+  const lastReachedIndex = HAPPY_PATH_STATUSES.reduce(
+    (acc, status, i) => (timestampByStatus[status] ? i : acc),
+    -1,
+  );
+  const currentIndex = isFrozen ? lastReachedIndex : happyPathIndex(job.status);
+
   const steps: TimelineStep[] = HAPPY_PATH_STATUSES.map((status, i) => ({
     id: status,
     label: t(`jobs:status.${status}`),
-    node: isTerminalNegative || isDisputed ? (i <= currentIndex ? 'done' : 'upcoming') : i < currentIndex ? 'done' : i === currentIndex ? 'current' : 'upcoming',
+    node: isFrozen ? (i <= currentIndex ? 'done' : 'upcoming') : i < currentIndex ? 'done' : i === currentIndex ? 'current' : 'upcoming',
     time: hhmm(timestampByStatus[status] ?? null),
   }));
 
@@ -202,7 +213,7 @@ function Timeline({ job }: { job: Job }): JSX.Element {
     <JobTimeline
       steps={steps}
       endCap={isTerminalNegative ? (job.status === 'CANCELLED' ? 'cancelled' : 'failed') : isDisputed ? 'disputed' : undefined}
-      endCapText={isTerminalNegative || isDisputed ? t(`jobs:status.${job.status}`) : undefined}
+      endCapText={isFrozen ? t(`jobs:status.${job.status}`) : undefined}
     />
   );
 }

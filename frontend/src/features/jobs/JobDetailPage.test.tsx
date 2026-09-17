@@ -127,4 +127,36 @@ describe('JobDetailPage', () => {
     await screen.findByText('Nothing needed from you right now.');
     expect(screen.queryByRole('button', { name: 'Cancel request' })).not.toBeInTheDocument();
   });
+
+  it('keeps prior timeline steps marked done when a job is DISPUTED', async () => {
+    get.mockResolvedValue(
+      baseJob({
+        status: 'DISPUTED',
+        next_allowed_statuses: [],
+        timestamps: {
+          created_at: null,
+          published_at: '2026-09-15T10:00:00Z',
+          confirmed_at: '2026-09-15T10:05:00Z',
+          assigned_at: '2026-09-15T10:10:00Z',
+          picked_up_at: '2026-09-15T10:20:00Z',
+          delivered_at: null,
+          completed_at: null,
+          terminal_at: null,
+        },
+      }),
+    );
+    renderAtJob('01a0a4123456');
+
+    await screen.findByText('Depot, Kitengela');
+
+    // Regression: `happyPathIndex('DISPUTED')` is -1 (DISPUTED isn't a
+    // happy-path status), which used to make every step render as
+    // 'upcoming' instead of keeping the progress made before the dispute.
+    // "Picked up" has a timestamp, so it must still show its checkmark...
+    const pickedUpRow = screen.getByText('Picked up').closest('li');
+    expect(pickedUpRow?.querySelector('.bg-status-success-solid')).toBeInTheDocument();
+    // ...but "In transit" never happened and must not be marked done.
+    const inTransitRow = screen.getByText('In transit').closest('li');
+    expect(inTransitRow?.querySelector('.bg-status-success-solid')).not.toBeInTheDocument();
+  });
 });
