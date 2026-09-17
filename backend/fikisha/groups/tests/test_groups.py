@@ -52,6 +52,32 @@ class TestGroupCrud:
         ids = [g["id"] for g in a.get("/api/v1/groups").data["data"]]
         assert ids == [mine]
 
+    def test_list_includes_my_role_per_group(
+        self, user: Any, other_user: Any, client_for: Any
+    ) -> None:
+        """Regression: the list endpoint used to always return `my_role: null`
+        because `GroupCollectionView.get` never set the flat `context["my_role"]`
+        `_group_ctx` provides for the create/detail views (ADR-2B-11's
+        businesses_for defect, mirrored here for groups). Exercised with two
+        users holding *different* roles in the same group, since a naive fix
+        (e.g. reusing one role for every caller) would still pass a
+        same-role-for-everyone test."""
+        owner_client = client_for(user)
+        _operator(owner_client, "Owner")
+        gid = _group(owner_client)["id"]
+
+        driver_client = client_for(other_user)
+        driver_pid = _operator(driver_client, "Driver Dan")
+        owner_client.post(
+            f"/api/v1/groups/{gid}/members",
+            {"operator_id": driver_pid, "role": "DRIVER"},
+            format="json",
+        )
+
+        owner_role = owner_client.get("/api/v1/groups").data["data"][0]["my_role"]
+        driver_role = driver_client.get("/api/v1/groups").data["data"][0]["my_role"]
+        assert (owner_role, driver_role) == ("OWNER", "DRIVER")
+
     def test_owner_updates_group_but_not_standing(self, user: Any, client_for: Any) -> None:
         client = client_for(user)
         _operator(client)

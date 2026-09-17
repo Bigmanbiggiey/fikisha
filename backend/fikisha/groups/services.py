@@ -9,7 +9,7 @@ from __future__ import annotations
 from typing import Any
 
 from django.db import transaction
-from django.db.models import QuerySet
+from django.db.models import OuterRef, QuerySet, Subquery
 
 from fikisha.audit import services as audit
 from fikisha.common.exceptions import AuthorizationError, ConflictError, DomainError
@@ -42,11 +42,20 @@ def display_name_for(group_id: Any) -> str | None:
 
 
 def groups_for(user: User) -> QuerySet[OperatorGroup]:
+    """List a user's groups, each annotated with ``my_role`` (the requesting
+    user's own active role on that group) so ``GroupSerializer`` — a
+    per-object ``SerializerMethodField`` — can render it correctly across a
+    list, not just the single-object create/detail views (see ADR-2B-11 /
+    businesses_for's identical annotation)."""
+    my_active_role = GroupMembership.objects.filter(
+        group_id=OuterRef("pk"), operator__user=user, status=GroupMembershipStatus.ACTIVE
+    ).values("role")[:1]
     return (
         OperatorGroup.objects.filter(
             memberships__operator__user=user,
             memberships__status=GroupMembershipStatus.ACTIVE,
         )
+        .annotate(my_role=Subquery(my_active_role))
         .distinct()
         .order_by("-created_at")
     )
