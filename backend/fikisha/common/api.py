@@ -68,11 +68,23 @@ class OrgApiView(APIView):
         return actor_has_permission(self.actor(request), "*")
 
 
-def paginated(request: Request, queryset: Any, serializer_cls: Any) -> Response:
-    """Standard cursor-paginated list response (``{data, page}``)."""
+def paginated(
+    request: Request,
+    queryset: Any,
+    serializer_cls: Any,
+    *,
+    context: dict[str, Any] | None = None,
+) -> Response:
+    """Standard cursor-paginated list response (``{data, page}``). ``context``
+    merges into the serializer context alongside ``request`` — e.g. the
+    acting operator for a per-row eligibility computation
+    (``jobs.discovery.opportunity_view``)."""
     from fikisha.common.pagination import CursorPagination
 
     paginator = CursorPagination()
     page = paginator.paginate_queryset(queryset, request)
-    data = serializer_cls(page, many=True, context={"request": request}).data
+    ctx: dict[str, Any] = {"request": request}
+    if context:
+        ctx.update(context)
+    data = serializer_cls(page, many=True, context=ctx).data
     return paginator.get_paginated_response(data)

@@ -178,43 +178,58 @@ def driver_assignment_allowed(job: Any, actor: Any, ctx: dict[str, Any]) -> None
         raise DriverNotEligible("The assigned driver is not an active member of the group.")
 
 
-def vehicle_eligible(job: Any, actor: Any, ctx: dict[str, Any]) -> None:
-    vehicle = ctx.get("vehicle")
-    if vehicle is None:
-        raise VehicleNotEligible("No vehicle supplied for assignment.")
+def _vehicle_reasons(
+    vehicle: Any, job: Any, *, operator_id: Any = None, group_id: Any = None
+) -> list[str]:
+    """Every reason ``vehicle`` is ineligible for ``job``, in the same order
+    :func:`vehicle_eligible` used to raise them — shared with the read-only
+    assignment-candidates preview (``jobs.assignment_candidates``) so the
+    preview can never drift from what the transition guard actually
+    enforces (CLAUDE.md §4 "the UI mirrors [server authorization]")."""
     if not vehicle.is_active:
-        raise VehicleNotEligible("The vehicle is not active.")
+        return ["The vehicle is not active."]
 
-    _party, operator_id, group_id = _agreement_party(job)
+    reasons: list[str] = []
     if operator_id is not None and str(vehicle.owner_operator_id) != str(operator_id):
-        raise VehicleNotEligible("The vehicle is not controlled by the confirmed operator.")
+        reasons.append("The vehicle is not controlled by the confirmed operator.")
     if group_id is not None and str(vehicle.owner_group_id) != str(group_id):
-        raise VehicleNotEligible("The vehicle is not controlled by the confirmed group.")
+        reasons.append("The vehicle is not controlled by the confirmed group.")
 
     req = job.vehicle_requirement
     if req is not None:
         if req.required_vehicle_class_codes:
             code = getattr(vehicle.vehicle_class, "code", None)
             if code not in req.required_vehicle_class_codes:
-                raise VehicleNotEligible("The vehicle class does not match the requirement.")
+                reasons.append("The vehicle class does not match the requirement.")
         payload_kg = _capacity_kg(vehicle)
         if req.min_payload_kg and payload_kg is not None and payload_kg < req.min_payload_kg:
-            raise VehicleNotEligible("The vehicle payload is below the requirement.")
+            reasons.append("The vehicle payload is below the requirement.")
         if req.min_volume_m3 is not None:
             if vehicle.volume_m3 is None or vehicle.volume_m3 < req.min_volume_m3:
-                raise VehicleNotEligible("The vehicle load volume is below the requirement.")
+                reasons.append("The vehicle load volume is below the requirement.")
         required_features = set(req.required_features or [])
         if required_features and not required_features.issubset(set(vehicle.feature_tags or [])):
-            raise VehicleNotEligible("The vehicle is missing a required feature.")
+            reasons.append("The vehicle is missing a required feature.")
 
     from fikisha.verification.requirements import required_domains_for_subject
     from fikisha.verification.services import subject_meets
 
     domains = required_domains_for_subject(vehicle)  # incl. HEAVY_CLASS_COMPLIANCE when heavy
     if not subject_meets(vehicle, domains):
-        raise VehicleNotEligible(
+        reasons.append(
             "The vehicle's registration / association / heavy-class verification is not current."
         )
+    return reasons
+
+
+def vehicle_eligible(job: Any, actor: Any, ctx: dict[str, Any]) -> None:
+    vehicle = ctx.get("vehicle")
+    if vehicle is None:
+        raise VehicleNotEligible("No vehicle supplied for assignment.")
+    _party, operator_id, group_id = _agreement_party(job)
+    reasons = _vehicle_reasons(vehicle, job, operator_id=operator_id, group_id=group_id)
+    if reasons:
+        raise VehicleNotEligible(reasons[0])
 
 
 def _capacity_kg(vehicle: Any) -> float | None:
@@ -225,34 +240,52 @@ def _capacity_kg(vehicle: Any) -> float | None:
     return float(value) * (1000.0 if unit == "TONNES" else 1.0)
 
 
-def driver_verification_current(job: Any, actor: Any, ctx: dict[str, Any]) -> None:
-    driver = ctx.get("driver_profile")
-    if driver is None:
-        raise DriverNotEligible("No driver supplied for assignment.")
+def _driver_verification_reasons(driver: Any) -> list[str]:
+    """Shared with ``jobs.assignment_candidates`` — see ``_vehicle_reasons``."""
     from fikisha.verification.requirements import required_domains_for_subject
     from fikisha.verification.services import subject_meets
 
     domains = required_domains_for_subject(driver)  # IDENTITY + LICENCE + GOOD_CONDUCT (config)
     if not subject_meets(driver, domains):
-        raise DriverNotEligible(
-            "The driver's identity, licence and good-conduct verification must all be current."
-        )
+        return ["The driver's identity, licence and good-conduct verification must all be current."]
+    return []
+
+
+def driver_verification_current(job: Any, actor: Any, ctx: dict[str, Any]) -> None:
+    driver = ctx.get("driver_profile")
+    if driver is None:
+        raise DriverNotEligible("No driver supplied for assignment.")
+    reasons = _driver_verification_reasons(driver)
+    if reasons:
+        raise DriverNotEligible(reasons[0])
+
+
+def _driver_trust_reasons(
+    driver: Any, job: Any, *, admin_override_reason: str = ""
+) -> tuple[str, list[str]]:
+    """``(interim_trust_level, reasons)`` — shared with
+    ``jobs.assignment_candidates``, see ``_vehicle_reasons``."""
+    level = eligibility.interim_driver_trust_level(driver)
+    band = job.value_band or ValueBand.STANDARD
+    if eligibility.level_covers_band(level, band):
+        return level, []
+    if admin_override_reason.strip():
+        return level, []
+    return level, [
+        f"The driver's trust level ({level or 'none'}) does not cover this job's "
+        f"{band} value band, and no admin override reason was recorded."
+    ]
 
 
 def driver_trust_ceiling_covers_value(job: Any, actor: Any, ctx: dict[str, Any]) -> None:
     driver = ctx.get("driver_profile")
     if driver is None:
         raise DriverNotEligible("No driver supplied for assignment.")
-    level = eligibility.interim_driver_trust_level(driver)
-    band = job.value_band or ValueBand.STANDARD
-    if eligibility.level_covers_band(level, band):
-        return
-    if (ctx.get("admin_override_reason") or "").strip():
-        return
-    raise DriverNotEligible(
-        f"The driver's trust level ({level or 'none'}) does not cover this job's "
-        f"{band} value band, and no admin override reason was recorded."
+    _level, reasons = _driver_trust_reasons(
+        driver, job, admin_override_reason=ctx.get("admin_override_reason") or ""
     )
+    if reasons:
+        raise DriverNotEligible(reasons[0])
 
 
 def high_value_approved(job: Any, actor: Any, ctx: dict[str, Any]) -> None:

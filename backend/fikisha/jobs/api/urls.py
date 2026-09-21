@@ -9,9 +9,20 @@ app_name = "jobs"
 urlpatterns = [
     # ─── Jobs ────────────────────────────────────────────────────────
     path("jobs", views.JobCollectionView.as_view(), name="collection"),
+    path("jobs/opportunities", views.JobOpportunitiesView.as_view(), name="opportunities"),
+    path(
+        "jobs/<uuid:job_id>/opportunity",
+        views.JobOpportunityDetailView.as_view(),
+        name="opportunity-detail",
+    ),
     path("jobs/<uuid:job_id>", views.JobDetailView.as_view(), name="detail"),
     path("jobs/<uuid:job_id>/submit", views.JobSubmitView.as_view(), name="submit"),
     path("jobs/<uuid:job_id>/cancel", views.JobCancelView.as_view(), name="cancel"),
+    path(
+        "jobs/<uuid:job_id>/assignment-candidates",
+        views.JobAssignmentCandidatesView.as_view(),
+        name="assignment-candidates",
+    ),
     path("jobs/<uuid:job_id>/assign", views.JobAssignView.as_view(), name="assign"),
     path("jobs/<uuid:job_id>/commission", views.JobCommissionView.as_view(), name="commission"),
     # ─── Custody ─────────────────────────────────────────────────────

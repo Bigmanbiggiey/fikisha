@@ -64,6 +64,21 @@ def _job_assign(actor: Any, _action: str, _resource: Any) -> Decision:
     return ALLOW if getattr(actor, "is_authenticated", False) else deny("authz.unauthenticated")
 
 
+@policy("job.assign.candidates")
+def _job_assign_candidates(actor: Any, _action: str, _resource: Any) -> Decision:
+    """Coarse gate for the read-only assignment-candidates preview (Design
+    Phase 6 Increment 4) — the confirmed-operator/admin resolution runs in
+    :mod:`fikisha.jobs.assignment_candidates`, mirroring ``job.assign``."""
+    return ALLOW if getattr(actor, "is_authenticated", False) else deny("authz.unauthenticated")
+
+
+@policy("job.discover")
+def _job_discover(actor: Any, _action: str, _resource: Any) -> Decision:
+    """Coarse gate — matching (own vehicle classes, individual-operator-only
+    this increment) happens in :func:`fikisha.jobs.discovery.open_jobs_for`."""
+    return _authed_or_system(actor)
+
+
 @policy("job.proof.pickup")
 def _job_proof_pickup(actor: Any, _action: str, _resource: Any) -> Decision:
     """Coarse gate — the driver-vs-business-party resolution and the band matrix

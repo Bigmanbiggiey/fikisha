@@ -20,8 +20,9 @@ from fikisha.common.idempotency import idempotent
 from fikisha.common.ratelimit import RateLimiter
 from fikisha.evidence import services as evidence_services
 from fikisha.evidence.models import EvidencePurpose, PiiClass, UploaderKind
+from fikisha.jobs import assignment_candidates as assignment_candidates_service
 from fikisha.jobs import commission as commission_service
-from fikisha.jobs import creation, custody, job_authz
+from fikisha.jobs import creation, custody, discovery, job_authz
 from fikisha.jobs import recipient as recipient_service
 from fikisha.jobs.api.serializers import (
     ArriveSerializer,
@@ -158,7 +159,36 @@ class JobCancelView(OrgApiView):
         return Response(view)
 
 
+# ─── Work discovery (Design Phase 6 Increment 4, individual-operator-only —
+# see jobs.assignment_candidates module docstring) ──────────────────────
+class JobOpportunitiesView(OrgApiView):
+    action_get = "job.discover"
+
+    def get(self, request: Request) -> Response:
+        actor = self.actor(request)
+        value_band = request.query_params.get("value_band") or None
+        qs = discovery.open_jobs_for(actor, value_band=value_band)
+        return paginated(
+            request, qs, _JobOpportunitySerializer, context={"discovery_actor": actor}
+        )
+
+
+class JobOpportunityDetailView(OrgApiView):
+    action_get = "job.discover"
+
+    def get(self, request: Request, job_id: str) -> Response:
+        return Response(discovery.opportunity_detail(self.actor(request), job_id))
+
+
 # ─── Assignment ─────────────────────────────────────────────────────────
+class JobAssignmentCandidatesView(OrgApiView):
+    action_get = "job.assign.candidates"
+
+    def get(self, request: Request, job_id: str) -> Response:
+        view = assignment_candidates_service.candidates(actor=self.actor(request), job_id=job_id)
+        return Response(view)
+
+
 class JobAssignView(OrgApiView):
     action_post = "job.assign"
 
@@ -467,3 +497,8 @@ class _JobListSerializer(serializers.BaseSerializer):
 
     def to_representation(self, instance: Job) -> dict[str, Any]:
         return creation.job_detail(instance)
+
+
+class _JobOpportunitySerializer(serializers.BaseSerializer):
+    def to_representation(self, instance: Job) -> dict[str, Any]:
+        return discovery.opportunity_view(instance, self.context["discovery_actor"])
