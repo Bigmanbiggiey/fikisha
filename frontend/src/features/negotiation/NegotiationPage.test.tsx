@@ -26,8 +26,20 @@ vi.mock('./negotiationApi', () => ({
     decline: (...a: unknown[]) => decline(...a),
   },
 }));
+const meMock = vi.fn();
+const listBusinesses = vi.fn();
+const getMyOperator = vi.fn();
+const listGroups = vi.fn();
+
 vi.mock('@/features/auth/authApi', () => ({
-  authApi: { me: () => Promise.reject(new Error('anon')), logout: vi.fn() },
+  authApi: { me: (...a: unknown[]) => meMock(...a), logout: vi.fn() },
+}));
+vi.mock('@/features/org/orgApi', () => ({
+  orgApi: {
+    listBusinesses: (...a: unknown[]) => listBusinesses(...a),
+    getMyOperator: (...a: unknown[]) => getMyOperator(...a),
+    listGroups: (...a: unknown[]) => listGroups(...a),
+  },
 }));
 
 function renderAtJob(jobId: string): ReturnType<typeof renderWithProviders> {
@@ -42,6 +54,7 @@ function renderAtJob(jobId: string): ReturnType<typeof renderWithProviders> {
 function baseJob(): Record<string, unknown> {
   return {
     id: '01a0a4123456',
+    business_id: 'biz1',
     status: 'NEGOTIATING',
     pickup_location: { address_text: 'Depot, Kitengela' },
     destination_location: { address_text: 'Shop 4, Kitengela' },
@@ -97,7 +110,12 @@ describe('NegotiationPage', () => {
     counter.mockReset();
     accept.mockReset();
     decline.mockReset();
+    meMock.mockReset();
+    listBusinesses.mockReset();
+    getMyOperator.mockReset();
+    listGroups.mockReset();
     get.mockResolvedValue(baseJob());
+    meMock.mockRejectedValue(new Error('anon'));
   });
 
   it('shows the offer history and lets the business accept the operator\'s offer', async () => {
@@ -242,5 +260,79 @@ describe('NegotiationPage', () => {
     renderAtJob('01a0a4123456');
 
     expect(await screen.findByText('No offers yet')).toBeInTheDocument();
+  });
+
+  describe('as the operator viewer', () => {
+    beforeEach(() => {
+      // Increment 4: the signed-in user holds an Operator workspace and no
+      // Business workspace that owns this job's business_id, so
+      // useJobViewerRole resolves 'OPERATOR' — the same shared component now
+      // renders the operator's side of the exact same thread.
+      meMock.mockResolvedValue({
+        id: 'u2',
+        phone: '+254733200001',
+        display_name: 'D. Kamau',
+        locale: 'en',
+        status: 'ACTIVE',
+        roles: [],
+        is_admin: false,
+      });
+      listBusinesses.mockResolvedValue({ data: [], page: { next_cursor: null, prev_cursor: null } });
+      getMyOperator.mockResolvedValue({ id: 'op1', full_name: 'D. Kamau', display_name: '' });
+      listGroups.mockResolvedValue({ data: [], page: { next_cursor: null, prev_cursor: null } });
+    });
+
+    it('lets the operator accept the business\'s standing offer, falling back to a generic counterparty label', async () => {
+      listThreads.mockResolvedValue({
+        data: [
+          baseThread({
+            // From the operator's own side: the standing/counterparty offer
+            // is now the BUSINESS's figure, resolved server-side.
+            standing_offer: { entry_id: 'e1', actor_role: 'BUSINESS', amount_kes: 750_000 },
+            counterparty_offer: { entry_id: 'e1', amount_kes: 750_000 },
+          }),
+        ],
+      });
+      const user = userEvent.setup();
+      renderAtJob('01a0a4123456');
+
+      // No business_display_name exists on the payload (ADR-2D-31 gap) — the
+      // business's entry must show the generic fallback, never the
+      // operator's own name (operator_display_name would be wrong here).
+      expect(await screen.findByText('Business')).toBeInTheDocument();
+      expect(screen.queryByText('Athi Movers')).not.toBeInTheDocument();
+
+      const acceptButton = screen.getByRole('button', { name: 'Accept KSh 7,500' });
+      accept.mockResolvedValue({ ...baseThread(), confirmed: false });
+      await user.click(acceptButton);
+
+      expect(accept).toHaveBeenCalledWith('th1', { amount_kes: 750_000 }, expect.any(String));
+    });
+
+    it('shows a "waiting for the business" state once the operator has already accepted', async () => {
+      listThreads.mockResolvedValue({
+        data: [
+          baseThread({
+            entries: [
+              ...baseThread().entries,
+              {
+                id: 'e3',
+                actor_role: 'OPERATOR',
+                type: 'ACCEPT',
+                amount_kes: 750_000,
+                note: '',
+                in_response_to_id: 'e1',
+                created_at: '2026-09-15T13:20:00Z',
+                expires_at: null,
+                effective_status: 'ACTIVE',
+              },
+            ],
+          }),
+        ],
+      });
+      renderAtJob('01a0a4123456');
+
+      expect(await screen.findByText("Waiting for the business's next move.")).toBeInTheDocument();
+    });
   });
 });

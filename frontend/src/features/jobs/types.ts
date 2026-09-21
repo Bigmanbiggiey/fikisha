@@ -159,6 +159,55 @@ export interface AssignBody {
   admin_override_reason?: string;
 }
 
+// ─── Work discovery / assignment candidates (Design Phase 6 Increment 4) ──
+// Individual-operator-only this increment — see
+// `backend/fikisha/jobs/discovery.py` / `jobs/assignment_candidates.py`.
+export interface JobEligibility {
+  eligible: boolean;
+  trust_level: string;
+  reasons: string[];
+}
+
+/** `job_detail()` plus a per-job eligibility marker for the viewing operator
+ * — `GET /jobs/opportunities`. */
+export interface Opportunity extends Job {
+  eligibility: JobEligibility;
+}
+
+export interface DriverCandidate {
+  id: string;
+  name: string;
+  trust_level: string;
+  eligible: boolean;
+  reasons: string[];
+}
+
+export interface VehicleCandidate {
+  id: string;
+  registration: string;
+  vehicle_class: string | null;
+  capacity_value: string;
+  capacity_unit: string;
+  status: string;
+  eligible: boolean;
+  reasons: string[];
+}
+
+export interface AssignmentCandidates {
+  job_id: string;
+  value_band: ValueBand;
+  /** Always `false` this increment — Group Manager assign is deferred. */
+  supports_group_assignment: boolean;
+  /** Non-null when a HIGH/VERY_HIGH pre-assignment review is still pending. */
+  blocked: string | null;
+  drivers: DriverCandidate[];
+  vehicles: VehicleCandidate[];
+}
+
+export interface DiscoveryFilters {
+  value_band?: ValueBand;
+}
+
 export interface ConfirmPickupOtpBody extends GeoBody {
   code: string;
   condition_note?: string;

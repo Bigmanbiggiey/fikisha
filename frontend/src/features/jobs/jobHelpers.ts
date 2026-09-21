@@ -96,6 +96,89 @@ export function jobReference(id: string): string {
   return id.slice(-6).toUpperCase();
 }
 
+/** My Jobs segmentation for the Operator (`design-phase-3-wireframes.md`
+ * §7.5: Active/Upcoming/Completed/Cancelled-disputed) — a different mapping
+ * from the Business's `segmentFor`, since the same job status means a
+ * different thing to look at from the operator's side (e.g. `CONFIRMED`
+ * reads as "upcoming work" to an operator, not "active"). */
+export type OperatorSegment = 'active' | 'upcoming' | 'completed' | 'cancelled';
+
+const OPERATOR_SEGMENT_BY_STATUS: Record<JobStatus, OperatorSegment> = {
+  DRAFT: 'upcoming',
+  REQUESTED: 'upcoming',
+  NEGOTIATING: 'upcoming',
+  CONFIRMED: 'upcoming',
+  ASSIGNED: 'active',
+  AT_PICKUP: 'active',
+  PICKED_UP: 'active',
+  IN_TRANSIT: 'active',
+  AT_DESTINATION: 'active',
+  DELIVERED: 'active',
+  DISPUTED: 'active',
+  COMPLETED: 'completed',
+  CANCELLED: 'cancelled',
+  FAILED: 'cancelled',
+};
+
+export function operatorSegmentFor(status: JobStatus): OperatorSegment {
+  return OPERATOR_SEGMENT_BY_STATUS[status];
+}
+
+export type OperatorActionKey =
+  | 'respond'
+  | 'assignDriverVehicle'
+  | 'startPickup'
+  | 'viewStatement'
+  | 'viewSummary'
+  | 'viewDispute';
+
+/** The Operator's one primary next action per state
+ * (`design-phase-3-wireframes.md` §7.4's table) — `isAssignedDriver` is
+ * whether *this* viewing operator is the job's `assigned_driver_id` (an
+ * individual operator always is, once assigned; a Group Manager who is not
+ * personally driving is not).
+ *
+ * Known simplifications, documented rather than silently approximated:
+ * - **`startPickup`**: the actual pickup/custody flow (OTP confirm, arrive/
+ *   transit/deliver) is Increment 5 (Driver) scope — not built yet. Rendered
+ *   as an informational "coming in a later update" state, the same pattern
+ *   `viewDispute` used before its own increment existed.
+ *   `ASSIGNED`-but-not-the-driver is read-only (`null` — nothing to do),
+ *   matching the wireframe exactly.
+ * - **`viewStatement`** ("Earnings for this Job"): deferred this increment
+ *   — `commission.read` is Platform-Admin-only (ADR-2D-27) and there is no
+ *   operator-facing commission-preview endpoint yet. Informational only. */
+export function operatorNextAction(
+  status: JobStatus,
+  isAssignedDriver: boolean,
+): OperatorActionKey | null {
+  switch (status) {
+    case 'NEGOTIATING':
+      return 'respond';
+    case 'CONFIRMED':
+      return 'assignDriverVehicle';
+    case 'ASSIGNED':
+      return isAssignedDriver ? 'startPickup' : null;
+    case 'COMPLETED':
+      return 'viewStatement';
+    case 'CANCELLED':
+    case 'FAILED':
+      return 'viewSummary';
+    case 'DISPUTED':
+      return 'viewDispute';
+    default:
+      return null;
+  }
+}
+
+/** Mirrors `needsBusinessAttention` for the Operator's Home "needs response"
+ * bucket (`design-phase-3-wireframes.md` §7.1) — a `NEGOTIATING` thread
+ * awaiting the operator's reply, or a `CONFIRMED` job still needing a
+ * driver/vehicle assigned. */
+export function needsOperatorAttention(status: JobStatus): boolean {
+  return status === 'NEGOTIATING' || status === 'CONFIRMED' || status === 'DISPUTED';
+}
+
 export function businessNextAction(status: JobStatus): BusinessActionKey | null {
   switch (status) {
     case 'DRAFT':

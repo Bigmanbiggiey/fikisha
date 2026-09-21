@@ -19,6 +19,7 @@
     "DRAFT": "Not sent yet — finish and send the request when you're ready.",
     "REQUESTED": "Waiting for an operator to respond.",
     "NEGOTIATING": "An operator has responded — review their offer.",
+    "NEGOTIATING_OPERATOR": "Waiting for the business to respond to your offer.",
     "CONFIRMED": "Confirmed — waiting for a driver to be assigned.",
     "ASSIGNED": "A driver has been assigned and is on the way to pickup.",
     "AT_PICKUP": "The driver is collecting your goods.",
@@ -155,5 +156,72 @@
     "emptyCompleted": "No completed deliveries yet.",
     "emptyCancelled": "No cancelled or failed deliveries.",
     "newJob": "New request"
+  },
+  "workAction": {
+    "respond": "Respond",
+    "assignDriverVehicle": "Assign driver & vehicle",
+    "startPickup": "Start pickup",
+    "viewStatement": "View statement",
+    "viewSummary": "View summary",
+    "viewDispute": "View dispute"
+  },
+  "work": {
+    "homeTitle": "Home",
+    "findWork": "Find work",
+    "currentJob": "Current job",
+    "noCurrentJob": "No job in progress",
+    "noCurrentJobBody": "When you're assigned a delivery, it will show up here.",
+    "needsResponse": "Needs your response",
+    "availableWork": "{{count}} jobs available",
+    "seeAll": "See all available work",
+    "title": "Work",
+    "allBands": "All",
+    "emptyTitle": "No matching work right now",
+    "emptyBody": "Check back later, or widen your filters.",
+    "canTake": "You can take this",
+    "needsMore": "Needs more to take this",
+    "myJobsTitle": "My Jobs",
+    "segments": {
+      "active": "Active",
+      "upcoming": "Upcoming",
+      "completed": "Completed",
+      "cancelled": "Cancelled"
+    },
+    "myJobsEmptyActive": "No active jobs.",
+    "myJobsEmptyUpcoming": "No upcoming jobs.",
+    "myJobsEmptyCompleted": "No completed jobs yet.",
+    "myJobsEmptyCancelled": "No cancelled or disputed jobs."
+  },
+  "opportunity": {
+    "title": "Job opportunity",
+    "ref": "Job {{ref}}",
+    "declaredValue": "Declared value: {{value}} ({{band}})",
+    "band": {
+      "STANDARD": "Standard",
+      "ELEVATED": "Elevated",
+      "HIGH": "High",
+      "VERY_HIGH": "Very high"
+    },
+    "yourEligibility": "Your eligibility",
+    "eligibleYes": "You can take this job.",
+    "respond": "Respond",
+    "acceptPrice": "Accept {{price}}",
+    "counter": "Send a different price",
+    "decline": "Not for me",
+    "sendCounter": "Send offer",
+    "counterAmount": "Your offer (KSh)"
+  },
+  "assign": {
+    "title": "Assign driver & vehicle",
+    "forJob": "For job {{ref}}",
+    "movedOn": "This job has moved on — nothing needed here.",
+    "groupNotSupported": "Assigning a group driver isn't available yet — assign this job from a manager account that supports it, or contact support.",
+    "chooseDriver": "Choose driver",
+    "chooseVehicle": "Choose vehicle",
+    "trustLevel": "Level {{level}}",
+    "noLevel": "none",
+    "capacity": "{{value}} {{unit}}",
+    "noVehicles": "You have no vehicles registered yet.",
+    "confirm": "Confirm assignment"
   }
 }

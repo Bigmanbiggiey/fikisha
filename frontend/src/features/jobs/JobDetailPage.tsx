@@ -13,9 +13,16 @@ import { PageLoader } from '@/components/PageLoader';
 import { localizeError } from '@/services/errorMessage';
 
 import { jobsApi } from './jobsApi';
-import { HAPPY_PATH_STATUSES, businessNextAction, happyPathIndex } from './jobHelpers';
+import {
+  HAPPY_PATH_STATUSES,
+  type OperatorActionKey,
+  businessNextAction,
+  happyPathIndex,
+  operatorNextAction,
+} from './jobHelpers';
 import { formatKes } from './money';
 import type { CancellationReason, Job, JobStatus } from './types';
+import { useJobViewerRole } from './useJobViewerRole';
 
 /** Formats an ISO timestamp as a local HH:MM — the same "as of HH:MM" /
  * timeline-time convention every wireframe screen uses. */
@@ -50,24 +57,47 @@ export function JobDetailPage(): JSX.Element {
     onSuccess: () => void qc.invalidateQueries({ queryKey: ['jobs', jobId] }),
   });
 
-  if (job.isLoading) return <PageLoader />;
+  const viewer = useJobViewerRole(job.data?.business_id);
+
+  if (job.isLoading || viewer.loading) return <PageLoader />;
   if (job.isError) {
     return <ErrorState message={localizeError(job.error, t)} onRetry={() => void job.refetch()} />;
   }
   const data = job.data!;
 
   const canCancel = data.next_allowed_statuses.includes('CANCELLED');
-  const action = businessNextAction(data.status);
+  const isOperatorViewer = viewer.role === 'OPERATOR';
+  const operatorAction: OperatorActionKey | null = isOperatorViewer
+    ? operatorNextAction(data.status, data.assigned_driver_id === viewer.operatorId)
+    : null;
+  const businessAction = !isOperatorViewer ? businessNextAction(data.status) : null;
 
   return (
     <div className="mx-auto max-w-2xl space-y-5">
       <JobStatusHeader
         state={data.status}
         stateLabel={t(`jobs:status.${data.status}`)}
-        line={t(`jobs:statusLine.${data.status}`)}
+        line={t(
+          // NEGOTIATING's default line ("An operator has responded — review
+          // their offer.") is written from the business's point of view —
+          // wrong when the operator viewer is the one who just responded
+          // and is waiting on the business. Every other status line reads
+          // as a neutral progress description, correct for either role.
+          isOperatorViewer && data.status === 'NEGOTIATING'
+            ? 'jobs:statusLine.NEGOTIATING_OPERATOR'
+            : `jobs:statusLine.${data.status}`,
+        )}
       />
 
-      <NextActionSection action={action} onRetrySubmit={() => retrySubmit.mutate()} retrying={retrySubmit.isPending} />
+      {isOperatorViewer ? (
+        <OperatorNextActionSection action={operatorAction} />
+      ) : (
+        <NextActionSection
+          action={businessAction}
+          onRetrySubmit={() => retrySubmit.mutate()}
+          retrying={retrySubmit.isPending}
+        />
+      )}
 
       <Card>
         <h2 className="text-label text-fg-secondary">{t('jobs:detail.route')}</h2>
@@ -112,7 +142,10 @@ export function JobDetailPage(): JSX.Element {
         </div>
       </Card>
 
-      {canCancel && (
+      {/* Operator-side cancel (a different reason code, and — post-ASSIGNED
+          — the late-cancellation consequence screen, §23) is out of scope
+          this increment; only the Business's own cancel action renders. */}
+      {canCancel && !isOperatorViewer && (
         <div className="flex justify-end">
           <Button
             variant="destructive"
@@ -171,6 +204,45 @@ function NextActionSection({
   }
   if (action === 'viewDispute') {
     return <NextActionCard emptyLabel={t(`jobs:action.${action}`)} note={t('jobs:detail.comingSoon')} />;
+  }
+  // viewSummary — informational only, the read-only detail below already shows it.
+  return <NextActionCard emptyLabel={t('jobs:detail.nothingNeeded')} />;
+}
+
+function OperatorNextActionSection({ action }: { action: OperatorActionKey | null }): JSX.Element {
+  const { t } = useTranslation('jobs');
+  const navigate = useNavigate();
+  const { jobId } = useParams<{ jobId: string }>();
+
+  if (!action) return <NextActionCard emptyLabel={t('jobs:detail.nothingNeeded')} />;
+
+  if (action === 'respond') {
+    return (
+      <NextActionCard
+        action={{ label: t('jobs:workAction.respond'), onClick: () => navigate(`/jobs/${jobId}/negotiation`) }}
+      />
+    );
+  }
+  if (action === 'assignDriverVehicle') {
+    return (
+      <NextActionCard
+        action={{
+          label: t('jobs:workAction.assignDriverVehicle'),
+          onClick: () => navigate(`/jobs/${jobId}/assign`),
+        }}
+      />
+    );
+  }
+  if (action === 'startPickup') {
+    // The pickup/custody flow itself is Increment 5 (Driver) scope.
+    return <NextActionCard emptyLabel={t('jobs:workAction.startPickup')} note={t('jobs:detail.comingSoon')} />;
+  }
+  if (action === 'viewStatement') {
+    // No operator-facing commission-preview endpoint exists yet — deferred.
+    return <NextActionCard emptyLabel={t('jobs:detail.autoCompleteNote')} note={t('jobs:detail.comingSoon')} />;
+  }
+  if (action === 'viewDispute') {
+    return <NextActionCard emptyLabel={t(`jobs:workAction.${action}`)} note={t('jobs:detail.comingSoon')} />;
   }
   // viewSummary — informational only, the read-only detail below already shows it.
   return <NextActionCard emptyLabel={t('jobs:detail.nothingNeeded')} />;

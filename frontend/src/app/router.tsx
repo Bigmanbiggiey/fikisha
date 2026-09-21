@@ -4,10 +4,14 @@ import { LoginPage } from '@/features/auth/LoginPage';
 import { RequireAuth } from '@/features/auth/RequireAuth';
 import { DiagnosticsPage } from '@/features/diagnostics/DiagnosticsPage';
 import { HomePage } from '@/features/home/HomePage';
+import { AssignDriverVehiclePage } from '@/features/jobs/AssignDriverVehiclePage';
 import { CreateJobPage } from '@/features/jobs/CreateJobPage';
 import { JobDetailPage } from '@/features/jobs/JobDetailPage';
+import { JobOpportunityPage } from '@/features/jobs/JobOpportunityPage';
 import { JobsListPage } from '@/features/jobs/JobsListPage';
+import { MyJobsPage } from '@/features/jobs/MyJobsPage';
 import { PickupConfirmPage } from '@/features/jobs/PickupConfirmPage';
+import { WorkListPage } from '@/features/jobs/WorkListPage';
 import { HomeOrLanding } from '@/features/landing/HomeOrLanding';
 import { NegotiationPage } from '@/features/negotiation/NegotiationPage';
 import { BusinessDetailPage } from '@/features/org/BusinessDetailPage';
@@ -48,6 +52,10 @@ export function AppRoutes(): JSX.Element {
           <Route path="jobs/:jobId" element={<JobDetailPage />} />
           <Route path="jobs/:jobId/confirm-pickup" element={<PickupConfirmPage />} />
           <Route path="jobs/:jobId/negotiation" element={<NegotiationPage />} />
+          <Route path="jobs/:jobId/assign" element={<AssignDriverVehiclePage />} />
+          <Route path="work" element={<WorkListPage />} />
+          <Route path="work/:jobId" element={<JobOpportunityPage />} />
+          <Route path="my-jobs" element={<MyJobsPage />} />
           <Route path="businesses" element={<BusinessesPage />} />
           <Route path="businesses/:businessId" element={<BusinessDetailPage />} />
           <Route path="operator" element={<OperatorProfilePage />} />

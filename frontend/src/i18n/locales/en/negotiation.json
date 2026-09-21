@@ -5,6 +5,7 @@
     "you": "You",
     "admin": "Platform Admin",
     "operatorFallback": "Operator",
+    "businessFallback": "Business",
     "entryStatus": {
       "current": "Current",
       "countered": "Countered",
@@ -34,5 +35,6 @@
     "askAgain": "Ask again"
   },
   "nothingToAcceptYet": "Waiting for the operator's next move.",
+  "nothingToAcceptYetBusiness": "Waiting for the business's next move.",
   "invalidOfferRefreshed": "The operator changed their offer — here's the latest."
 }

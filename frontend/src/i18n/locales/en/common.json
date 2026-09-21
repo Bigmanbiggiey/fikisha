@@ -4,6 +4,8 @@
   "nav": {
     "home": "Home",
     "jobs": "Jobs",
+    "work": "Work",
+    "myJobs": "My Jobs",
     "diagnostics": "Diagnostics",
     "signOut": "Sign out",
     "signIn": "Sign in"

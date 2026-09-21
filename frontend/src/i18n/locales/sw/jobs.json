@@ -19,6 +19,7 @@
     "DRAFT": "Bado haijatumwa — kamilisha na utume ombi ukiwa tayari.",
     "REQUESTED": "Inasubiri opereta kujibu.",
     "NEGOTIATING": "Opereta amejibu — pitia ofa yao.",
+    "NEGOTIATING_OPERATOR": "Inasubiri biashara ijibu ofa yako.",
     "CONFIRMED": "Imethibitishwa — inasubiri dereva apangiwe.",
     "ASSIGNED": "Dereva amepangiwa na yuko njiani kuelekea mahali pa kuchukua.",
     "AT_PICKUP": "Dereva anachukua bidhaa zako.",
@@ -155,5 +156,72 @@
     "emptyCompleted": "Bado hakuna usafirishaji uliokamilika.",
     "emptyCancelled": "Hakuna usafirishaji uliyoghairiwa au kushindwa.",
     "newJob": "Ombi jipya"
+  },
+  "workAction": {
+    "respond": "Jibu",
+    "assignDriverVehicle": "Panga dereva na gari",
+    "startPickup": "Anza kuchukua",
+    "viewStatement": "Ona taarifa ya malipo",
+    "viewSummary": "Ona muhtasari",
+    "viewDispute": "Ona mgogoro"
+  },
+  "work": {
+    "homeTitle": "Nyumbani",
+    "findWork": "Tafuta kazi",
+    "currentJob": "Kazi ya sasa",
+    "noCurrentJob": "Hakuna kazi inayoendelea",
+    "noCurrentJobBody": "Ukipangiwa usafirishaji, utaonekana hapa.",
+    "needsResponse": "Inahitaji jibu lako",
+    "availableWork": "Kazi {{count}} zinapatikana",
+    "seeAll": "Ona kazi zote zinazopatikana",
+    "title": "Kazi",
+    "allBands": "Zote",
+    "emptyTitle": "Hakuna kazi inayolingana sasa",
+    "emptyBody": "Angalia baadaye, au panua vichujio vyako.",
+    "canTake": "Unaweza kuchukua hii",
+    "needsMore": "Inahitaji zaidi ili kuchukua hii",
+    "myJobsTitle": "Kazi Zangu",
+    "segments": {
+      "active": "Zinazoendelea",
+      "upcoming": "Zijazo",
+      "completed": "Zilizokamilika",
+      "cancelled": "Zilizoghairiwa"
+    },
+    "myJobsEmptyActive": "Hakuna kazi zinazoendelea.",
+    "myJobsEmptyUpcoming": "Hakuna kazi zijazo.",
+    "myJobsEmptyCompleted": "Bado hakuna kazi zilizokamilika.",
+    "myJobsEmptyCancelled": "Hakuna kazi zilizoghairiwa au zenye mgogoro."
+  },
+  "opportunity": {
+    "title": "Fursa ya kazi",
+    "ref": "Kazi {{ref}}",
+    "declaredValue": "Thamani iliyotangazwa: {{value}} ({{band}})",
+    "band": {
+      "STANDARD": "Kawaida",
+      "ELEVATED": "Iliyoinuliwa",
+      "HIGH": "Juu",
+      "VERY_HIGH": "Juu sana"
+    },
+    "yourEligibility": "Ustahiki wako",
+    "eligibleYes": "Unaweza kuchukua kazi hii.",
+    "respond": "Jibu",
+    "acceptPrice": "Kubali {{price}}",
+    "counter": "Tuma bei tofauti",
+    "decline": "Si kwangu",
+    "sendCounter": "Tuma ofa",
+    "counterAmount": "Ofa yako (KSh)"
+  },
+  "assign": {
+    "title": "Panga dereva na gari",
+    "forJob": "Kwa kazi {{ref}}",
+    "movedOn": "Kazi hii imeendelea — hakuna kinachohitajika hapa.",
+    "groupNotSupported": "Kupanga dereva wa kikundi bado hakupatikani — panga kazi hii kutoka akaunti ya meneja inayotumika, au wasiliana na usaidizi.",
+    "chooseDriver": "Chagua dereva",
+    "chooseVehicle": "Chagua gari",
+    "trustLevel": "Kiwango {{level}}",
+    "noLevel": "hakuna",
+    "capacity": "{{value}} {{unit}}",
+    "noVehicles": "Bado hujasajili gari lolote.",
+    "confirm": "Thibitisha upangaji"
   }
 }

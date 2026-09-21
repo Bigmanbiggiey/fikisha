@@ -4,6 +4,8 @@
   "nav": {
     "home": "Nyumbani",
     "jobs": "Kazi",
+    "work": "Kazi Zinazopatikana",
+    "myJobs": "Kazi Zangu",
     "diagnostics": "Uchunguzi",
     "signOut": "Toka",
     "signIn": "Ingia"

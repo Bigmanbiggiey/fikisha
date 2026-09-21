@@ -6,19 +6,24 @@ import { PageLoader } from '@/components/PageLoader';
 import { StatusBadge } from '@/components/StatusBadge';
 import { useAuth } from '@/features/auth/useAuth';
 import { BusinessHomePage } from '@/features/jobs/BusinessHomePage';
+import { OperatorHomePage } from '@/features/jobs/OperatorHomePage';
 import { useWorkspaces } from '@/shell/useWorkspaces';
 
 /**
  * `/home` is one route for every workspace (`design-phase-6-jobs-frontend-
  * plan.md` §3.1) — it dispatches on which workspace(s) the signed-in user
- * actually holds rather than being six separate home routes. Only the
- * Business workspace exists yet (Increment 2); everyone else still sees the
- * Phase 2A placeholder below until their workspace's Home is built.
+ * actually holds rather than being six separate home routes. Business
+ * (Increment 2) and Operator (Increment 4) exist; everyone else still sees
+ * the Phase 2A placeholder below until their workspace's Home is built. A
+ * person with both a Business and an Operator workspace sees Business —
+ * same documented simplification as `useActiveBusiness`'s "first workspace
+ * of its kind" rule.
  */
 export function HomePage(): JSX.Element {
   const { loading, workspaces } = useWorkspaces();
   if (loading) return <PageLoader />;
   if (workspaces.some((w) => w.kind === 'BUSINESS')) return <BusinessHomePage />;
+  if (workspaces.some((w) => w.kind === 'OPERATOR')) return <OperatorHomePage />;
   return <GenericHomePlaceholder />;
 }
 

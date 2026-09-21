@@ -2,17 +2,20 @@ import { apiRequest } from '@/services/apiClient';
 
 import type {
   AssignBody,
+  AssignmentCandidates,
   CancellationReason,
   CommissionView,
   ConfirmDeliveryBody,
   ConfirmPickupAttestedBody,
   ConfirmPickupBusinessBody,
   ConfirmPickupOtpBody,
+  DiscoveryFilters,
   FailAtPickupBody,
   GeoBody,
   Job,
   JobCreateBody,
   JobTransitionResult,
+  Opportunity,
   Paged,
 } from './types';
 
@@ -52,6 +55,17 @@ export const jobsApi = {
     }),
 
   commission: (jobId: string) => apiRequest<CommissionView>(`/jobs/${jobId}/commission`),
+
+  // ─── Work discovery / assignment candidates (Increment 4) ─────────────
+  discover: (filters: DiscoveryFilters = {}) => {
+    const params = new URLSearchParams();
+    if (filters.value_band) params.set('value_band', filters.value_band);
+    const qs = params.toString();
+    return apiRequest<Paged<Opportunity>>(`/jobs/opportunities${qs ? `?${qs}` : ''}`);
+  },
+  opportunity: (jobId: string) => apiRequest<Opportunity>(`/jobs/${jobId}/opportunity`),
+  assignmentCandidates: (jobId: string) =>
+    apiRequest<AssignmentCandidates>(`/jobs/${jobId}/assignment-candidates`),
 
   // ─── Custody ─────────────────────────────────────────────────────────
   arrivePickup: (jobId: string, body: GeoBody, idempotencyKey: string) =>
