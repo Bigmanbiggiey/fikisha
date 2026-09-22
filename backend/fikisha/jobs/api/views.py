@@ -438,16 +438,33 @@ class RecipientConfirmView(APIView):
 class RecipientReportIssueView(APIView):
     permission_classes = [AllowAny]
     authentication_classes: list[type] = []
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
 
     def post(self, request: Request, token: str) -> Response:
         principal = _resolve_recipient(request, token)
         serializer = RecipientReportIssueSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+        # Same evidence-linked-by-link pattern as RecipientConfirmView — no
+        # Job row is resolvable pre-authentication without trusting a
+        # client-supplied id, so photos are linked via principal.job_id.
+        photo_ids: list[str] = []
+        for upload in request.FILES.getlist("photos"):
+            obj = evidence_services.store(
+                data=upload.read(),
+                content_type=upload.content_type or "application/octet-stream",
+                purpose=EvidencePurpose.INCIDENT_EVIDENCE,
+                pii_class=PiiClass.MEDIUM,
+                linked_entity_type="job",
+                linked_entity_id=principal.job_id,
+                uploaded_by_kind=UploaderKind.RECIPIENT,
+            )
+            photo_ids.append(str(obj.id))
         result = recipient_service.report_issue(
             principal=principal,
             category=serializer.validated_data["category"],
             description=serializer.validated_data.get("description", ""),
             other_label=serializer.validated_data.get("other_label", ""),
+            photo_evidence_ids=photo_ids,
         )
         return Response(result, status=status.HTTP_201_CREATED)
 

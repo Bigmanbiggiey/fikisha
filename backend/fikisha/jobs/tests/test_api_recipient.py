@@ -154,6 +154,29 @@ class TestRecipientReportIssue:
         r = api.post(f"/api/v1/r/{token}/report-issue", {"category": "MADE_UP"}, format="json")
         assert r.status_code == 400
 
+    def test_a_photo_attached_to_a_report_is_stored_as_incident_evidence(
+        self, api: APIClient, at_destination: Callable
+    ) -> None:
+        from django.core.files.uploadedfile import SimpleUploadedFile
+
+        from fikisha.evidence.models import EvidenceObject, EvidencePurpose, UploaderKind
+        from fikisha.jobs.models import RecipientReportedIssue
+
+        _job, token = at_destination()
+        upload = SimpleUploadedFile("damage.jpg", b"\xff\xd8\xff fake", content_type="image/jpeg")
+        r = api.post(
+            f"/api/v1/r/{token}/report-issue",
+            {"category": "DAMAGE", "description": "box was crushed", "photos": [upload]},
+            format="multipart",
+        )
+        assert r.status_code == 201, r.content
+
+        report = RecipientReportedIssue.objects.get(id=r.data["report_id"])
+        assert len(report.photo_evidence_ids) == 1
+        evidence = EvidenceObject.objects.get(id=report.photo_evidence_ids[0])
+        assert evidence.purpose == EvidencePurpose.INCIDENT_EVIDENCE
+        assert evidence.uploaded_by_kind == UploaderKind.RECIPIENT
+
 
 @pytest.mark.django_db(transaction=True)
 def test_concurrent_recipient_confirmations_produce_exactly_one_delivery(

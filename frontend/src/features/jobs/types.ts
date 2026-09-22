@@ -287,13 +287,23 @@ export const RECIPIENT_ISSUE_CATEGORIES = [
 ] as const;
 export type RecipientIssueCategory = (typeof RECIPIENT_ISSUE_CATEGORIES)[number];
 
+/** `code` is always required on the recipient path (unlike the driver's
+ * optional `code`) — `RecipientConfirmSerializer.code` has no
+ * `required=False`. `signature`/`photos` are optional *additional* evidence,
+ * never a substitute for the OTP; ELEVATED+ jobs still need a photo too
+ * (the shared `delivery_proof_valid_for_band` guard), surfaced via a
+ * `delivery_proof_incomplete` retry rather than exposing `value_band` on
+ * `RecipientView` (Design Phase 6 Increment 6, Decision 3). */
 export interface RecipientConfirmBody {
   code: string;
   party_name: string;
+  signature?: File;
+  photos?: File[];
 }
 
 export interface RecipientReportIssueBody {
   category: RecipientIssueCategory;
   description?: string;
   other_label?: string;
+  photos?: File[];
 }

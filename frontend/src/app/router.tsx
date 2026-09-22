@@ -23,6 +23,9 @@ import { GroupDetailPage } from '@/features/org/GroupDetailPage';
 import { GroupsPage } from '@/features/org/GroupsPage';
 import { OperatingLocationsPage } from '@/features/org/OperatingLocationsPage';
 import { OperatorProfilePage } from '@/features/org/OperatorProfilePage';
+import { RecipientConfirmPage } from '@/features/recipient/RecipientConfirmPage';
+import { RecipientPage } from '@/features/recipient/RecipientPage';
+import { RecipientReportIssuePage } from '@/features/recipient/RecipientReportIssuePage';
 import { VehicleDetailPage } from '@/features/vehicles/VehicleDetailPage';
 import { VehiclesPage } from '@/features/vehicles/VehiclesPage';
 import { VerificationQueuePage } from '@/features/verification/VerificationQueuePage';
@@ -40,6 +43,12 @@ export function AppRoutes(): JSX.Element {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
+      {/* Recipient scoped-link routes — no account, token-in-URL auth, no
+          AppShell/TopBar and no RequireAuth (mirrors the /login precedent
+          above as the one other chrome-free public route). */}
+      <Route path="/r/:token" element={<RecipientPage />} />
+      <Route path="/r/:token/confirm" element={<RecipientConfirmPage />} />
+      <Route path="/r/:token/report-issue" element={<RecipientReportIssuePage />} />
       <Route element={<AppShell />}>
         <Route index element={<HomeOrLanding />} />
         <Route

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useLocation } from 'react-router-dom';
 
 import { onAuthLost, setAccessToken } from '@/services/apiClient';
 
@@ -9,6 +10,8 @@ import type { AuthUser, VerifyResult } from './types';
 export function AuthProvider({ children }: { children: ReactNode }): JSX.Element {
   const [status, setStatus] = useState<AuthStatus>('loading');
   const [user, setUser] = useState<AuthUser | null>(null);
+  const location = useLocation();
+  const isRecipientRoute = location.pathname.startsWith('/r/');
 
   const reloadMe = useCallback(async () => {
     try {
@@ -39,9 +42,16 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
   }, []);
 
   // On first load, try to silently resume a session from the refresh cookie.
+  // Skip entirely on a recipient scoped-link route — a recipient never has
+  // a session, so this would just be a wasted /auth/me (+ a failed
+  // /auth/refresh attempt) on every recipient page load.
   useEffect(() => {
+    if (isRecipientRoute) {
+      setStatus('anonymous');
+      return;
+    }
     void reloadMe();
-  }, [reloadMe]);
+  }, [reloadMe, isRecipientRoute]);
 
   // If the API client gives up on refreshing, drop to anonymous.
   useEffect(
