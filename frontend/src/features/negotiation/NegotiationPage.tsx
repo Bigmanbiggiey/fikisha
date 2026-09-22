@@ -15,6 +15,7 @@ import { PageLoader } from '@/components/PageLoader';
 import { jobReference } from '@/features/jobs/jobHelpers';
 import { formatKes, parseKesToMinorUnits } from '@/features/jobs/money';
 import { jobsApi } from '@/features/jobs/jobsApi';
+import { type JobViewerRole, useJobViewerRole } from '@/features/jobs/useJobViewerRole';
 import { localizeError } from '@/services/errorMessage';
 import { ApiError } from '@/services/problem';
 
@@ -22,12 +23,22 @@ import { negotiationApi } from './negotiationApi';
 import type { NegotiationThread } from './types';
 
 /**
- * Business-side negotiation thread (`design-phase-3-wireframes.md` §8.1),
- * reachable from Job Detail's "Review offers" once a job is `NEGOTIATING`.
- * Shared with Operator (Increment 4) via `NegotiationThread`/`OfferCard`
- * (`src/components/`); everything below this component's own composer/
- * action logic is Business-specific.
+ * Negotiation thread (`design-phase-3-wireframes.md` §8.1/§7.3), reachable
+ * from Job Detail's "Review offers"/"Respond" once a job is `NEGOTIATING`.
+ * One component for both Business and Operator — `useJobViewerRole`
+ * resolves which side the signed-in user is (per this specific job, not a
+ * global "current workspace"); `accept`/`counter`/`decline` already work
+ * generically for either side, since the backend resolves the caller's side
+ * server-side (`negotiation.authz.actor_side_for_thread`) and computes
+ * `counterparty_offer` relative to it — nothing here re-derives that.
  *
+ * Known gap: the thread payload has no `business_display_name` (only
+ * `operator_display_name`, ADR-2D-31) — an Operator viewer's counterparty
+ * (the business) falls back to a generic label rather than a name, the same
+ * documented-gap pattern used elsewhere (e.g. `PickupConfirmPage`'s missing
+ * driver/vehicle names).
+ *
+
  * Known simplification: the wireframe's desktop layout splits multiple
  * operator threads into a list + detail side-by-side. This builds a single
  * mobile-first flow instead — a plain list when more than one thread
@@ -60,7 +71,9 @@ export function NegotiationPage(): JSX.Element {
     retry: false,
   });
 
-  if (job.isLoading || threads.isLoading) return <PageLoader />;
+  const viewer = useJobViewerRole(job.data?.business_id);
+
+  if (job.isLoading || threads.isLoading || viewer.loading) return <PageLoader />;
   if (job.isError) {
     return <ErrorState message={localizeError(job.error, t)} onRetry={() => void job.refetch()} />;
   }
@@ -113,7 +126,7 @@ export function NegotiationPage(): JSX.Element {
               ← {t('negotiation:backToOffers')}
             </button>
           )}
-          <ThreadDetail thread={active} jobId={jobId!} />
+          <ThreadDetail thread={active} jobId={jobId!} viewerRole={viewer.role} />
         </>
       )}
     </div>
@@ -159,7 +172,15 @@ function hhmm(iso: string): string {
   return new Date(iso).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
 }
 
-function ThreadDetail({ thread, jobId }: { thread: NegotiationThread; jobId: string }): JSX.Element {
+function ThreadDetail({
+  thread,
+  jobId,
+  viewerRole,
+}: {
+  thread: NegotiationThread;
+  jobId: string;
+  viewerRole: JobViewerRole;
+}): JSX.Element {
   const { t } = useTranslation(['negotiation', 'errors']);
   const navigate = useNavigate();
   const qc = useQueryClient();
@@ -234,18 +255,20 @@ function ThreadDetail({ thread, jobId }: { thread: NegotiationThread; jobId: str
   const ownAcceptPending =
     thread.status === 'ACTIVE' &&
     thread.entries.some(
-      (e) => e.actor_role === 'BUSINESS' && e.type === 'ACCEPT' && e.effective_status === 'ACTIVE',
+      (e) => e.actor_role === viewerRole && e.type === 'ACCEPT' && e.effective_status === 'ACTIVE',
     );
 
   return (
     <div className="space-y-4">
       <NegotiationThreadList
         entries={thread.entries}
-        viewerRole="BUSINESS"
-        operatorDisplayName={thread.operator_display_name}
+        viewerRole={viewerRole}
+        operatorDisplayName={viewerRole === 'BUSINESS' ? thread.operator_display_name : null}
         youLabel={t('negotiation:thread.you')}
         adminLabel={t('negotiation:thread.admin')}
-        operatorFallbackLabel={t('negotiation:thread.operatorFallback')}
+        operatorFallbackLabel={t(
+          viewerRole === 'BUSINESS' ? 'negotiation:thread.operatorFallback' : 'negotiation:thread.businessFallback',
+        )}
         statusLabelFor={(key) => t(`negotiation:thread.entryStatus.${key}`)}
         timeFor={hhmm}
       />
@@ -277,7 +300,13 @@ function ThreadDetail({ thread, jobId }: { thread: NegotiationThread; jobId: str
 
       {thread.status === 'ACTIVE' && ownAcceptPending && (
         <Card>
-          <p className="text-body text-fg-secondary">{t('negotiation:nothingToAcceptYet')}</p>
+          <p className="text-body text-fg-secondary">
+            {t(
+              viewerRole === 'BUSINESS'
+                ? 'negotiation:nothingToAcceptYet'
+                : 'negotiation:nothingToAcceptYetBusiness',
+            )}
+          </p>
         </Card>
       )}
 

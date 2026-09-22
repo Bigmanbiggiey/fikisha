@@ -20,8 +20,9 @@ from fikisha.common.idempotency import idempotent
 from fikisha.common.ratelimit import RateLimiter
 from fikisha.evidence import services as evidence_services
 from fikisha.evidence.models import EvidencePurpose, PiiClass, UploaderKind
+from fikisha.jobs import assignment_candidates as assignment_candidates_service
 from fikisha.jobs import commission as commission_service
-from fikisha.jobs import creation, custody, job_authz
+from fikisha.jobs import creation, custody, discovery, job_authz
 from fikisha.jobs import recipient as recipient_service
 from fikisha.jobs.api.serializers import (
     ArriveSerializer,
@@ -158,7 +159,36 @@ class JobCancelView(OrgApiView):
         return Response(view)
 
 
+# ─── Work discovery (Design Phase 6 Increment 4, individual-operator-only —
+# see jobs.assignment_candidates module docstring) ──────────────────────
+class JobOpportunitiesView(OrgApiView):
+    action_get = "job.discover"
+
+    def get(self, request: Request) -> Response:
+        actor = self.actor(request)
+        value_band = request.query_params.get("value_band") or None
+        qs = discovery.open_jobs_for(actor, value_band=value_band)
+        return paginated(
+            request, qs, _JobOpportunitySerializer, context={"discovery_actor": actor}
+        )
+
+
+class JobOpportunityDetailView(OrgApiView):
+    action_get = "job.discover"
+
+    def get(self, request: Request, job_id: str) -> Response:
+        return Response(discovery.opportunity_detail(self.actor(request), job_id))
+
+
 # ─── Assignment ─────────────────────────────────────────────────────────
+class JobAssignmentCandidatesView(OrgApiView):
+    action_get = "job.assign.candidates"
+
+    def get(self, request: Request, job_id: str) -> Response:
+        view = assignment_candidates_service.candidates(actor=self.actor(request), job_id=job_id)
+        return Response(view)
+
+
 class JobAssignView(OrgApiView):
     action_post = "job.assign"
 
@@ -408,16 +438,33 @@ class RecipientConfirmView(APIView):
 class RecipientReportIssueView(APIView):
     permission_classes = [AllowAny]
     authentication_classes: list[type] = []
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
 
     def post(self, request: Request, token: str) -> Response:
         principal = _resolve_recipient(request, token)
         serializer = RecipientReportIssueSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+        # Same evidence-linked-by-link pattern as RecipientConfirmView — no
+        # Job row is resolvable pre-authentication without trusting a
+        # client-supplied id, so photos are linked via principal.job_id.
+        photo_ids: list[str] = []
+        for upload in request.FILES.getlist("photos"):
+            obj = evidence_services.store(
+                data=upload.read(),
+                content_type=upload.content_type or "application/octet-stream",
+                purpose=EvidencePurpose.INCIDENT_EVIDENCE,
+                pii_class=PiiClass.MEDIUM,
+                linked_entity_type="job",
+                linked_entity_id=principal.job_id,
+                uploaded_by_kind=UploaderKind.RECIPIENT,
+            )
+            photo_ids.append(str(obj.id))
         result = recipient_service.report_issue(
             principal=principal,
             category=serializer.validated_data["category"],
             description=serializer.validated_data.get("description", ""),
             other_label=serializer.validated_data.get("other_label", ""),
+            photo_evidence_ids=photo_ids,
         )
         return Response(result, status=status.HTTP_201_CREATED)
 
@@ -467,3 +514,8 @@ class _JobListSerializer(serializers.BaseSerializer):
 
     def to_representation(self, instance: Job) -> dict[str, Any]:
         return creation.job_detail(instance)
+
+
+class _JobOpportunitySerializer(serializers.BaseSerializer):
+    def to_representation(self, instance: Job) -> dict[str, Any]:
+        return discovery.opportunity_view(instance, self.context["discovery_actor"])

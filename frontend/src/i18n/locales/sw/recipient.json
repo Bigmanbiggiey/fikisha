@@ -1,0 +1,57 @@
+{
+  "shell": {
+    "title": "Kufikisha kwa {{name}}",
+    "status": {
+      "AT_PICKUP": "Mtumaji anakabidhi mzigo wako.",
+      "PICKED_UP": "Mzigo wako umechukuliwa.",
+      "IN_TRANSIT": "Mzigo wako uko njiani.",
+      "AT_DESTINATION": "Dereva amefika.",
+      "DELIVERED": "Imefikishwa.",
+      "COMPLETED": "Imefikishwa.",
+      "CANCELLED": "Ufikishaji huu ulighairiwa.",
+      "FAILED": "Ufikishaji huu haukukamilika.",
+      "DISPUTED": "Ufikishaji huu unapitiwa.",
+      "DEFAULT": "Njiani."
+    },
+    "coming": "Inakuja: {{summary}}",
+    "driver": "Dereva: {{name}}",
+    "vehicle": "Gari: {{vehicleClass}} · {{plate}}",
+    "operatorVerified": "Utambulisho wa opereta umeidhinishwa",
+    "confirmReceipt": "Thibitisha nimepokea mzigo",
+    "reportProblem": "Ripoti tatizo",
+    "delivered": "Ufikishaji umethibitishwa — asante",
+    "checkStatus": "Angalia hali",
+    "linkInvalid": "Kiungo hiki si sahihi.",
+    "linkExpired": "Kiungo hiki kimeisha muda wake. Muulize mtumaji au dereva kupata kingine kipya."
+  },
+  "confirm": {
+    "title": "Thibitisha upokeaji",
+    "nameLabel": "Jina lako",
+    "otpLabel": "Msimbo wa kufikisha",
+    "moreProofToggle": "Ongeza picha au sahihi (baadhi ya ufikishaji unahitaji hii)",
+    "signatureLabel": "Sahihi",
+    "clearSignature": "Futa",
+    "photoLabel": "Piga picha ya mzigo",
+    "retake": "Piga tena",
+    "photoAdded": "Picha imeongezwa",
+    "confirm": "Thibitisha nimepokea mzigo",
+    "proofIncomplete": "Ufikishaji huu unahitaji picha ya mzigo pia — tafadhali ongeza moja hapa chini."
+  },
+  "reportIssue": {
+    "title": "Ripoti tatizo",
+    "category": {
+      "WRONG_RECIPIENT": "Mpokezi si sahihi",
+      "DAMAGE": "Uharibifu",
+      "MISSING_GOODS": "Mzigo umepotea",
+      "WRONG_GOODS": "Bidhaa si sahihi",
+      "OTHER": "Nyingine"
+    },
+    "otherLabel": "Eleza tatizo",
+    "description": "Maelezo (si lazima)",
+    "addPhoto": "Ongeza picha",
+    "anotherPhoto": "Ongeza picha nyingine",
+    "send": "Tuma",
+    "success": "Imeripotiwa — Fikisha imepokea ripoti yako",
+    "backToDelivery": "Rudi kwenye ufikishaji"
+  }
+}

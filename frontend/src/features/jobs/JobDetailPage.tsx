@@ -12,10 +12,18 @@ import { NextActionCard } from '@/components/NextActionCard';
 import { PageLoader } from '@/components/PageLoader';
 import { localizeError } from '@/services/errorMessage';
 
+import { getOneShotGeo } from './geo';
 import { jobsApi } from './jobsApi';
-import { HAPPY_PATH_STATUSES, businessNextAction, happyPathIndex } from './jobHelpers';
+import {
+  HAPPY_PATH_STATUSES,
+  type OperatorActionKey,
+  businessNextAction,
+  happyPathIndex,
+  operatorNextAction,
+} from './jobHelpers';
 import { formatKes } from './money';
 import type { CancellationReason, Job, JobStatus } from './types';
+import { useJobViewerRole } from './useJobViewerRole';
 
 /** Formats an ISO timestamp as a local HH:MM — the same "as of HH:MM" /
  * timeline-time convention every wireframe screen uses. */
@@ -50,24 +58,73 @@ export function JobDetailPage(): JSX.Element {
     onSuccess: () => void qc.invalidateQueries({ queryKey: ['jobs', jobId] }),
   });
 
-  if (job.isLoading) return <PageLoader />;
+  function invalidateJob(): void {
+    void qc.invalidateQueries({ queryKey: ['jobs', jobId] });
+    void qc.invalidateQueries({ queryKey: ['jobs'] });
+  }
+
+  const arrivePickup = useMutation({
+    mutationFn: async () => jobsApi.arrivePickup(jobId!, await getOneShotGeo(), crypto.randomUUID()),
+    onSuccess: invalidateJob,
+  });
+  const startTransit = useMutation({
+    mutationFn: () => jobsApi.startTransit(jobId!, crypto.randomUUID()),
+    onSuccess: invalidateJob,
+  });
+  const arriveDestination = useMutation({
+    mutationFn: async () => jobsApi.arriveDestination(jobId!, await getOneShotGeo(), crypto.randomUUID()),
+    onSuccess: invalidateJob,
+  });
+
+  const viewer = useJobViewerRole(job.data?.business_id);
+
+  if (job.isLoading || viewer.loading) return <PageLoader />;
   if (job.isError) {
     return <ErrorState message={localizeError(job.error, t)} onRetry={() => void job.refetch()} />;
   }
   const data = job.data!;
 
   const canCancel = data.next_allowed_statuses.includes('CANCELLED');
-  const action = businessNextAction(data.status);
+  const isOperatorViewer = viewer.role === 'OPERATOR';
+  const operatorAction: OperatorActionKey | null = isOperatorViewer
+    ? operatorNextAction(data.status, data.assigned_driver_id === viewer.operatorId)
+    : null;
+  const businessAction = !isOperatorViewer ? businessNextAction(data.status) : null;
 
   return (
     <div className="mx-auto max-w-2xl space-y-5">
       <JobStatusHeader
         state={data.status}
         stateLabel={t(`jobs:status.${data.status}`)}
-        line={t(`jobs:statusLine.${data.status}`)}
+        line={t(
+          // NEGOTIATING's default line ("An operator has responded — review
+          // their offer.") is written from the business's point of view —
+          // wrong when the operator viewer is the one who just responded
+          // and is waiting on the business. Every other status line reads
+          // as a neutral progress description, correct for either role.
+          isOperatorViewer && data.status === 'NEGOTIATING'
+            ? 'jobs:statusLine.NEGOTIATING_OPERATOR'
+            : `jobs:statusLine.${data.status}`,
+        )}
       />
 
-      <NextActionSection action={action} onRetrySubmit={() => retrySubmit.mutate()} retrying={retrySubmit.isPending} />
+      {isOperatorViewer ? (
+        <OperatorNextActionSection
+          action={operatorAction}
+          onArrivePickup={() => arrivePickup.mutate()}
+          arrivingPickup={arrivePickup.isPending}
+          onStartTransit={() => startTransit.mutate()}
+          startingTransit={startTransit.isPending}
+          onArriveDestination={() => arriveDestination.mutate()}
+          arrivingDestination={arriveDestination.isPending}
+        />
+      ) : (
+        <NextActionSection
+          action={businessAction}
+          onRetrySubmit={() => retrySubmit.mutate()}
+          retrying={retrySubmit.isPending}
+        />
+      )}
 
       <Card>
         <h2 className="text-label text-fg-secondary">{t('jobs:detail.route')}</h2>
@@ -112,7 +169,10 @@ export function JobDetailPage(): JSX.Element {
         </div>
       </Card>
 
-      {canCancel && (
+      {/* Operator-side cancel (a different reason code, and — post-ASSIGNED
+          — the late-cancellation consequence screen, §23) is out of scope
+          this increment; only the Business's own cancel action renders. */}
+      {canCancel && !isOperatorViewer && (
         <div className="flex justify-end">
           <Button
             variant="destructive"
@@ -125,6 +185,11 @@ export function JobDetailPage(): JSX.Element {
         </div>
       )}
       {cancel.isError && <Alert tone="danger">{localizeError(cancel.error, t)}</Alert>}
+      {(arrivePickup.isError || startTransit.isError || arriveDestination.isError) && (
+        <Alert tone="danger">
+          {localizeError((arrivePickup.error ?? startTransit.error ?? arriveDestination.error)!, t)}
+        </Alert>
+      )}
     </div>
   );
 }
@@ -171,6 +236,108 @@ function NextActionSection({
   }
   if (action === 'viewDispute') {
     return <NextActionCard emptyLabel={t(`jobs:action.${action}`)} note={t('jobs:detail.comingSoon')} />;
+  }
+  // viewSummary — informational only, the read-only detail below already shows it.
+  return <NextActionCard emptyLabel={t('jobs:detail.nothingNeeded')} />;
+}
+
+function OperatorNextActionSection({
+  action,
+  onArrivePickup,
+  arrivingPickup,
+  onStartTransit,
+  startingTransit,
+  onArriveDestination,
+  arrivingDestination,
+}: {
+  action: OperatorActionKey | null;
+  onArrivePickup: () => void;
+  arrivingPickup: boolean;
+  onStartTransit: () => void;
+  startingTransit: boolean;
+  onArriveDestination: () => void;
+  arrivingDestination: boolean;
+}): JSX.Element {
+  const { t } = useTranslation('jobs');
+  const navigate = useNavigate();
+  const { jobId } = useParams<{ jobId: string }>();
+
+  if (!action) return <NextActionCard emptyLabel={t('jobs:detail.nothingNeeded')} />;
+
+  if (action === 'respond') {
+    return (
+      <NextActionCard
+        action={{ label: t('jobs:workAction.respond'), onClick: () => navigate(`/jobs/${jobId}/negotiation`) }}
+      />
+    );
+  }
+  if (action === 'assignDriverVehicle') {
+    return (
+      <NextActionCard
+        action={{
+          label: t('jobs:workAction.assignDriverVehicle'),
+          onClick: () => navigate(`/jobs/${jobId}/assign`),
+        }}
+      />
+    );
+  }
+  // ASSIGNED — no geofence gate exists (chain-of-custody.md §5), so "Go to
+  // pickup" (external map/call) and "I'm at pickup" (the [server] action)
+  // render together on this one screen rather than as separate steps.
+  if (action === 'arriveAtPickup') {
+    return (
+      <NextActionCard
+        driver
+        action={{ label: t('jobs:workAction.arriveAtPickup'), onClick: onArrivePickup, loading: arrivingPickup }}
+        note={t('jobs:workAction.arriveAtPickupNote')}
+      />
+    );
+  }
+  if (action === 'confirmPickup') {
+    return (
+      <NextActionCard
+        driver
+        action={{ label: t('jobs:workAction.confirmPickup'), onClick: () => navigate(`/jobs/${jobId}/pickup-proof`) }}
+      />
+    );
+  }
+  if (action === 'startTransit') {
+    return (
+      <NextActionCard
+        driver
+        action={{ label: t('jobs:workAction.startTransit'), onClick: onStartTransit, loading: startingTransit }}
+      />
+    );
+  }
+  if (action === 'arriveAtDestination') {
+    return (
+      <NextActionCard
+        driver
+        action={{
+          label: t('jobs:workAction.arriveAtDestination'),
+          onClick: onArriveDestination,
+          loading: arrivingDestination,
+        }}
+      />
+    );
+  }
+  if (action === 'confirmDelivery') {
+    return (
+      <NextActionCard
+        driver
+        action={{
+          label: t('jobs:workAction.confirmDelivery'),
+          onClick: () => navigate(`/jobs/${jobId}/delivery-proof`),
+        }}
+      />
+    );
+  }
+  if (action === 'viewStatement') {
+    // No operator-facing commission-preview endpoint exists yet — deferred.
+    return <NextActionCard emptyLabel={t('jobs:detail.autoCompleteNote')} note={t('jobs:detail.comingSoon')} />;
+  }
+  if (action === 'viewDispute') {
+    return <NextActionCard emptyLabel={t(`jobs:workAction.${action}`)} note={t('jobs:detail.comingSoon')} />;
   }
   // viewSummary — informational only, the read-only detail below already shows it.
   return <NextActionCard emptyLabel={t('jobs:detail.nothingNeeded')} />;

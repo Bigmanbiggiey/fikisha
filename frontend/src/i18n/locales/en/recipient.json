@@ -1,0 +1,57 @@
+{
+  "shell": {
+    "title": "Delivery for {{name}}",
+    "status": {
+      "AT_PICKUP": "The sender is handing over your delivery.",
+      "PICKED_UP": "Your delivery has been collected.",
+      "IN_TRANSIT": "Your delivery is on the way.",
+      "AT_DESTINATION": "The driver has arrived.",
+      "DELIVERED": "Delivered.",
+      "COMPLETED": "Delivered.",
+      "CANCELLED": "This delivery was cancelled.",
+      "FAILED": "This delivery couldn't be completed.",
+      "DISPUTED": "This delivery is under review.",
+      "DEFAULT": "On the way."
+    },
+    "coming": "Coming: {{summary}}",
+    "driver": "Driver: {{name}}",
+    "vehicle": "Vehicle: {{vehicleClass}} · {{plate}}",
+    "operatorVerified": "Operator identity verified",
+    "confirmReceipt": "Confirm I received the goods",
+    "reportProblem": "Report a problem",
+    "delivered": "Delivery confirmed — thank you",
+    "checkStatus": "Check status",
+    "linkInvalid": "This link isn't valid.",
+    "linkExpired": "This link has expired. Ask the sender or driver for a new one."
+  },
+  "confirm": {
+    "title": "Confirm receipt",
+    "nameLabel": "Your name",
+    "otpLabel": "Delivery code",
+    "moreProofToggle": "Add a photo or signature (some deliveries need this)",
+    "signatureLabel": "Signature",
+    "clearSignature": "Clear",
+    "photoLabel": "Take a photo of the goods",
+    "retake": "Retake",
+    "photoAdded": "Photo added",
+    "confirm": "Confirm I received the goods",
+    "proofIncomplete": "This delivery needs a photo of the goods too — please add one below."
+  },
+  "reportIssue": {
+    "title": "Report a problem",
+    "category": {
+      "WRONG_RECIPIENT": "Wrong recipient",
+      "DAMAGE": "Damage",
+      "MISSING_GOODS": "Missing goods",
+      "WRONG_GOODS": "Wrong item",
+      "OTHER": "Other"
+    },
+    "otherLabel": "Describe the problem",
+    "description": "Description (optional)",
+    "addPhoto": "Add a photo",
+    "anotherPhoto": "Add another photo",
+    "send": "Send",
+    "success": "Reported — Fikisha has your report",
+    "backToDelivery": "Back to delivery"
+  }
+}

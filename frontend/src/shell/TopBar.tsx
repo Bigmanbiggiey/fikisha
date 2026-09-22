@@ -8,17 +8,24 @@ import { useAuth } from '@/features/auth/useAuth';
 import { useOnline } from '@/design/useOnline';
 
 import { LanguageSwitcher } from './LanguageSwitcher';
+import { useWorkspaces } from './useWorkspaces';
 
 /**
- * TopBar — Design Phase 5B retone. IA / links unchanged from Phase 2A. The
- * language switcher and the connectivity indicator sit on the right, per
- * Phase 4 §10.3.
+ * TopBar — Design Phase 5B retone. IA / links unchanged from Phase 2A,
+ * plus a minimal role-aware addition (Design Phase 6 Increment 4): "Work"
+ * and "My Jobs" show only for a signed-in user who actually holds an
+ * Operator workspace — Business/Group-Manager/etc. links stay exactly as
+ * before. A full `RoleTabBar`/`RoleSidebar` (nav that also *hides* the
+ * non-relevant links, per the Design Phase 6 plan §4) is still not built;
+ * this is deliberately the smallest correct step rather than that redesign.
  */
 export function TopBar(): JSX.Element {
   const { t } = useTranslation(['common', 'org']);
   const { status, logout } = useAuth();
   const online = useOnline();
   const navigate = useNavigate();
+  const { workspaces } = useWorkspaces();
+  const isOperator = workspaces.some((w) => w.kind === 'OPERATOR');
 
   const linkClass = ({ isActive }: { isActive: boolean }): string =>
     cn(
@@ -43,6 +50,16 @@ export function TopBar(): JSX.Element {
             <NavLink to="/jobs" className={linkClass}>
               {t('common:nav.jobs')}
             </NavLink>
+            {isOperator && (
+              <>
+                <NavLink to="/work" className={linkClass}>
+                  {t('common:nav.work')}
+                </NavLink>
+                <NavLink to="/my-jobs" className={linkClass}>
+                  {t('common:nav.myJobs')}
+                </NavLink>
+              </>
+            )}
             <NavLink to="/businesses" className={linkClass}>
               {t('org:nav.businesses')}
             </NavLink>

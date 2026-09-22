@@ -5,6 +5,7 @@
     "you": "Wewe",
     "admin": "Msimamizi wa Jukwaa",
     "operatorFallback": "Opereta",
+    "businessFallback": "Biashara",
     "entryStatus": {
       "current": "Ya sasa",
       "countered": "Imejibiwa kwa ofa nyingine",
@@ -34,5 +35,6 @@
     "askAgain": "Uliza tena"
   },
   "nothingToAcceptYet": "Inasubiri hatua inayofuata ya opereta.",
+  "nothingToAcceptYetBusiness": "Inasubiri hatua inayofuata ya biashara.",
   "invalidOfferRefreshed": "Opereta amebadilisha ofa yao — hii ndiyo ya hivi karibuni."
 }

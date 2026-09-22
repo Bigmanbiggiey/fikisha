@@ -159,6 +159,55 @@ export interface AssignBody {
   admin_override_reason?: string;
 }
 
+// ─── Work discovery / assignment candidates (Design Phase 6 Increment 4) ──
+// Individual-operator-only this increment — see
+// `backend/fikisha/jobs/discovery.py` / `jobs/assignment_candidates.py`.
+export interface JobEligibility {
+  eligible: boolean;
+  trust_level: string;
+  reasons: string[];
+}
+
+/** `job_detail()` plus a per-job eligibility marker for the viewing operator
+ * — `GET /jobs/opportunities`. */
+export interface Opportunity extends Job {
+  eligibility: JobEligibility;
+}
+
+export interface DriverCandidate {
+  id: string;
+  name: string;
+  trust_level: string;
+  eligible: boolean;
+  reasons: string[];
+}
+
+export interface VehicleCandidate {
+  id: string;
+  registration: string;
+  vehicle_class: string | null;
+  capacity_value: string;
+  capacity_unit: string;
+  status: string;
+  eligible: boolean;
+  reasons: string[];
+}
+
+export interface AssignmentCandidates {
+  job_id: string;
+  value_band: ValueBand;
+  /** Always `false` this increment — Group Manager assign is deferred. */
+  supports_group_assignment: boolean;
+  /** Non-null when a HIGH/VERY_HIGH pre-assignment review is still pending. */
+  blocked: string | null;
+  drivers: DriverCandidate[];
+  vehicles: VehicleCandidate[];
+}
+
+export interface DiscoveryFilters {
+  value_band?: ValueBand;
+}
+
 export interface ConfirmPickupOtpBody extends GeoBody {
   code: string;
   condition_note?: string;
@@ -168,19 +217,30 @@ export interface ConfirmPickupBusinessBody extends GeoBody {
   condition_note?: string;
 }
 
-export interface ConfirmPickupAttestedBody extends GeoBody {
+/** No `geo` field — `ConfirmPickupAttestedSerializer` doesn't accept one
+ * (only the arrive-pickup event captures a reading). */
+export interface ConfirmPickupAttestedBody {
   pickup_contact_name: string;
   condition_note?: string;
+  /** STANDARD-only fallback proof (`chain-of-custody.md` §4) — required. */
+  photo: File;
 }
 
 export interface FailAtPickupBody {
   reason_text: string;
 }
 
-export interface ConfirmDeliveryBody extends GeoBody {
+/** No `geo` field — the multipart body can't nest it, and per
+ * `chain-of-custody.md` §5 this isn't a separate reading anyway (the
+ * arrive-destination event already captured one for this leg). */
+export interface ConfirmDeliveryBody {
   party_name: string;
+  /** Recipient OTP — required for ELEVATED+ (with `photos`), optional for
+   * STANDARD (one of OTP/`signature`/`photos` suffices). */
   code?: string;
   condition_note?: string;
+  photos?: File[];
+  signature?: File;
 }
 
 // ─── Commission read ───────────────────────────────────────────────────────
@@ -227,13 +287,23 @@ export const RECIPIENT_ISSUE_CATEGORIES = [
 ] as const;
 export type RecipientIssueCategory = (typeof RECIPIENT_ISSUE_CATEGORIES)[number];
 
+/** `code` is always required on the recipient path (unlike the driver's
+ * optional `code`) — `RecipientConfirmSerializer.code` has no
+ * `required=False`. `signature`/`photos` are optional *additional* evidence,
+ * never a substitute for the OTP; ELEVATED+ jobs still need a photo too
+ * (the shared `delivery_proof_valid_for_band` guard), surfaced via a
+ * `delivery_proof_incomplete` retry rather than exposing `value_band` on
+ * `RecipientView` (Design Phase 6 Increment 6, Decision 3). */
 export interface RecipientConfirmBody {
   code: string;
   party_name: string;
+  signature?: File;
+  photos?: File[];
 }
 
 export interface RecipientReportIssueBody {
   category: RecipientIssueCategory;
   description?: string;
   other_label?: string;
+  photos?: File[];
 }
