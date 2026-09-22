@@ -4,6 +4,9 @@ import { LoginPage } from '@/features/auth/LoginPage';
 import { RequireAuth } from '@/features/auth/RequireAuth';
 import { DiagnosticsPage } from '@/features/diagnostics/DiagnosticsPage';
 import { HomePage } from '@/features/home/HomePage';
+import { DisputeDetailPage } from '@/features/incidents/DisputeDetailPage';
+import { IncidentDetailPage } from '@/features/incidents/IncidentDetailPage';
+import { IncidentReportPage } from '@/features/incidents/IncidentReportPage';
 import { AssignDriverVehiclePage } from '@/features/jobs/AssignDriverVehiclePage';
 import { CreateJobPage } from '@/features/jobs/CreateJobPage';
 import { CustodyConfirmationPage } from '@/features/jobs/CustodyConfirmationPage';
@@ -68,6 +71,9 @@ export function AppRoutes(): JSX.Element {
           <Route path="jobs/:jobId/pickup-proof" element={<PickupProofPage />} />
           <Route path="jobs/:jobId/custody-confirmation" element={<CustodyConfirmationPage />} />
           <Route path="jobs/:jobId/delivery-proof" element={<DeliveryProofPage />} />
+          <Route path="jobs/:jobId/report-issue" element={<IncidentReportPage />} />
+          <Route path="incidents/:incidentId" element={<IncidentDetailPage />} />
+          <Route path="disputes/:disputeId" element={<DisputeDetailPage />} />
           <Route path="work" element={<WorkListPage />} />
           <Route path="work/:jobId" element={<JobOpportunityPage />} />
           <Route path="my-jobs" element={<MyJobsPage />} />

@@ -5,6 +5,7 @@ or trust/rating/suspension effect — all resolved server-side (brief §16)."""
 
 from __future__ import annotations
 
+from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
@@ -13,6 +14,8 @@ from rest_framework.response import Response
 
 from fikisha.common.api import OrgApiView
 from fikisha.common.idempotency import idempotent
+from fikisha.evidence import services as evidence_services
+from fikisha.identity.authz.actors import actor_from_request
 from fikisha.incidents import services
 from fikisha.incidents.api.serializers import (
     AddStatementSerializer,
@@ -22,7 +25,7 @@ from fikisha.incidents.api.serializers import (
     ReportIncidentSerializer,
     ResolveDisputeSerializer,
 )
-from fikisha.incidents.models import Dispute, Incident
+from fikisha.incidents.models import Dispute, Incident, IncidentEvidence
 
 
 def _incident_view(incident: Incident) -> dict[str, object]:
@@ -43,6 +46,28 @@ def _incident_view(incident: Incident) -> dict[str, object]:
         "sla_resolution_due_at": (
             incident.sla_resolution_due_at.isoformat() if incident.sla_resolution_due_at else None
         ),
+        # Design Phase 6 Increment 7 — the Ops Officer review workspace
+        # (P3 §17.2 "review evidence" / "communication log") has no other
+        # way to read these back; both were previously POST-only.
+        "evidence": [
+            {
+                "id": str(e.id),
+                "evidence_object_id": str(e.evidence_object_id),
+                "caption": e.caption,
+                "uploaded_by_kind": e.uploaded_by_kind,
+                "created_at": e.created_at.isoformat(),
+            }
+            for e in incident.evidence.all()
+        ],
+        "statements": [
+            {
+                "id": str(s.id),
+                "party_kind": s.party_kind,
+                "text": s.text,
+                "created_at": s.created_at.isoformat(),
+            }
+            for s in incident.statements.all()
+        ],
     }
 
 
@@ -91,7 +116,11 @@ class IncidentCollectionView(OrgApiView):
         job = get_job(job_id)
         if not incidents_authz.is_job_party(self.actor(request), job):
             raise AuthorizationError("You are not a party to this job.", code="authz.forbidden")
-        incidents = Incident.objects.filter(job=job).order_by("-created_at")
+        incidents = (
+            Incident.objects.filter(job=job)
+            .prefetch_related("evidence", "statements")
+            .order_by("-created_at")
+        )
         return Response({"data": [_incident_view(i) for i in incidents]})
 
     def post(self, request: Request, job_id: str) -> Response:
@@ -117,12 +146,45 @@ class IncidentDetailView(OrgApiView):
 
     def resolve_target(self) -> Incident:
         return get_object_or_404(
-            Incident.objects.select_related("job"), pk=self.kwargs["incident_id"]
+            Incident.objects.select_related("job").prefetch_related("evidence", "statements"),
+            pk=self.kwargs["incident_id"],
         )
 
     def get(self, request: Request, incident_id: str) -> Response:
         incident = self.get_authz_resource()
         return Response(_incident_view(incident))
+
+
+class IncidentEvidenceContentView(OrgApiView):
+    """Streams a previously-attached evidence file's bytes — mirrors
+    ``verification.api.views.EvidenceContentView`` exactly (Design Phase 6
+    Increment 7): without this there was no way to actually *view* an
+    incident photo, only its metadata (id/caption)."""
+
+    action_get = "incident.read"
+
+    def resolve_target(self) -> Incident:
+        ev = get_object_or_404(
+            IncidentEvidence.objects.select_related("incident", "evidence_object"),
+            pk=self.kwargs["evidence_id"],
+        )
+        self._evidence = ev
+        return ev.incident
+
+    def get(self, request: Request, evidence_id: str) -> HttpResponse:
+        self.get_authz_resource()  # runs the authz check
+        ev = self._evidence
+        actor = actor_from_request(request)
+        payload, content_type = evidence_services.open_stream(
+            ev.evidence_object,
+            actor_user=request.user,
+            actor_role=str(getattr(actor, "audit_role", "")),
+            reason=f"incident {ev.incident_id} review",
+        )
+        response = HttpResponse(payload, content_type=content_type)
+        response["Content-Disposition"] = 'inline; filename="evidence"'
+        response["Cache-Control"] = "no-store"
+        return response
 
 
 class IncidentEvidenceView(OrgApiView):

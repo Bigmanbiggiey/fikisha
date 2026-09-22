@@ -144,6 +144,70 @@ class TestIncidentEvidenceAndStatements:
         )
         assert r.status_code == 201, r.content
 
+    def test_attached_evidence_and_statements_are_readable_back_on_the_incident(
+        self, client_for: Callable, business_owner_actor: Any, make_assigned_job: Callable
+    ) -> None:
+        """Design Phase 6 Increment 7: the Ops Officer review workspace needs
+        to read back what was attached/said — previously ``evidence``/
+        ``statements`` were POST-only, invisible on the incident detail."""
+        from django.core.files.uploadedfile import SimpleUploadedFile
+
+        job = make_assigned_job()
+        client = client_for(business_owner_actor.user)
+        incident_id = client.post(
+            f"/api/v1/jobs/{job.id}/incidents", {"type": "DAMAGE"}, format="json"
+        ).data["id"]
+        upload = SimpleUploadedFile("proof.jpg", b"\xff\xd8\xff fake", content_type="image/jpeg")
+        client.post(
+            f"/api/v1/incidents/{incident_id}/evidence",
+            {"file": upload, "caption": "damaged goods"},
+            format="multipart",
+        )
+        client.post(
+            f"/api/v1/incidents/{incident_id}/statements",
+            {"text": "here is what happened"},
+            format="json",
+        )
+
+        r = client.get(f"/api/v1/incidents/{incident_id}")
+        assert r.status_code == 200, r.content
+        assert len(r.data["evidence"]) == 1
+        assert r.data["evidence"][0]["caption"] == "damaged goods"
+        assert len(r.data["statements"]) == 1
+        assert r.data["statements"][0]["text"] == "here is what happened"
+
+    def test_attached_evidence_content_is_downloadable_by_a_party_and_refused_to_a_stranger(
+        self,
+        client_for: Callable,
+        business_owner_actor: Any,
+        other_business_actor: Any,
+        make_assigned_job: Callable,
+    ) -> None:
+        from django.core.files.uploadedfile import SimpleUploadedFile
+
+        job = make_assigned_job()
+        client = client_for(business_owner_actor.user)
+        incident_id = client.post(
+            f"/api/v1/jobs/{job.id}/incidents", {"type": "DAMAGE"}, format="json"
+        ).data["id"]
+        upload = SimpleUploadedFile("proof.jpg", b"\xff\xd8\xff fake", content_type="image/jpeg")
+        client.post(
+            f"/api/v1/incidents/{incident_id}/evidence",
+            {"file": upload},
+            format="multipart",
+        )
+        # The content route is keyed by the IncidentEvidence row id, not the
+        # underlying EvidenceObject id — re-fetch the incident to get it.
+        evidence_row_id = client.get(f"/api/v1/incidents/{incident_id}").data["evidence"][0]["id"]
+
+        r = client.get(f"/api/v1/incidents/evidence/{evidence_row_id}/content")
+        assert r.status_code == 200, r.content
+        assert r["content-type"] == "image/jpeg"
+
+        stranger = client_for(other_business_actor.user)
+        r = stranger.get(f"/api/v1/incidents/evidence/{evidence_row_id}/content")
+        assert r.status_code == 403
+
 
 class TestIncidentReviewAndEscalate:
     def test_ops_officer_starts_review(

@@ -18,6 +18,8 @@ function renderAtJob(jobId: string): ReturnType<typeof renderWithProviders> {
       <Route path="/jobs/:jobId/negotiation" element={<div>Negotiation screen</div>} />
       <Route path="/jobs/:jobId/pickup-proof" element={<div>Pickup proof screen</div>} />
       <Route path="/jobs/:jobId/delivery-proof" element={<div>Delivery proof screen</div>} />
+      <Route path="/jobs/:jobId/report-issue" element={<div>Report issue screen</div>} />
+      <Route path="/disputes/:disputeId" element={<div>Dispute screen</div>} />
     </Routes>,
     { route: `/jobs/${jobId}` },
   );
@@ -32,6 +34,7 @@ const meMock = vi.fn();
 const listBusinesses = vi.fn();
 const getMyOperator = vi.fn();
 const listGroups = vi.fn();
+const listDisputesForJob = vi.fn();
 
 vi.mock('./jobsApi', () => ({
   jobsApi: {
@@ -42,6 +45,9 @@ vi.mock('./jobsApi', () => ({
     startTransit: (...a: unknown[]) => startTransit(...a),
     arriveDestination: (...a: unknown[]) => arriveDestination(...a),
   },
+}));
+vi.mock('@/features/incidents/incidentsApi', () => ({
+  disputesApi: { listForJob: (...a: unknown[]) => listDisputesForJob(...a) },
 }));
 vi.mock('./geo', () => ({ getOneShotGeo: () => Promise.resolve(undefined) }));
 vi.mock('@/features/auth/authApi', () => ({
@@ -93,6 +99,8 @@ describe('JobDetailPage', () => {
     listBusinesses.mockReset();
     getMyOperator.mockReset();
     listGroups.mockReset();
+    listDisputesForJob.mockReset();
+    listDisputesForJob.mockResolvedValue({ data: [] });
     meMock.mockRejectedValue(new Error('anon'));
   });
 
@@ -187,6 +195,41 @@ describe('JobDetailPage', () => {
     // ...but "In transit" never happened and must not be marked done.
     const inTransitRow = screen.getByText('In transit').closest('li');
     expect(inTransitRow?.querySelector('.bg-status-success-solid')).not.toBeInTheDocument();
+  });
+
+  it('links to the real dispute once one exists for a DISPUTED job', async () => {
+    get.mockResolvedValue(baseJob({ status: 'DISPUTED', next_allowed_statuses: [] }));
+    listDisputesForJob.mockResolvedValue({ data: [{ id: 'dis1', job_id: '01a0a4123456' }] });
+    const user = userEvent.setup();
+    renderAtJob('01a0a4123456');
+
+    await user.click(await screen.findByRole('button', { name: 'View dispute' }));
+    expect(await screen.findByText('Dispute screen')).toBeInTheDocument();
+  });
+
+  it('falls back to "coming in a later update" if a DISPUTED job somehow has no dispute row', async () => {
+    get.mockResolvedValue(baseJob({ status: 'DISPUTED', next_allowed_statuses: [] }));
+    listDisputesForJob.mockResolvedValue({ data: [] });
+    renderAtJob('01a0a4123456');
+
+    expect(await screen.findByText('This screen is coming in a later update.')).toBeInTheDocument();
+  });
+
+  it('offers "Report an issue" once the job is no longer a DRAFT', async () => {
+    get.mockResolvedValue(baseJob({ status: 'ASSIGNED' }));
+    const user = userEvent.setup();
+    renderAtJob('01a0a4123456');
+
+    await user.click(await screen.findByText('· Report an issue'));
+    expect(await screen.findByText('Report issue screen')).toBeInTheDocument();
+  });
+
+  it('hides "Report an issue" while the job is still a DRAFT', async () => {
+    get.mockResolvedValue(baseJob({ status: 'DRAFT', next_allowed_statuses: ['REQUESTED'] }));
+    renderAtJob('01a0a4123456');
+
+    await screen.findByText('Continue request');
+    expect(screen.queryByText('· Report an issue')).not.toBeInTheDocument();
   });
 
   describe('as the operator viewer', () => {

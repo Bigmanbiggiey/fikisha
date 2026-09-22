@@ -11,6 +11,7 @@ import { initReactI18next } from 'react-i18next';
 import authEn from './locales/en/auth.json';
 import commonEn from './locales/en/common.json';
 import errorsEn from './locales/en/errors.json';
+import incidentsEn from './locales/en/incidents.json';
 import jobsEn from './locales/en/jobs.json';
 import landingEn from './locales/en/landing.json';
 import negotiationEn from './locales/en/negotiation.json';
@@ -19,6 +20,7 @@ import recipientEn from './locales/en/recipient.json';
 import authSw from './locales/sw/auth.json';
 import commonSw from './locales/sw/common.json';
 import errorsSw from './locales/sw/errors.json';
+import incidentsSw from './locales/sw/incidents.json';
 import jobsSw from './locales/sw/jobs.json';
 import landingSw from './locales/sw/landing.json';
 import negotiationSw from './locales/sw/negotiation.json';
@@ -38,6 +40,7 @@ export const resources = {
     jobs: jobsEn,
     negotiation: negotiationEn,
     recipient: recipientEn,
+    incidents: incidentsEn,
   },
   sw: {
     common: commonSw,
@@ -48,6 +51,7 @@ export const resources = {
     jobs: jobsSw,
     negotiation: negotiationSw,
     recipient: recipientSw,
+    incidents: incidentsSw,
   },
 } as const;
 
@@ -59,7 +63,7 @@ void i18n
     fallbackLng: 'en',
     supportedLngs: SUPPORTED_LANGUAGES as unknown as string[],
     defaultNS: 'common',
-    ns: ['common', 'auth', 'errors', 'org', 'landing', 'jobs', 'negotiation', 'recipient'],
+    ns: ['common', 'auth', 'errors', 'org', 'landing', 'jobs', 'negotiation', 'recipient', 'incidents'],
     interpolation: { escapeValue: false },
     detection: {
       order: ['localStorage', 'navigator', 'htmlTag'],

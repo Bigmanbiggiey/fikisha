@@ -1,0 +1,93 @@
+{
+  "report": {
+    "entryLink": "· Report an issue",
+    "title": "Report an issue",
+    "category": "What happened?",
+    "type": {
+      "DAMAGE": "Damage",
+      "LOSS": "Loss",
+      "MISSING_GOODS": "Missing goods",
+      "WRONG_RECIPIENT": "Wrong recipient",
+      "WRONG_PICKUP": "Pickup issue",
+      "MISCONDUCT": "Misconduct",
+      "BREAKDOWN": "Breakdown",
+      "ACCIDENT": "Accident",
+      "DELAY": "Delay",
+      "CANCELLATION": "Cancellation",
+      "OTHER": "Other"
+    },
+    "otherLabel": "Tell us what kind of issue this is",
+    "description": "Describe what happened",
+    "addEvidence": "Add a photo",
+    "anotherEvidence": "Add another photo",
+    "retake": "Retake",
+    "evidenceAdded": "Photo added",
+    "disclaimer": "Reporting an issue doesn't automatically mean a refund or payment. Fikisha reviews each case; resolution is handled separately.",
+    "submit": "Submit"
+  },
+  "detail": {
+    "status": {
+      "OPEN": "Open",
+      "UNDER_REVIEW": "Under review",
+      "AMICABLE_PENDING": "Amicable resolution pending",
+      "RESOLVED": "Resolved",
+      "ESCALATED": "Escalated"
+    },
+    "jobContext": "Job",
+    "jobRef": "Job {{ref}}",
+    "viewJob": "View full job detail",
+    "description": "Description",
+    "evidence": "Evidence",
+    "noEvidence": "No evidence attached.",
+    "evidenceItem": "Photo",
+    "statements": "Statements",
+    "noStatements": "No statements yet.",
+    "addStatement": "Add a statement",
+    "send": "Send",
+    "viewDispute": "This incident is part of a dispute — view it",
+    "adminActions": "Review actions",
+    "startReview": "Start review",
+    "startAmicable": "Start amicable resolution",
+    "openDispute": "Open a dispute (freeze this Job)",
+    "escalateReason": "Reason for escalating",
+    "escalate": "Escalate to Platform Admin"
+  },
+  "dispute": {
+    "title": "Dispute",
+    "preDisputeStatus": "Frozen from: {{status}}",
+    "linkedIncidents": "Linked incidents",
+    "noLinkedIncidents": "No linked incidents.",
+    "resolution": {
+      "title": "Resolution",
+      "outcome": "Resolved — Job {{status}}"
+    },
+    "underReview": "Fikisha is reviewing this. You'll be notified when it's resolved.",
+    "needsPlatformAdmin": "This needs a Platform Administrator.",
+    "escalateToAdmin": "Escalate to Platform Admin",
+    "resolve": {
+      "title": "Resolve this dispute",
+      "outcome": "Outcome",
+      "outcomes": {
+        "AMICABLE_AGREEMENT": "Amicable agreement",
+        "ADMIN_DETERMINATION": "Admin determination",
+        "WITHDRAWN": "Withdrawn"
+      },
+      "routedStatus": "Route the Job to",
+      "commissionTreatment": "Commission treatment",
+      "commissionTreatments": {
+        "APPLY": "Apply",
+        "REDUCE": "Reduce",
+        "WAIVE": "Waive"
+      },
+      "reducedAmount": "Reduced amount (KSh)",
+      "rationale": "Rationale for this resolution",
+      "apply": "Apply resolution"
+    },
+    "resume": {
+      "title": "Resume this Job to {{status}}",
+      "reason": "Reason for resuming",
+      "action": "Resume this Job to {{status}}",
+      "notAvailable": "Resume when the authoritative system permits it — not available yet."
+    }
+  }
+}

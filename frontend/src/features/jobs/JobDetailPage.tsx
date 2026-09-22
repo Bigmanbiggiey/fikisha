@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 
 import { Alert } from '@/components/Alert';
 import { Button } from '@/components/Button';
@@ -10,6 +10,7 @@ import { JobStatusHeader } from '@/components/JobStatusHeader';
 import { JobTimeline, type TimelineStep } from '@/components/JobTimeline';
 import { NextActionCard } from '@/components/NextActionCard';
 import { PageLoader } from '@/components/PageLoader';
+import { disputesApi } from '@/features/incidents/incidentsApi';
 import { localizeError } from '@/services/errorMessage';
 
 import { getOneShotGeo } from './geo';
@@ -34,7 +35,7 @@ function hhmm(iso: string | null): string | undefined {
 
 export function JobDetailPage(): JSX.Element {
   const { jobId } = useParams<{ jobId: string }>();
-  const { t } = useTranslation(['jobs', 'errors']);
+  const { t } = useTranslation(['jobs', 'incidents', 'errors']);
   const qc = useQueryClient();
 
   const job = useQuery({
@@ -169,6 +170,17 @@ export function JobDetailPage(): JSX.Element {
         </div>
       </Card>
 
+      {/* A DRAFT job has no operator/driver relationship yet to report
+          about; every later status is left to the server's own
+          `party_kind_for_job` eligibility check rather than predicted here. */}
+      {data.status !== 'DRAFT' && (
+        <div className="flex justify-end">
+          <Link to={`/jobs/${jobId}/report-issue`} className="text-body-sm text-action-secondary-text underline">
+            {t('incidents:report.entryLink')}
+          </Link>
+        </div>
+      )}
+
       {/* Operator-side cancel (a different reason code, and — post-ASSIGNED
           — the late-cancellation consequence screen, §23) is out of scope
           this increment; only the Business's own cancel action renders. */}
@@ -206,6 +218,12 @@ function NextActionSection({
   const { t } = useTranslation('jobs');
   const navigate = useNavigate();
   const { jobId } = useParams<{ jobId: string }>();
+  const disputes = useQuery({
+    queryKey: ['disputes', jobId],
+    queryFn: () => disputesApi.listForJob(jobId!),
+    enabled: action === 'viewDispute' && !!jobId,
+    retry: false,
+  });
 
   if (!action) return <NextActionCard emptyLabel={t('jobs:detail.nothingNeeded')} />;
 
@@ -235,7 +253,15 @@ function NextActionSection({
     );
   }
   if (action === 'viewDispute') {
-    return <NextActionCard emptyLabel={t(`jobs:action.${action}`)} note={t('jobs:detail.comingSoon')} />;
+    const dispute = disputes.data?.data[0];
+    if (dispute) {
+      return (
+        <NextActionCard
+          action={{ label: t('jobs:action.viewDispute'), onClick: () => navigate(`/disputes/${dispute.id}`) }}
+        />
+      );
+    }
+    return <NextActionCard emptyLabel={t('jobs:action.viewDispute')} note={t('jobs:detail.comingSoon')} />;
   }
   // viewSummary — informational only, the read-only detail below already shows it.
   return <NextActionCard emptyLabel={t('jobs:detail.nothingNeeded')} />;
@@ -261,6 +287,12 @@ function OperatorNextActionSection({
   const { t } = useTranslation('jobs');
   const navigate = useNavigate();
   const { jobId } = useParams<{ jobId: string }>();
+  const disputes = useQuery({
+    queryKey: ['disputes', jobId],
+    queryFn: () => disputesApi.listForJob(jobId!),
+    enabled: action === 'viewDispute' && !!jobId,
+    retry: false,
+  });
 
   if (!action) return <NextActionCard emptyLabel={t('jobs:detail.nothingNeeded')} />;
 
@@ -337,7 +369,15 @@ function OperatorNextActionSection({
     return <NextActionCard emptyLabel={t('jobs:detail.autoCompleteNote')} note={t('jobs:detail.comingSoon')} />;
   }
   if (action === 'viewDispute') {
-    return <NextActionCard emptyLabel={t(`jobs:workAction.${action}`)} note={t('jobs:detail.comingSoon')} />;
+    const dispute = disputes.data?.data[0];
+    if (dispute) {
+      return (
+        <NextActionCard
+          action={{ label: t('jobs:workAction.viewDispute'), onClick: () => navigate(`/disputes/${dispute.id}`) }}
+        />
+      );
+    }
+    return <NextActionCard emptyLabel={t('jobs:workAction.viewDispute')} note={t('jobs:detail.comingSoon')} />;
   }
   // viewSummary — informational only, the read-only detail below already shows it.
   return <NextActionCard emptyLabel={t('jobs:detail.nothingNeeded')} />;

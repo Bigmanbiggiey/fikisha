@@ -22,6 +22,11 @@ urlpatterns = [
         name="incident-evidence",
     ),
     path(
+        "incidents/evidence/<uuid:evidence_id>/content",
+        views.IncidentEvidenceContentView.as_view(),
+        name="incident-evidence-content",
+    ),
+    path(
         "incidents/<uuid:incident_id>/statements",
         views.IncidentStatementView.as_view(),
         name="incident-statements",

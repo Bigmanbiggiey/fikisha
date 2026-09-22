@@ -1,0 +1,93 @@
+{
+  "report": {
+    "entryLink": "· Ripoti tatizo",
+    "title": "Ripoti tatizo",
+    "category": "Kulitokea nini?",
+    "type": {
+      "DAMAGE": "Uharibifu",
+      "LOSS": "Upotevu",
+      "MISSING_GOODS": "Mzigo umepotea",
+      "WRONG_RECIPIENT": "Mpokezi si sahihi",
+      "WRONG_PICKUP": "Tatizo la kuchukua",
+      "MISCONDUCT": "Tabia mbaya",
+      "BREAKDOWN": "Hitilafu ya gari",
+      "ACCIDENT": "Ajali",
+      "DELAY": "Kuchelewa",
+      "CANCELLATION": "Kughairiwa",
+      "OTHER": "Nyingine"
+    },
+    "otherLabel": "Tuambie ni tatizo la aina gani",
+    "description": "Eleza kilichotokea",
+    "addEvidence": "Ongeza picha",
+    "anotherEvidence": "Ongeza picha nyingine",
+    "retake": "Piga tena",
+    "evidenceAdded": "Picha imeongezwa",
+    "disclaimer": "Kuripoti tatizo si sawa na kurejeshewa pesa au malipo moja kwa moja. Fikisha inapitia kila kesi; ufumbuzi hushughulikiwa tofauti.",
+    "submit": "Wasilisha"
+  },
+  "detail": {
+    "status": {
+      "OPEN": "Wazi",
+      "UNDER_REVIEW": "Inapitiwa",
+      "AMICABLE_PENDING": "Inasubiri ufumbuzi wa amani",
+      "RESOLVED": "Imetatuliwa",
+      "ESCALATED": "Imepandishwa"
+    },
+    "jobContext": "Kazi",
+    "jobRef": "Kazi {{ref}}",
+    "viewJob": "Ona maelezo kamili ya kazi",
+    "description": "Maelezo",
+    "evidence": "Ushahidi",
+    "noEvidence": "Hakuna ushahidi ulioambatanishwa.",
+    "evidenceItem": "Picha",
+    "statements": "Kauli",
+    "noStatements": "Bado hakuna kauli.",
+    "addStatement": "Ongeza kauli",
+    "send": "Tuma",
+    "viewDispute": "Tukio hili ni sehemu ya mgogoro — iangalie",
+    "adminActions": "Vitendo vya upitiaji",
+    "startReview": "Anza upitiaji",
+    "startAmicable": "Anza ufumbuzi wa amani",
+    "openDispute": "Fungua mgogoro (simamisha Kazi hii)",
+    "escalateReason": "Sababu ya kupandisha",
+    "escalate": "Pandisha kwa Msimamizi wa Jukwaa"
+  },
+  "dispute": {
+    "title": "Mgogoro",
+    "preDisputeStatus": "Ilisimamishwa kutoka: {{status}}",
+    "linkedIncidents": "Matukio yaliyounganishwa",
+    "noLinkedIncidents": "Hakuna matukio yaliyounganishwa.",
+    "resolution": {
+      "title": "Ufumbuzi",
+      "outcome": "Imetatuliwa — Kazi {{status}}"
+    },
+    "underReview": "Fikisha inapitia hili. Utajulishwa litakapotatuliwa.",
+    "needsPlatformAdmin": "Hii inahitaji Msimamizi wa Jukwaa.",
+    "escalateToAdmin": "Pandisha kwa Msimamizi wa Jukwaa",
+    "resolve": {
+      "title": "Tatua mgogoro huu",
+      "outcome": "Matokeo",
+      "outcomes": {
+        "AMICABLE_AGREEMENT": "Makubaliano ya amani",
+        "ADMIN_DETERMINATION": "Uamuzi wa msimamizi",
+        "WITHDRAWN": "Imeondolewa"
+      },
+      "routedStatus": "Peleka Kazi kwa",
+      "commissionTreatment": "Matibabu ya kamisheni",
+      "commissionTreatments": {
+        "APPLY": "Tumia",
+        "REDUCE": "Punguza",
+        "WAIVE": "Ondoa"
+      },
+      "reducedAmount": "Kiasi kilichopunguzwa (KSh)",
+      "rationale": "Sababu ya ufumbuzi huu",
+      "apply": "Tumia ufumbuzi"
+    },
+    "resume": {
+      "title": "Endelea na Kazi hii hadi {{status}}",
+      "reason": "Sababu ya kuendelea",
+      "action": "Endelea na Kazi hii hadi {{status}}",
+      "notAvailable": "Itaendelea mfumo halali utakapokubali — bado haipatikani."
+    }
+  }
+}
