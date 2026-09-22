@@ -217,19 +217,30 @@ export interface ConfirmPickupBusinessBody extends GeoBody {
   condition_note?: string;
 }
 
-export interface ConfirmPickupAttestedBody extends GeoBody {
+/** No `geo` field — `ConfirmPickupAttestedSerializer` doesn't accept one
+ * (only the arrive-pickup event captures a reading). */
+export interface ConfirmPickupAttestedBody {
   pickup_contact_name: string;
   condition_note?: string;
+  /** STANDARD-only fallback proof (`chain-of-custody.md` §4) — required. */
+  photo: File;
 }
 
 export interface FailAtPickupBody {
   reason_text: string;
 }
 
-export interface ConfirmDeliveryBody extends GeoBody {
+/** No `geo` field — the multipart body can't nest it, and per
+ * `chain-of-custody.md` §5 this isn't a separate reading anyway (the
+ * arrive-destination event already captured one for this leg). */
+export interface ConfirmDeliveryBody {
   party_name: string;
+  /** Recipient OTP — required for ELEVATED+ (with `photos`), optional for
+   * STANDARD (one of OTP/`signature`/`photos` suffices). */
   code?: string;
   condition_note?: string;
+  photos?: File[];
+  signature?: File;
 }
 
 // ─── Commission read ───────────────────────────────────────────────────────

@@ -12,6 +12,7 @@ import { NextActionCard } from '@/components/NextActionCard';
 import { PageLoader } from '@/components/PageLoader';
 import { localizeError } from '@/services/errorMessage';
 
+import { getOneShotGeo } from './geo';
 import { jobsApi } from './jobsApi';
 import {
   HAPPY_PATH_STATUSES,
@@ -57,6 +58,24 @@ export function JobDetailPage(): JSX.Element {
     onSuccess: () => void qc.invalidateQueries({ queryKey: ['jobs', jobId] }),
   });
 
+  function invalidateJob(): void {
+    void qc.invalidateQueries({ queryKey: ['jobs', jobId] });
+    void qc.invalidateQueries({ queryKey: ['jobs'] });
+  }
+
+  const arrivePickup = useMutation({
+    mutationFn: async () => jobsApi.arrivePickup(jobId!, await getOneShotGeo(), crypto.randomUUID()),
+    onSuccess: invalidateJob,
+  });
+  const startTransit = useMutation({
+    mutationFn: () => jobsApi.startTransit(jobId!, crypto.randomUUID()),
+    onSuccess: invalidateJob,
+  });
+  const arriveDestination = useMutation({
+    mutationFn: async () => jobsApi.arriveDestination(jobId!, await getOneShotGeo(), crypto.randomUUID()),
+    onSuccess: invalidateJob,
+  });
+
   const viewer = useJobViewerRole(job.data?.business_id);
 
   if (job.isLoading || viewer.loading) return <PageLoader />;
@@ -90,7 +109,15 @@ export function JobDetailPage(): JSX.Element {
       />
 
       {isOperatorViewer ? (
-        <OperatorNextActionSection action={operatorAction} />
+        <OperatorNextActionSection
+          action={operatorAction}
+          onArrivePickup={() => arrivePickup.mutate()}
+          arrivingPickup={arrivePickup.isPending}
+          onStartTransit={() => startTransit.mutate()}
+          startingTransit={startTransit.isPending}
+          onArriveDestination={() => arriveDestination.mutate()}
+          arrivingDestination={arriveDestination.isPending}
+        />
       ) : (
         <NextActionSection
           action={businessAction}
@@ -158,6 +185,11 @@ export function JobDetailPage(): JSX.Element {
         </div>
       )}
       {cancel.isError && <Alert tone="danger">{localizeError(cancel.error, t)}</Alert>}
+      {(arrivePickup.isError || startTransit.isError || arriveDestination.isError) && (
+        <Alert tone="danger">
+          {localizeError((arrivePickup.error ?? startTransit.error ?? arriveDestination.error)!, t)}
+        </Alert>
+      )}
     </div>
   );
 }
@@ -209,7 +241,23 @@ function NextActionSection({
   return <NextActionCard emptyLabel={t('jobs:detail.nothingNeeded')} />;
 }
 
-function OperatorNextActionSection({ action }: { action: OperatorActionKey | null }): JSX.Element {
+function OperatorNextActionSection({
+  action,
+  onArrivePickup,
+  arrivingPickup,
+  onStartTransit,
+  startingTransit,
+  onArriveDestination,
+  arrivingDestination,
+}: {
+  action: OperatorActionKey | null;
+  onArrivePickup: () => void;
+  arrivingPickup: boolean;
+  onStartTransit: () => void;
+  startingTransit: boolean;
+  onArriveDestination: () => void;
+  arrivingDestination: boolean;
+}): JSX.Element {
   const { t } = useTranslation('jobs');
   const navigate = useNavigate();
   const { jobId } = useParams<{ jobId: string }>();
@@ -233,9 +281,56 @@ function OperatorNextActionSection({ action }: { action: OperatorActionKey | nul
       />
     );
   }
-  if (action === 'startPickup') {
-    // The pickup/custody flow itself is Increment 5 (Driver) scope.
-    return <NextActionCard emptyLabel={t('jobs:workAction.startPickup')} note={t('jobs:detail.comingSoon')} />;
+  // ASSIGNED — no geofence gate exists (chain-of-custody.md §5), so "Go to
+  // pickup" (external map/call) and "I'm at pickup" (the [server] action)
+  // render together on this one screen rather than as separate steps.
+  if (action === 'arriveAtPickup') {
+    return (
+      <NextActionCard
+        driver
+        action={{ label: t('jobs:workAction.arriveAtPickup'), onClick: onArrivePickup, loading: arrivingPickup }}
+        note={t('jobs:workAction.arriveAtPickupNote')}
+      />
+    );
+  }
+  if (action === 'confirmPickup') {
+    return (
+      <NextActionCard
+        driver
+        action={{ label: t('jobs:workAction.confirmPickup'), onClick: () => navigate(`/jobs/${jobId}/pickup-proof`) }}
+      />
+    );
+  }
+  if (action === 'startTransit') {
+    return (
+      <NextActionCard
+        driver
+        action={{ label: t('jobs:workAction.startTransit'), onClick: onStartTransit, loading: startingTransit }}
+      />
+    );
+  }
+  if (action === 'arriveAtDestination') {
+    return (
+      <NextActionCard
+        driver
+        action={{
+          label: t('jobs:workAction.arriveAtDestination'),
+          onClick: onArriveDestination,
+          loading: arrivingDestination,
+        }}
+      />
+    );
+  }
+  if (action === 'confirmDelivery') {
+    return (
+      <NextActionCard
+        driver
+        action={{
+          label: t('jobs:workAction.confirmDelivery'),
+          onClick: () => navigate(`/jobs/${jobId}/delivery-proof`),
+        }}
+      />
+    );
   }
   if (action === 'viewStatement') {
     // No operator-facing commission-preview endpoint exists yet — deferred.

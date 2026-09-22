@@ -6,11 +6,14 @@ import { DiagnosticsPage } from '@/features/diagnostics/DiagnosticsPage';
 import { HomePage } from '@/features/home/HomePage';
 import { AssignDriverVehiclePage } from '@/features/jobs/AssignDriverVehiclePage';
 import { CreateJobPage } from '@/features/jobs/CreateJobPage';
+import { CustodyConfirmationPage } from '@/features/jobs/CustodyConfirmationPage';
+import { DeliveryProofPage } from '@/features/jobs/DeliveryProofPage';
 import { JobDetailPage } from '@/features/jobs/JobDetailPage';
 import { JobOpportunityPage } from '@/features/jobs/JobOpportunityPage';
 import { JobsListPage } from '@/features/jobs/JobsListPage';
 import { MyJobsPage } from '@/features/jobs/MyJobsPage';
 import { PickupConfirmPage } from '@/features/jobs/PickupConfirmPage';
+import { PickupProofPage } from '@/features/jobs/PickupProofPage';
 import { WorkListPage } from '@/features/jobs/WorkListPage';
 import { HomeOrLanding } from '@/features/landing/HomeOrLanding';
 import { NegotiationPage } from '@/features/negotiation/NegotiationPage';
@@ -53,6 +56,9 @@ export function AppRoutes(): JSX.Element {
           <Route path="jobs/:jobId/confirm-pickup" element={<PickupConfirmPage />} />
           <Route path="jobs/:jobId/negotiation" element={<NegotiationPage />} />
           <Route path="jobs/:jobId/assign" element={<AssignDriverVehiclePage />} />
+          <Route path="jobs/:jobId/pickup-proof" element={<PickupProofPage />} />
+          <Route path="jobs/:jobId/custody-confirmation" element={<CustodyConfirmationPage />} />
+          <Route path="jobs/:jobId/delivery-proof" element={<DeliveryProofPage />} />
           <Route path="work" element={<WorkListPage />} />
           <Route path="work/:jobId" element={<JobOpportunityPage />} />
           <Route path="my-jobs" element={<MyJobsPage />} />

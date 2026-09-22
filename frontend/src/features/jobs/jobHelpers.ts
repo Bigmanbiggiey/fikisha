@@ -127,27 +127,35 @@ export function operatorSegmentFor(status: JobStatus): OperatorSegment {
 export type OperatorActionKey =
   | 'respond'
   | 'assignDriverVehicle'
-  | 'startPickup'
+  | 'arriveAtPickup'
+  | 'confirmPickup'
+  | 'startTransit'
+  | 'arriveAtDestination'
+  | 'confirmDelivery'
   | 'viewStatement'
   | 'viewSummary'
   | 'viewDispute';
 
 /** The Operator's one primary next action per state
- * (`design-phase-3-wireframes.md` §7.4's table) — `isAssignedDriver` is
- * whether *this* viewing operator is the job's `assigned_driver_id` (an
+ * (`design-phase-3-wireframes.md` §7.4/§10.1's tables) — `isAssignedDriver`
+ * is whether *this* viewing operator is the job's `assigned_driver_id` (an
  * individual operator always is, once assigned; a Group Manager who is not
  * personally driving is not).
  *
+ * `ASSIGNED` through `AT_DESTINATION` are the Driver's physical-delivery
+ * spine (Design Phase 6 Increment 5, P2 Flow Family C, P3 §10–13) —
+ * `isAssignedDriver` gates every one of them; a non-driver operator/manager
+ * sees `null` (read-only), matching the wireframe exactly. `arriveAtPickup`/
+ * `startTransit`/`arriveAtDestination` are single-tap `[server]` actions
+ * fired directly from Current Job home (no geofence gate exists —
+ * chain-of-custody.md §5 — so there's no separate "go to pickup" screen);
+ * `confirmPickup`/`confirmDelivery` navigate to their own band-aware proof
+ * screens instead of transitioning directly.
+ *
  * Known simplifications, documented rather than silently approximated:
- * - **`startPickup`**: the actual pickup/custody flow (OTP confirm, arrive/
- *   transit/deliver) is Increment 5 (Driver) scope — not built yet. Rendered
- *   as an informational "coming in a later update" state, the same pattern
- *   `viewDispute` used before its own increment existed.
- *   `ASSIGNED`-but-not-the-driver is read-only (`null` — nothing to do),
- *   matching the wireframe exactly.
- * - **`viewStatement`** ("Earnings for this Job"): deferred this increment
- *   — `commission.read` is Platform-Admin-only (ADR-2D-27) and there is no
- *   operator-facing commission-preview endpoint yet. Informational only. */
+ * - **`viewStatement`** ("Earnings for this Job"): deferred — `commission.
+ *   read` is Platform-Admin-only (ADR-2D-27) and there is no operator-
+ *   facing commission-preview endpoint yet. Informational only. */
 export function operatorNextAction(
   status: JobStatus,
   isAssignedDriver: boolean,
@@ -158,7 +166,15 @@ export function operatorNextAction(
     case 'CONFIRMED':
       return 'assignDriverVehicle';
     case 'ASSIGNED':
-      return isAssignedDriver ? 'startPickup' : null;
+      return isAssignedDriver ? 'arriveAtPickup' : null;
+    case 'AT_PICKUP':
+      return isAssignedDriver ? 'confirmPickup' : null;
+    case 'PICKED_UP':
+      return isAssignedDriver ? 'startTransit' : null;
+    case 'IN_TRANSIT':
+      return isAssignedDriver ? 'arriveAtDestination' : null;
+    case 'AT_DESTINATION':
+      return isAssignedDriver ? 'confirmDelivery' : null;
     case 'COMPLETED':
       return 'viewStatement';
     case 'CANCELLED':

@@ -68,10 +68,15 @@ export const jobsApi = {
     apiRequest<AssignmentCandidates>(`/jobs/${jobId}/assignment-candidates`),
 
   // ─── Custody ─────────────────────────────────────────────────────────
-  arrivePickup: (jobId: string, body: GeoBody, idempotencyKey: string) =>
+  // A one-shot lazy geo reading at exactly the 4 events `chain-of-custody.md`
+  // §5 names (arrive-pickup / arrive-destination — the other two, PICKED_UP
+  // and DELIVERED, are "implicit same place" and carry no reading of their
+  // own). `ArriveSerializer`/`ConfirmDeliverySerializer` expect it nested
+  // under a `geo` key — never send it flat.
+  arrivePickup: (jobId: string, geo: GeoBody | undefined, idempotencyKey: string) =>
     apiRequest<JobTransitionResult>(`/jobs/${jobId}/custody/arrive-pickup`, {
       method: 'POST',
-      body,
+      body: geo ? { geo } : {},
       idempotencyKey,
     }),
   confirmPickupOtp: (jobId: string, body: ConfirmPickupOtpBody, idempotencyKey: string) =>
@@ -86,34 +91,50 @@ export const jobsApi = {
       body,
       idempotencyKey,
     }),
-  confirmPickupAttested: (jobId: string, body: ConfirmPickupAttestedBody, idempotencyKey: string) =>
-    apiRequest<JobTransitionResult>(`/jobs/${jobId}/custody/confirm-pickup/attested`, {
+  // Multipart — the goods photo is a required file. `ConfirmPickupAttestedSerializer`
+  // has no `geo` field at all (only the arrive-pickup event captures a reading).
+  confirmPickupAttested: (jobId: string, body: ConfirmPickupAttestedBody, idempotencyKey: string) => {
+    const form = new FormData();
+    form.append('pickup_contact_name', body.pickup_contact_name);
+    if (body.condition_note) form.append('condition_note', body.condition_note);
+    form.append('photo', body.photo);
+    return apiRequest<JobTransitionResult>(`/jobs/${jobId}/custody/confirm-pickup/attested`, {
       method: 'POST',
-      body,
+      body: form,
       idempotencyKey,
-    }),
+    });
+  },
   failAtPickup: (jobId: string, body: FailAtPickupBody, idempotencyKey: string) =>
     apiRequest<JobTransitionResult>(`/jobs/${jobId}/custody/fail-at-pickup`, {
       method: 'POST',
       body,
       idempotencyKey,
     }),
-  startTransit: (jobId: string, body: GeoBody, idempotencyKey: string) =>
+  // No request body at all — `StartTransitView` parses no serializer.
+  startTransit: (jobId: string, idempotencyKey: string) =>
     apiRequest<JobTransitionResult>(`/jobs/${jobId}/custody/start-transit`, {
       method: 'POST',
-      body,
       idempotencyKey,
     }),
-  arriveDestination: (jobId: string, body: GeoBody, idempotencyKey: string) =>
+  arriveDestination: (jobId: string, geo: GeoBody | undefined, idempotencyKey: string) =>
     apiRequest<JobTransitionResult>(`/jobs/${jobId}/custody/arrive-destination`, {
       method: 'POST',
-      body,
+      body: geo ? { geo } : {},
       idempotencyKey,
     }),
-  confirmDelivery: (jobId: string, body: ConfirmDeliveryBody, idempotencyKey: string) =>
-    apiRequest<JobTransitionResult>(`/jobs/${jobId}/custody/confirm-delivery`, {
+  // Multipart — `photos`/`signature` are files; no `geo` field here either
+  // (the arrive-destination event already captured the reading for this leg).
+  confirmDelivery: (jobId: string, body: ConfirmDeliveryBody, idempotencyKey: string) => {
+    const form = new FormData();
+    form.append('party_name', body.party_name);
+    if (body.code) form.append('code', body.code);
+    if (body.condition_note) form.append('condition_note', body.condition_note);
+    for (const photo of body.photos ?? []) form.append('photos', photo);
+    if (body.signature) form.append('signature', body.signature);
+    return apiRequest<JobTransitionResult>(`/jobs/${jobId}/custody/confirm-delivery`, {
       method: 'POST',
-      body,
+      body: form,
       idempotencyKey,
-    }),
+    });
+  },
 };

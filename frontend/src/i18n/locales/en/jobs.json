@@ -160,7 +160,12 @@
   "workAction": {
     "respond": "Respond",
     "assignDriverVehicle": "Assign driver & vehicle",
-    "startPickup": "Start pickup",
+    "arriveAtPickup": "I'm at pickup",
+    "arriveAtPickupNote": "Open the address in your map app or call the pickup contact from Current Job.",
+    "confirmPickup": "Confirm pickup",
+    "startTransit": "Start transit",
+    "arriveAtDestination": "I've arrived",
+    "confirmDelivery": "Confirm delivery",
     "viewStatement": "View statement",
     "viewSummary": "View summary",
     "viewDispute": "View dispute"
@@ -223,5 +228,46 @@
     "capacity": "{{value}} {{unit}}",
     "noVehicles": "You have no vehicles registered yet.",
     "confirm": "Confirm assignment"
+  },
+  "pickupProof": {
+    "title": "Confirm pickup",
+    "ref": "Job {{ref}}",
+    "bandStandard": "Standard delivery",
+    "bandElevated": "Elevated delivery — verified pickup required",
+    "enterCode": "Enter code",
+    "senderConfirms": "Sender confirms in app",
+    "codeNotWorking": "Code not working?",
+    "otpLabel": "Pickup code",
+    "confirmHandover": "Confirm handover",
+    "blockingExplainer": "This delivery needs a verified pickup. Ask the sender for the code, or ask them to confirm in the Fikisha app. Contact Fikisha support if it still can't be done.",
+    "waitingForSender": "Waiting for the sender to confirm in the Fikisha business app.",
+    "checkStatus": "Check status",
+    "attestedWarning": "Photo + name is an unverified pickup — the delivery stays Standard.",
+    "contactName": "Pickup contact's name",
+    "takePhoto": "Take photo of the goods",
+    "retake": "Retake",
+    "photoAdded": "Photo added"
+  },
+  "custody": {
+    "goodsReceived": "Goods received",
+    "ref": "Job {{ref}}",
+    "verified": "Verified pickup",
+    "attestedUnverified": "Operator-attested — unverified",
+    "doneForNow": "Done for now"
+  },
+  "deliveryProof": {
+    "title": "Confirm delivery",
+    "ref": "Job {{ref}}",
+    "bandStandard": "Standard delivery",
+    "bandElevated": "Elevated delivery — verified delivery required",
+    "recipientName": "Recipient's name",
+    "otpLabel": "Delivery code",
+    "signatureLabel": "Signature",
+    "photoLabel": "Photo",
+    "clearSignature": "Clear",
+    "takePhoto": "Take photo of the delivered goods",
+    "retake": "Retake",
+    "photoAdded": "Photo added",
+    "confirmDelivery": "Confirm delivery"
   }
 }

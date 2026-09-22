@@ -160,7 +160,12 @@
   "workAction": {
     "respond": "Jibu",
     "assignDriverVehicle": "Panga dereva na gari",
-    "startPickup": "Anza kuchukua",
+    "arriveAtPickup": "Niko mahali pa kuchukua",
+    "arriveAtPickupNote": "Fungua anwani kwenye programu ya ramani au piga simu mtu wa kuchukua kutoka Kazi ya Sasa.",
+    "confirmPickup": "Thibitisha uchukuzi",
+    "startTransit": "Anza safari",
+    "arriveAtDestination": "Nimefika",
+    "confirmDelivery": "Thibitisha ufikishaji",
     "viewStatement": "Ona taarifa ya malipo",
     "viewSummary": "Ona muhtasari",
     "viewDispute": "Ona mgogoro"
@@ -223,5 +228,46 @@
     "capacity": "{{value}} {{unit}}",
     "noVehicles": "Bado hujasajili gari lolote.",
     "confirm": "Thibitisha upangaji"
+  },
+  "pickupProof": {
+    "title": "Thibitisha uchukuzi",
+    "ref": "Kazi {{ref}}",
+    "bandStandard": "Usafirishaji wa kawaida",
+    "bandElevated": "Usafirishaji wa juu — uchukuzi ulioidhinishwa unahitajika",
+    "enterCode": "Weka msimbo",
+    "senderConfirms": "Mtumaji anathibitisha kwenye programu",
+    "codeNotWorking": "Msimbo hautumiki?",
+    "otpLabel": "Msimbo wa kuchukua",
+    "confirmHandover": "Thibitisha kukabidhi",
+    "blockingExplainer": "Usafirishaji huu unahitaji uchukuzi ulioidhinishwa. Muulize mtumaji msimbo, au amthibitishe kwenye programu ya Fikisha. Wasiliana na usaidizi wa Fikisha ikiwa bado haiwezekani.",
+    "waitingForSender": "Inasubiri mtumaji athibitishe kwenye programu ya biashara ya Fikisha.",
+    "checkStatus": "Angalia hali",
+    "attestedWarning": "Picha + jina ni uchukuzi usioidhinishwa — usafirishaji unabaki wa kawaida.",
+    "contactName": "Jina la mtu wa kuchukua",
+    "takePhoto": "Piga picha ya bidhaa",
+    "retake": "Piga tena",
+    "photoAdded": "Picha imeongezwa"
+  },
+  "custody": {
+    "goodsReceived": "Mzigo umepokelewa",
+    "ref": "Kazi {{ref}}",
+    "verified": "Uchukuzi ulioidhinishwa",
+    "attestedUnverified": "Uchukuzi wa opereta — haujaidhinishwa",
+    "doneForNow": "Nimemaliza kwa sasa"
+  },
+  "deliveryProof": {
+    "title": "Thibitisha ufikishaji",
+    "ref": "Kazi {{ref}}",
+    "bandStandard": "Usafirishaji wa kawaida",
+    "bandElevated": "Usafirishaji wa juu — ufikishaji ulioidhinishwa unahitajika",
+    "recipientName": "Jina la mpokezi",
+    "otpLabel": "Msimbo wa kufikisha",
+    "signatureLabel": "Sahihi",
+    "photoLabel": "Picha",
+    "clearSignature": "Futa",
+    "takePhoto": "Piga picha ya bidhaa zilizofikishwa",
+    "retake": "Piga tena",
+    "photoAdded": "Picha imeongezwa",
+    "confirmDelivery": "Thibitisha ufikishaji"
   }
 }

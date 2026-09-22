@@ -16,6 +16,8 @@ function renderAtJob(jobId: string): ReturnType<typeof renderWithProviders> {
     <Routes>
       <Route path="/jobs/:jobId" element={<JobDetailPage />} />
       <Route path="/jobs/:jobId/negotiation" element={<div>Negotiation screen</div>} />
+      <Route path="/jobs/:jobId/pickup-proof" element={<div>Pickup proof screen</div>} />
+      <Route path="/jobs/:jobId/delivery-proof" element={<div>Delivery proof screen</div>} />
     </Routes>,
     { route: `/jobs/${jobId}` },
   );
@@ -23,6 +25,9 @@ function renderAtJob(jobId: string): ReturnType<typeof renderWithProviders> {
 
 const get = vi.fn();
 const cancel = vi.fn();
+const arrivePickup = vi.fn();
+const startTransit = vi.fn();
+const arriveDestination = vi.fn();
 const meMock = vi.fn();
 const listBusinesses = vi.fn();
 const getMyOperator = vi.fn();
@@ -33,8 +38,12 @@ vi.mock('./jobsApi', () => ({
     get: (...a: unknown[]) => get(...a),
     cancel: (...a: unknown[]) => cancel(...a),
     submit: vi.fn(),
+    arrivePickup: (...a: unknown[]) => arrivePickup(...a),
+    startTransit: (...a: unknown[]) => startTransit(...a),
+    arriveDestination: (...a: unknown[]) => arriveDestination(...a),
   },
 }));
+vi.mock('./geo', () => ({ getOneShotGeo: () => Promise.resolve(undefined) }));
 vi.mock('@/features/auth/authApi', () => ({
   authApi: { me: (...a: unknown[]) => meMock(...a), logout: vi.fn() },
 }));
@@ -77,6 +86,9 @@ describe('JobDetailPage', () => {
   beforeEach(() => {
     get.mockReset();
     cancel.mockReset();
+    arrivePickup.mockReset();
+    startTransit.mockReset();
+    arriveDestination.mockReset();
     meMock.mockReset();
     listBusinesses.mockReset();
     getMyOperator.mockReset();
@@ -220,7 +232,7 @@ describe('JobDetailPage', () => {
       expect(screen.queryByRole('button', { name: 'Cancel request' })).not.toBeInTheDocument();
     });
 
-    it('shows "coming in a later update" for Start pickup when the operator is the assigned driver', async () => {
+    it('calls arrivePickup when the assigned driver taps "I\'m at pickup" while ASSIGNED', async () => {
       get.mockResolvedValue(
         baseJob({
           status: 'ASSIGNED',
@@ -228,10 +240,74 @@ describe('JobDetailPage', () => {
           next_allowed_statuses: ['AT_PICKUP', 'CANCELLED', 'FAILED'],
         }),
       );
+      arrivePickup.mockResolvedValue({ ...baseJob({ status: 'AT_PICKUP' }) });
+      const user = userEvent.setup();
       renderAtJob('01a0a4123456');
 
-      expect(await screen.findByText('Start pickup')).toBeInTheDocument();
-      expect(screen.getByText('This screen is coming in a later update.')).toBeInTheDocument();
+      await user.click(await screen.findByRole('button', { name: "I'm at pickup" }));
+      expect(arrivePickup).toHaveBeenCalledWith('01a0a4123456', undefined, expect.any(String));
+    });
+
+    it('navigates to the pickup-proof screen from "Confirm pickup" while AT_PICKUP', async () => {
+      get.mockResolvedValue(
+        baseJob({
+          status: 'AT_PICKUP',
+          assigned_driver_id: 'op1',
+          next_allowed_statuses: ['PICKED_UP', 'FAILED'],
+        }),
+      );
+      const user = userEvent.setup();
+      renderAtJob('01a0a4123456');
+
+      await user.click(await screen.findByRole('button', { name: 'Confirm pickup' }));
+      expect(await screen.findByText('Pickup proof screen')).toBeInTheDocument();
+    });
+
+    it('calls startTransit when the assigned driver taps "Start transit" while PICKED_UP', async () => {
+      get.mockResolvedValue(
+        baseJob({
+          status: 'PICKED_UP',
+          assigned_driver_id: 'op1',
+          next_allowed_statuses: ['IN_TRANSIT'],
+        }),
+      );
+      startTransit.mockResolvedValue({ ...baseJob({ status: 'IN_TRANSIT' }) });
+      const user = userEvent.setup();
+      renderAtJob('01a0a4123456');
+
+      await user.click(await screen.findByRole('button', { name: 'Start transit' }));
+      expect(startTransit).toHaveBeenCalledWith('01a0a4123456', expect.any(String));
+    });
+
+    it('calls arriveDestination when the assigned driver taps "I\'ve arrived" while IN_TRANSIT', async () => {
+      get.mockResolvedValue(
+        baseJob({
+          status: 'IN_TRANSIT',
+          assigned_driver_id: 'op1',
+          next_allowed_statuses: ['AT_DESTINATION'],
+        }),
+      );
+      arriveDestination.mockResolvedValue({ ...baseJob({ status: 'AT_DESTINATION' }) });
+      const user = userEvent.setup();
+      renderAtJob('01a0a4123456');
+
+      await user.click(await screen.findByRole('button', { name: "I've arrived" }));
+      expect(arriveDestination).toHaveBeenCalledWith('01a0a4123456', undefined, expect.any(String));
+    });
+
+    it('navigates to the delivery-proof screen from "Confirm delivery" while AT_DESTINATION', async () => {
+      get.mockResolvedValue(
+        baseJob({
+          status: 'AT_DESTINATION',
+          assigned_driver_id: 'op1',
+          next_allowed_statuses: ['DELIVERED'],
+        }),
+      );
+      const user = userEvent.setup();
+      renderAtJob('01a0a4123456');
+
+      await user.click(await screen.findByRole('button', { name: 'Confirm delivery' }));
+      expect(await screen.findByText('Delivery proof screen')).toBeInTheDocument();
     });
 
     it('is read-only once ASSIGNED if the operator is not the assigned driver', async () => {
