@@ -76,9 +76,12 @@ via the link token itself, not a bearer session.
 | --- | --- | --- | --- |
 | GET | `/jobs` | `job.read` | List jobs visible to the actor (cursor-paginated, `-created_at`) |
 | POST | `/jobs` | `job.create` | Create a `DRAFT` job (`jobs.creation.create_draft`) |
+| GET | `/jobs/opportunities` | `job.discover` | Operator work discovery: open `REQUESTED`/`NEGOTIATING` jobs matching the operator's own vehicle class(es) and not already threaded, each row with a server-computed eligibility marker (Design Phase 6 Increment 4; individual operators only) |
+| GET | `/jobs/<job_id>/opportunity` | `job.discover` | One job's opportunity view, reachable before the operator is a negotiation party; only while the job is still open (Increment 4) |
 | GET | `/jobs/<job_id>` | `job.read` | Job detail (object-level `is_job_party` check) |
 | POST | `/jobs/<job_id>/submit` | `job.transition` | `DRAFT → REQUESTED` |
 | POST | `/jobs/<job_id>/cancel` | `job.transition` | `* → CANCELLED` (wherever a rule allows it) |
+| GET | `/jobs/<job_id>/assignment-candidates` | `job.assign.candidates` | Read-only driver/vehicle eligibility preview with concrete reasons; shares its predicates with the `assign` guard so the two cannot drift (Increment 4) |
 | POST | `/jobs/<job_id>/assign` | `job.assign` | `CONFIRMED → ASSIGNED` — driver + vehicle eligibility, high-value gate |
 | GET | `/jobs/<job_id>/commission` | `commission.read` | Read the job's commission record — **Platform-Admin-only** (ADR-2D-27) |
 | POST | `/jobs/<job_id>/custody/arrive-pickup` | `job.proof.pickup` | `ASSIGNED → AT_PICKUP` |
@@ -96,7 +99,7 @@ via the link token itself, not a bearer session.
 | --- | --- | --- |
 | GET | `/r/<token>` | Minimal-disclosure job view (`recipient.view()` — exact plan §11 field set, no price/value/staff/location-history) |
 | POST | `/r/<token>/confirm` | `AT_DESTINATION → DELIVERED` via the recipient's own OTP (the identical transition the driver uses) |
-| POST | `/r/<token>/report-issue` | Append-only issue report (`RecipientReportedIssue`) — does **not** move `job.status` |
+| POST | `/r/<token>/report-issue` | Append-only issue report (`RecipientReportedIssue`) — does **not** move `job.status`. Accepts multipart `photos`, stored as `INCIDENT_EVIDENCE` (Design Phase 6 Increment 6) |
 
 ---
 
@@ -119,8 +122,9 @@ via the link token itself, not a bearer session.
 | --- | --- | --- | --- |
 | GET | `/jobs/<job_id>/incidents` | `incident.read` | List incidents for the job |
 | POST | `/jobs/<job_id>/incidents` | `incident.create` | Report an incident (`report_incident`) |
-| GET | `/incidents/<incident_id>` | `incident.read` | Incident detail |
+| GET | `/incidents/<incident_id>` | `incident.read` | Incident detail, with its `evidence` and `statements` arrays embedded (Design Phase 6 Increment 7) |
 | POST | `/incidents/<incident_id>/evidence` | `incident.evidence.attach` | Attach evidence (reuses `fikisha.evidence`, append-only) |
+| GET | `/incidents/evidence/<evidence_id>/content` | `incident.read` | Stream one evidence file through the API, never a signed bucket URL; mirrors verification's evidence content view (Increment 7) |
 | POST | `/incidents/<incident_id>/statements` | `incident.statement.add` | Add a party statement (append-only) |
 | POST | `/incidents/<incident_id>/review` | `incident.review` | Start formal review (config-driven `OPERATIONS_OFFICER` permission, not "any admin") |
 | POST | `/incidents/<incident_id>/amicable` | `incident.review` | Start the amicable-resolution window |

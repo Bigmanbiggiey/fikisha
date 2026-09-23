@@ -2,7 +2,8 @@
 
 **Status:** APPROVED 2026-09-15 — founder confirmed, including the proposed
 defaults for all 6 open questions in §9. Implementation proceeds per §7's
-increment sequence.
+increment sequence. **Progress (2026-09-23): Increments 1–7 DONE; Increment
+8 (Operations Officer console) next, pending founder review.**
 
 **Continues the design track:** `design-brief.md` (P0) → `design-phase-1-ia.md`
 (P1, IA/nav) → `design-phase-2-user-flows.md` (P2, journeys) →
@@ -332,27 +333,119 @@ shows `CONFIRMED` at the agreed price.
 Stopped here for review, per the plan's per-increment discipline —
 Increment 4 (Operator) not started.
 
-### Increment 4 — Operator: discover, negotiate, assign (P2 Flow Family B, P3 §7, §9)
+### Increment 3 code-review fixes — DONE, 2026-09-17
+
+Three fix commits from the code review of Increment 3, landed before
+Increment 4: `GET /groups` never populated `my_role` (the same defect as
+`ADR-2B-11`, found on the business list in Increment 2); negotiation
+`accept()` replayed a saved response for a reused idempotency key before
+checking that the caller was a party to the thread, so an actor could
+reuse a key from their own thread on the same job to read another thread's
+payload (the party check now runs first); a thread closed by `decline()`
+kept its last offer ACTIVE after `ADR-2D-32` (it is now superseded); a
+superseded ACCEPT still showed an "Accepted" badge; the Job Detail
+timeline lost every earlier checkmark once a job was CANCELLED, FAILED or
+DISPUTED (progress is now derived from the last populated timestamp).
+
+### Increment 4 — Operator: discover, negotiate, assign (P2 Flow Family B, P3 §7, §9) — DONE, 2026-09-21
 
 Operator Home (§7.1) · Work discovery (§7.2) · Job Opportunity (§7.3) ·
 Operator Job Detail (§7.4) · My Jobs (§7.5) · Confirmed Job view (§9.1) ·
 Assign driver & vehicle (§9.2, server-authoritative eligibility, never a
 client-side bypass).
 
-### Increment 5 — Driver: the physical delivery (P2 Flow Family C, P3 §10–§13)
+**Founder scope decision:** individual operators only. The Group Manager's
+driver-pool assignment flow is deferred to a later increment.
+
+**Backend (a gap this increment could not be built without):**
+`job.read` deliberately hides `REQUESTED`/`NEGOTIATING` jobs an operator
+has not yet touched, so there was no way to discover work. Added
+`GET /jobs/opportunities`, `GET /jobs/<id>/opportunity` (`job.discover`,
+scoped to the operator's own vehicle classes, never the whole marketplace)
+and `GET /jobs/<id>/assignment-candidates` (`job.assign.candidates`). The
+eligibility-reason predicates were moved out of `jobs/guards.py` so the
+preview and the real `CONFIRMED → ASSIGNED` guard use one source of truth.
+See `docs/phase-2/phase-2d-api.md` §2.
+
+Frontend: `OperatorHomePage`, `WorkListPage`, `JobOpportunityPage`,
+`AssignDriverVehiclePage`, `MyJobsPage`; new `EligibilityRow` (ineligible
+options are shown with their reason, not hidden) and a `useJobViewerRole`
+hook, so `JobDetailPage` and `NegotiationPage` branch per job instead of
+being forked. "Accept the posted price" is `propose()` then `accept()`,
+and the job still needs the business's own ACCEPT to confirm. `TopBar`
+shows Work/My Jobs only for a workspace holding an Operator profile; the
+full RoleTabBar/RoleSidebar redesign stays deferred.
+
+**Defects found in live-browser verification:** `localizeError()` compared
+a namespaced key with i18next's un-namespaced fallback, so every error code
+missing from `errors.json` showed its raw machine string; the NEGOTIATING
+status line on Job Detail was written from the business's side only.
+
+13 new backend tests (441 existing jobs tests unchanged), 131 frontend
+tests. Live-verified: discovery → opportunity → accept → negotiating →
+confirmed → assign (ineligible vehicle shown disabled with reasons) →
+ASSIGNED.
+
+### Increment 5 — Driver: the physical delivery (P2 Flow Family C, P3 §10–§13) — DONE, 2026-09-22
 
 Current Job home (§10.1, 56px action-dominant) · Go to pickup (§10.2) ·
 Pickup proof, STANDARD and ELEVATED+ variants (§11.1–§11.3, exact band
 matrix) · Custody confirmation (§12.1) · In transit (§13.1) · At destination
 (§13.2) · Delivery proof, both band variants (mirrors §11's pattern).
 
-### Increment 6 — Recipient (P2 Flow Family D, P3 §20)
+Frontend only; the custody endpoints already existed from Phase 2D. New
+components `OtpInput`, `PhotoCapture` (no client-side WebP compression; a
+documented simplification) and `SignaturePad`. New screens
+`PickupProofPage` (STANDARD shows the operator-attested fallback; ELEVATED+
+shows only the two verified paths and a blocking explainer),
+`CustodyConfirmationPage`, `DeliveryProofPage` (STANDARD: one of
+OTP/signature/photo; ELEVATED+: OTP **and** photo). The driver's per-status
+actions extend `JobDetailPage`'s `OperatorNextActionSection` rather than a
+separate screen. "Go to pickup" and "I'm at pickup" are one screen: there
+is no geofence, and chain-of-custody.md §5 takes one reading per event.
+
+**Defects fixed in `jobsApi.ts`** (this increment was the first real
+caller): arrival geo was sent at the top level instead of under `geo`, so
+the server always dropped it; `startTransit` sent a body the view never
+reads; attested-pickup and delivery proof only sent JSON, so photo and
+signature uploads were impossible (now `FormData`). **Found live:** the
+Geolocation API's `timeout` does not cover an unanswered permission
+prompt, so an arrival tap could hang forever. `geo.ts` now races it
+against a 5s limit.
+
+Live-verified on both bands: the STANDARD attested fallback through to
+DELIVERED with a full timeline; on ELEVATED+ no fallback is offered, and
+the explainer appears after a failed OTP.
+
+### Increment 6 — Recipient (P2 Flow Family D, P3 §20) — DONE, 2026-09-22
 
 Scoped-link shell (§20.1, minimum-necessary-disclosure per the exact §20.0
 field table) · Confirm receipt (§20.2, band-appropriate) · Report a problem
 (§20.3).
 
-### Increment 7 — Incidents & Disputes (P3 §17)
+The first unauthenticated Jobs routes: `/r/:token` and its two
+sub-screens sit outside `AppShell`/`RequireAuth`, like `/login`, and
+`AuthProvider` skips its `/auth/me` call on `/r/` routes.
+
+**Founder scope decisions made before implementation:**
+- The recipient's confirm-receipt OTP is always mandatory. The backend
+  requires it, so the wireframe's STANDARD "one of OTP/signature/photo"
+  line is out of date. `RecipientView` has no `value_band` (§20.0), so the
+  screen doesn't branch on band. It always offers an optional photo or
+  signature. If an ELEVATED+ job then fails with `delivery_proof_incomplete`,
+  the photo control opens and the name and OTP already entered are kept
+  (the `ADR-2D-16` pattern).
+- Photo evidence on "report a problem" was built rather than deferred:
+  `RecipientReportIssueView` now accepts multipart `photos`, using the
+  service's existing `photo_evidence_ids` support.
+
+Live-verified, fully logged out: STANDARD confirm with OTP only; ELEVATED
+`delivery_proof_incomplete` retry with a photo; report with photo
+(verified in the DB as `INCIDENT_EVIDENCE`, `uploaded_by_kind=RECIPIENT`);
+unknown token (404) and expired link (410), each with its own copy. 455
+jobs-app backend tests, 166 frontend tests.
+
+### Increment 7 — Incidents & Disputes (P3 §17) — DONE, 2026-09-22
 
 Incident entry (§17.1, shared across roles) · Ops Officer incident/dispute
 review workspace (§17.2, amicable-first; Platform-Admin-only actions
@@ -360,6 +453,48 @@ review workspace (§17.2, amicable-first; Platform-Admin-only actions
 resolution + the `DISPUTED → RESUME` action shell (§17.3 — reason + fresh
 MFA + confirm + audit, **no `RESUME_PRIOR` precondition logic**, per O-P1) ·
 Dispute timeline overlay (§17.4).
+
+**Backend gap closed:** incident detail never included its evidence or
+statements, and neither had a GET endpoint, so the Ops Officer's "review
+evidence" and "communication log" (§17.2) couldn't be built. Incident
+detail now embeds both, and `GET /incidents/evidence/<id>/content` streams
+evidence through the existing `incident.read` policy.
+
+**Scope decisions recorded here (not silently made):**
+- **Resume is a permanently disabled shell.** `RESUME_PRIOR` has no backend
+  at all (a DB CHECK constraint excludes it; `JobEventType.RESUMED` is
+  never emitted), and it is still an open Phase-0 decision (O-P1). The
+  shell shows the reason field and the wireframe copy, and makes no API
+  call.
+- **No MFA UI.** Nothing made functional here needs it, and the backend
+  has no MFA enforcement to call (`is_step_up_fresh` is an unused stub).
+  §17.3's "fresh MFA" therefore isn't met yet. It has to be revisited with
+  Increment 9 (suspend/config).
+- **Opening a dispute** is an Ops Officer / Platform Admin action from
+  Incident Detail, not a self-service control for ordinary roles. The
+  backend's ability for a job party to open one is unchanged, just not
+  exposed.
+- **No cross-job incident/dispute queue.** The backend has no list-all
+  endpoint for incidents or disputes; that is Increment 8's triage work.
+  Reachability is via Job Detail's "Report an issue" and "View dispute"
+  links.
+
+Frontend: `features/incidents/`: `IncidentReportPage`,
+`IncidentDetailPage` and `DisputeDetailPage`. Resolve controls are
+read-only for non-admins. An Ops Officer can resolve STANDARD band only,
+with commission fixed to APPLY. A Platform Admin gets REDUCE/WAIVE plus the
+disabled Resume shell.
+
+**Found live:** opening a dispute didn't invalidate the
+`['disputes', jobId]` cache, so "View dispute" showed "no dispute" for 30s.
+Fixed. Live-verified with three real logins (business owner, Ops Officer,
+Platform Admin): report with photo → evidence opens → dispute opened →
+above-STANDARD "needs a Platform Administrator" state → REDUCE resolution
+(a `CommissionAdjustment` row in the DB, Job → COMPLETED). 136
+incidents-app backend tests, 169 frontend tests.
+
+Stopped here for review. Increment 8 (Operations Officer console) is not
+started.
 
 ### Increment 8 — Operations Officer console (P3 §18)
 
