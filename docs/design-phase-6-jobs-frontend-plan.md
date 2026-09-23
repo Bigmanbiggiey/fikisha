@@ -502,6 +502,21 @@ Operations overview/triage (§18.1) · Job monitoring table (§18.2) ·
 High-value review (§18.3, HIGH/VERY_HIGH bands) · Search (§18.4) ·
 Audit/activity read (§18.5).
 
+**Pre-build research (2026-09-22; the detailed plan isn't written yet):**
+unlike 4–7, most of this increment needs new backend read surfaces: job-list
+filters (state/band/age) on the existing `GET /jobs`; a list-and-decide
+HTTP pair over the already-built `decide_high_value()`; a read-only
+`fikisha.audit` API (the app has no `api/` package). The Ops Officer
+permission strings in `platform_config.role_permissions`
+(`job.monitor.view`, `audit.view.scoped`, …) are not yet wired to any
+policy. They should follow `incidents.services._require_review_permission`'s
+config-driven check, not a coarse `is_admin`. **Founder decision:** §18.4
+Search this increment is a minimal job-reference "quick jump" (one filter
+on the job list). Full cross-entity search is deferred to its own later
+increment. **Open:** §18.2's "nudge"/"flag" interventions aren't defined
+in any doc. The proposal is informational placeholders (like the Resume
+shell), which the founder still needs to confirm.
+
 ### Increment 9 — Platform Admin console (P3 §19)
 
 Control overview (§19.1) · the Platform-Admin-only action-shell pattern
