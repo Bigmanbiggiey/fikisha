@@ -429,6 +429,44 @@ def admin_band_authorised(job: Any, actor: Any, ctx: dict[str, Any]) -> None:
         )
 
 
+_PARTY_CANCEL_TOKENS: frozenset[str] = frozenset(
+    {"BUSINESS_PARTY", "BUSINESS_OWNER_OR_DISPATCHER", "OPERATOR_PARTY", "GROUP_MANAGER"}
+)
+
+
+def admin_cancel_band_authorised(job: Any, actor: Any, ctx: dict[str, Any]) -> None:
+    """Staff-initiated cancellation (Design Phase 6 Increment 8, founder
+    decision 2026-09-23; ADR-2D-33): an Operations Officer may cancel up to the
+    STANDARD band only — above it, a Platform Admin is required (mirrors the
+    dispute rule D-ADM-1 / ``AdminBandAuthorised``) — and every staff cancel
+    carries a reason (FR-ADM-2).
+
+    A cancel initiated as a *party* (the server-asserted party token in
+    ``initiator_tokens``, e.g. ``cancel_job``'s ``BUSINESS_PARTY``) is
+    untouched: this guard only constrains the ADMIN path. DRAFT has no frozen
+    band yet (it is frozen by the cancel apply fn itself) and is not live
+    work, so it is not band-checked."""
+    tokens = {str(t) for t in (ctx.get("initiator_tokens") or [])}
+    if tokens & _PARTY_CANCEL_TOKENS:
+        return
+    from fikisha.jobs import job_authz
+
+    if not job_authz.is_admin(actor):
+        return  # not the staff path — the initiator match already decided it
+    if not str(ctx.get("reason_text") or "").strip():
+        _fail("admin_reason_required", "A staff cancellation must include a reason.")
+    if job.status == "DRAFT":
+        return
+    band = job.value_band or ValueBand.STANDARD
+    if band == ValueBand.STANDARD:
+        return
+    if not job_authz.is_platform_admin(actor):
+        _fail(
+            "platform_admin_required",
+            "Cancelling a job above the Standard band requires a Platform Administrator.",
+        )
+
+
 def no_open_blocking_dispute(job: Any, actor: Any, ctx: dict[str, Any]) -> None:
     from fikisha.incidents.constants import DisputeStatus
     from fikisha.incidents.models import Dispute
@@ -498,6 +536,7 @@ GUARDS: dict[str, Guard] = {
     "BlockingIncidentExists": blocking_incident_exists,
     "ResolutionRecorded": resolution_recorded,
     "AdminBandAuthorised": admin_band_authorised,
+    "AdminCancelBandAuthorised": admin_cancel_band_authorised,
     "NoOpenBlockingDispute": no_open_blocking_dispute,
     "RequestExpired": request_expired,
     "WithinDeliveryAcceptanceWindow": within_delivery_acceptance_window,

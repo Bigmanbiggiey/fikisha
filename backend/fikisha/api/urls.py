@@ -40,6 +40,8 @@ urlpatterns = [
     path("", include("fikisha.jobs.api.urls")),
     path("", include("fikisha.negotiation.api.urls")),
     path("", include("fikisha.incidents.api.urls")),
+    # Design Phase 6 Increment 8 — audit read (Ops console).
+    path("", include("fikisha.audit.api.urls")),
 ]
 
 if settings.DEBUG:

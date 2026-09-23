@@ -8,7 +8,7 @@ from typing import Any
 
 from rest_framework import serializers
 
-from fikisha.jobs.constants import CancellationReason, RecipientIssueCategory
+from fikisha.jobs.constants import CancellationReason, HighValueDecision, RecipientIssueCategory
 
 
 class LocationWriteSerializer(serializers.Serializer[dict[str, Any]]):
@@ -113,3 +113,15 @@ class RecipientReportIssueSerializer(serializers.Serializer[dict[str, Any]]):
     category = serializers.ChoiceField(choices=RecipientIssueCategory.choices)
     description = serializers.CharField(max_length=2000, required=False, allow_blank=True)
     other_label = serializers.CharField(max_length=80, required=False, allow_blank=True)
+
+
+# ─── Operations Officer console (Design Phase 6 Increment 8) ───────────
+class AddNoteSerializer(serializers.Serializer[dict[str, Any]]):
+    text = serializers.CharField(max_length=2000)
+
+
+class HighValueDecisionSerializer(serializers.Serializer[dict[str, Any]]):
+    decision = serializers.ChoiceField(choices=HighValueDecision.choices)
+    # Required here (the service allows blank): every §18.3 decision is a
+    # reasoned, audited staff action (FR-ADM-2).
+    rationale = serializers.CharField(max_length=2000)

@@ -55,6 +55,43 @@ def businesses_for(user: User) -> QuerySet[BusinessAccount]:
     )
 
 
+def display_name_for(business_id: Any) -> str | None:
+    """The business's trading name — for another module (e.g. the Ops job
+    monitor) to label a job's business without reaching into this module's
+    model fields directly (module boundary rule, mirrors
+    ``operators.services.display_name_for``)."""
+    return (
+        BusinessAccount.objects.filter(id=business_id)
+        .values_list("trading_name", flat=True)
+        .first()
+    )
+
+
+def display_names_for(business_ids: Any) -> dict[str, str]:
+    """Bulk form of :func:`display_name_for` — one query for a list page."""
+    return {
+        str(pk): name
+        for pk, name in BusinessAccount.objects.filter(id__in=list(business_ids)).values_list(
+            "id", "trading_name"
+        )
+    }
+
+
+def contact_for(business_id: Any) -> dict[str, str] | None:
+    """The business's own registered contact (name + phone). Callers are
+    responsible for authorising and auditing the reveal — this is a plain
+    read (Design Phase 6 Increment 8, Ops "contact parties")."""
+    row = (
+        BusinessAccount.objects.filter(id=business_id)
+        .values_list("trading_name", "contact_name", "contact_phone")
+        .first()
+    )
+    if row is None:
+        return None
+    trading_name, contact_name, contact_phone = row
+    return {"name": contact_name or trading_name, "phone": contact_phone}
+
+
 def membership_for(user: User, business_id: Any) -> BusinessMembership | None:
     return BusinessMembership.objects.filter(
         business_id=business_id, user=user, status=MembershipStatus.ACTIVE

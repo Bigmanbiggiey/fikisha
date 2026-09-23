@@ -7,12 +7,12 @@ from __future__ import annotations
 
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
-from rest_framework import status
+from rest_framework import serializers, status
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from fikisha.common.api import OrgApiView
+from fikisha.common.api import OrgApiView, paginated
 from fikisha.common.idempotency import idempotent
 from fikisha.evidence import services as evidence_services
 from fikisha.identity.authz.actors import actor_from_request
@@ -342,3 +342,59 @@ class DisputeResolveView(OrgApiView):
             idempotency_key=_idempotency_key(request),
         )
         return Response({"resolution_id": str(resolution.id), "job": view})
+
+
+# ─── Ops console queues (Design Phase 6 Increment 8, P3 §18.1) ─────────
+_OPEN_STATUSES = ("OPEN", "UNDER_REVIEW", "AMICABLE_PENDING", "ESCALATED")
+
+
+def _job_ref(job_id: object) -> str:
+    return str(job_id)[-6:].upper()
+
+
+class _IncidentQueueRow(serializers.BaseSerializer):
+    def to_representation(self, incident: Incident) -> dict[str, object]:
+        return {
+            "id": str(incident.id),
+            "job_id": str(incident.job_id),
+            "job_reference": _job_ref(incident.job_id),
+            "type": incident.type,
+            "other_label": incident.other_label,
+            "severity": incident.severity,
+            "status": incident.status,
+            "created_at": incident.created_at.isoformat(),
+            "sla_ack_due_at": (
+                incident.sla_ack_due_at.isoformat() if incident.sla_ack_due_at else None
+            ),
+        }
+
+
+class _DisputeQueueRow(serializers.BaseSerializer):
+    def to_representation(self, dispute: Dispute) -> dict[str, object]:
+        band = dispute.job.value_band or "STANDARD"
+        return {
+            "id": str(dispute.id),
+            "job_id": str(dispute.job_id),
+            "job_reference": _job_ref(dispute.job_id),
+            "status": dispute.status,
+            "value_band": band,
+            # Binding resolution above STANDARD is Platform-Admin-only (D-ADM-1).
+            "needs_platform_admin": band != "STANDARD",
+            "created_at": dispute.created_at.isoformat(),
+        }
+
+
+class OpsIncidentQueueView(OrgApiView):
+    action_get = "incident.queue.view"
+
+    def get(self, request: Request) -> Response:
+        qs = Incident.objects.filter(status__in=_OPEN_STATUSES)
+        return paginated(request, qs, _IncidentQueueRow)
+
+
+class OpsDisputeQueueView(OrgApiView):
+    action_get = "incident.queue.view"
+
+    def get(self, request: Request) -> Response:
+        qs = Dispute.objects.filter(status__in=_OPEN_STATUSES).select_related("job")
+        return paginated(request, qs, _DisputeQueueRow)

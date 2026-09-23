@@ -104,6 +104,36 @@ def _commission_read(actor: Any, _action: str, _resource: Any) -> Decision:
     return ALLOW if job_authz.is_platform_admin(actor) else deny("authz.forbidden")
 
 
+def _has_config_permission(actor: Any, permission: str) -> Decision:
+    """Config-driven staff permission (``platform_config.role_permissions``) —
+    deliberately **not** an ``is_admin`` shortcut, same reasoning as
+    ``incidents.services._require_review_permission``: a permission the
+    config doesn't grant a role is denied, whatever the actor's admin flag."""
+    if not getattr(actor, "is_authenticated", False):
+        return deny("authz.unauthenticated")
+    from fikisha.identity.authz.policies import actor_has_permission
+
+    if actor_has_permission(actor, permission):
+        return ALLOW
+    return deny("authz.forbidden", f"missing permission {permission!r}")
+
+
+@policy("job.monitor.view")
+def _job_monitor_view(actor: Any, action: str, _resource: Any) -> Decision:
+    """Ops job monitoring, high-value queue, raw event log (Design Phase 6
+    Increment 8, P3 §18.2/§18.3/§14) — the Ops Officer's approved
+    ``job.monitor.view`` permission, now actually enforced."""
+    return _has_config_permission(actor, action)
+
+
+@policy("job.intervene")
+def _job_intervene(actor: Any, action: str, _resource: Any) -> Decision:
+    """Ops interventions that aren't lifecycle transitions — operational
+    note, audited contact reveal (P3 §18.2). Staff cancel stays on
+    ``job.transition`` + the ``AdminCancelBandAuthorised`` guard."""
+    return _has_config_permission(actor, action)
+
+
 @policy("highvalue.approve")
 def _highvalue_approve(actor: Any, _action: str, _resource: Any) -> Decision:
     """Coarse gate — HIGH vs VERY_HIGH admin-tier resolution is in
