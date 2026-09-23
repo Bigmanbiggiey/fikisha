@@ -126,7 +126,15 @@ export function NegotiationPage(): JSX.Element {
               ← {t('negotiation:backToOffers')}
             </button>
           )}
-          <ThreadDetail thread={active} jobId={jobId!} viewerRole={viewer.role} />
+          {/* Fikisha staff (Increment 8) read the thread from the business side
+              and never get the composer/accept controls — the backend
+              would refuse a staff offer anyway. */}
+          <ThreadDetail
+            thread={active}
+            jobId={jobId!}
+            viewerRole={viewer.role === 'STAFF' ? 'BUSINESS' : viewer.role}
+            readOnly={viewer.role === 'STAFF'}
+          />
         </>
       )}
     </div>
@@ -176,10 +184,12 @@ function ThreadDetail({
   thread,
   jobId,
   viewerRole,
+  readOnly = false,
 }: {
   thread: NegotiationThread;
   jobId: string;
-  viewerRole: JobViewerRole;
+  viewerRole: Exclude<JobViewerRole, 'STAFF'>;
+  readOnly?: boolean;
 }): JSX.Element {
   const { t } = useTranslation(['negotiation', 'errors']);
   const navigate = useNavigate();
@@ -298,7 +308,7 @@ function ThreadDetail({
         </Card>
       )}
 
-      {thread.status === 'ACTIVE' && ownAcceptPending && (
+      {!readOnly && thread.status === 'ACTIVE' && ownAcceptPending && (
         <Card>
           <p className="text-body text-fg-secondary">
             {t(
@@ -310,7 +320,7 @@ function ThreadDetail({
         </Card>
       )}
 
-      {thread.status === 'ACTIVE' && !ownAcceptPending && (
+      {!readOnly && thread.status === 'ACTIVE' && !ownAcceptPending && (
         <Card>
           <div className="space-y-3">
             {thread.counterparty_offer && (

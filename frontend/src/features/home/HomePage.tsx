@@ -7,6 +7,7 @@ import { StatusBadge } from '@/components/StatusBadge';
 import { useAuth } from '@/features/auth/useAuth';
 import { BusinessHomePage } from '@/features/jobs/BusinessHomePage';
 import { OperatorHomePage } from '@/features/jobs/OperatorHomePage';
+import { OpsHomePage } from '@/features/ops/OpsHomePage';
 import { useWorkspaces } from '@/shell/useWorkspaces';
 
 /**
@@ -24,6 +25,11 @@ export function HomePage(): JSX.Element {
   if (loading) return <PageLoader />;
   if (workspaces.some((w) => w.kind === 'BUSINESS')) return <BusinessHomePage />;
   if (workspaces.some((w) => w.kind === 'OPERATOR')) return <OperatorHomePage />;
+  // Staff with no business/operator workspace of their own land on the Ops
+  // console overview (Design Phase 6 Increment 8).
+  if (workspaces.some((w) => w.kind === 'OPERATIONS_OFFICER' || w.kind === 'PLATFORM_ADMIN')) {
+    return <OpsHomePage />;
+  }
   return <GenericHomePlaceholder />;
 }
 

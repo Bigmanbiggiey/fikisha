@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Route, Routes } from 'react-router-dom';
 
+import { ApiError } from '@/services/problem';
 import { renderWithProviders } from '@/test/renderWithProviders';
 
 import { JobDetailPage } from './JobDetailPage';
@@ -35,6 +36,9 @@ const listBusinesses = vi.fn();
 const getMyOperator = vi.fn();
 const listGroups = vi.fn();
 const listDisputesForJob = vi.fn();
+const notes = vi.fn();
+const addNote = vi.fn();
+const revealContacts = vi.fn();
 
 vi.mock('./jobsApi', () => ({
   jobsApi: {
@@ -48,6 +52,15 @@ vi.mock('./jobsApi', () => ({
 }));
 vi.mock('@/features/incidents/incidentsApi', () => ({
   disputesApi: { listForJob: (...a: unknown[]) => listDisputesForJob(...a) },
+}));
+vi.mock('@/features/ops/opsApi', () => ({
+  notesQueryKey: (jobId: string) => ['job-notes', jobId],
+  opsApi: {
+    notes: (...a: unknown[]) => notes(...a),
+    addNote: (...a: unknown[]) => addNote(...a),
+    revealContacts: (...a: unknown[]) => revealContacts(...a),
+    events: () => Promise.resolve({ data: [] }),
+  },
 }));
 vi.mock('./geo', () => ({ getOneShotGeo: () => Promise.resolve(undefined) }));
 vi.mock('@/features/auth/authApi', () => ({
@@ -101,6 +114,10 @@ describe('JobDetailPage', () => {
     listGroups.mockReset();
     listDisputesForJob.mockReset();
     listDisputesForJob.mockResolvedValue({ data: [] });
+    notes.mockReset();
+    addNote.mockReset();
+    revealContacts.mockReset();
+    notes.mockResolvedValue({ data: [] });
     meMock.mockRejectedValue(new Error('anon'));
   });
 
@@ -364,6 +381,89 @@ describe('JobDetailPage', () => {
       renderAtJob('01a0a4123456');
 
       expect(await screen.findByText('Nothing needed from you right now.')).toBeInTheDocument();
+    });
+  });
+  it('shows Fikisha operational notes to a job party', async () => {
+    get.mockResolvedValue(baseJob());
+    notes.mockResolvedValue({
+      data: [{ id: 'n1', text: 'Driver is 20 minutes late', created_at: '2026-09-23T08:00:00Z', author_label: 'Fikisha Operations' }],
+    });
+    renderAtJob('01a0a4123456');
+    expect(await screen.findByText('Updates from Fikisha')).toBeInTheDocument();
+    expect(screen.getByText('Driver is 20 minutes late')).toBeInTheDocument();
+  });
+
+  describe('as Fikisha staff', () => {
+    function signInAs(roles: string[]): void {
+      meMock.mockResolvedValue({
+        id: 's1', phone: '+254700000008', display_name: 'Ops', locale: 'en', status: 'ACTIVE', roles, is_admin: true,
+      });
+      listBusinesses.mockResolvedValue({ data: [], page: { next_cursor: null, prev_cursor: null } });
+      getMyOperator.mockRejectedValue(
+        new ApiError({ type: 'about:blank', title: 'Not Found', status: 404, code: 'not_found', detail: '' }, 404, 'not found'),
+      );
+      listGroups.mockResolvedValue({ data: [], page: { next_cursor: null, prev_cursor: null } });
+    }
+
+    it('renders the staff panel instead of the business actions', async () => {
+      signInAs(['OPERATIONS_OFFICER']);
+      get.mockResolvedValue(baseJob({ value_band: 'STANDARD' }));
+      renderAtJob('01a0a4123456');
+      expect(await screen.findByRole('heading', { name: 'Fikisha Operations' })).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Cancel request' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Confirm pickup' })).not.toBeInTheDocument();
+    });
+
+    it('lets an Ops Officer cancel a STANDARD job only with a reason', async () => {
+      signInAs(['OPERATIONS_OFFICER']);
+      get.mockResolvedValue(baseJob({ value_band: 'STANDARD' }));
+      cancel.mockResolvedValue(baseJob({ status: 'CANCELLED' }));
+      const user = userEvent.setup();
+      renderAtJob('01a0a4123456');
+
+      await user.click(await screen.findByRole('button', { name: 'Cancel this job' }));
+      const confirm = screen.getByRole('button', { name: 'Cancel the job' });
+      expect(confirm).toBeDisabled();
+      await user.type(screen.getByLabelText('Reason for cancelling'), 'Business asked by phone');
+      await user.click(confirm);
+      expect(cancel).toHaveBeenCalledWith(
+        '01a0a4123456',
+        { reason_code: 'ADMIN_ACTION', reason_text: 'Business asked by phone' },
+        expect.any(String),
+      );
+    });
+
+    it('replaces cancel with the Platform-Admin notice above the Standard band', async () => {
+      signInAs(['OPERATIONS_OFFICER']);
+      get.mockResolvedValue(baseJob({ value_band: 'ELEVATED' }));
+      renderAtJob('01a0a4123456');
+      expect(await screen.findByText(/Cancelling this job needs a Platform Administrator/)).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Cancel this job' })).not.toBeInTheDocument();
+    });
+
+    it('offers cancel above the Standard band to a Platform Admin', async () => {
+      signInAs(['PLATFORM_ADMIN']);
+      get.mockResolvedValue(baseJob({ value_band: 'VERY_HIGH' }));
+      renderAtJob('01a0a4123456');
+      expect(await screen.findByRole('button', { name: 'Cancel this job' })).toBeInTheDocument();
+    });
+
+    it('reveals contacts only on request', async () => {
+      signInAs(['OPERATIONS_OFFICER']);
+      get.mockResolvedValue(baseJob({ value_band: 'STANDARD' }));
+      revealContacts.mockResolvedValue({
+        job_id: '01a0a4123456',
+        contacts: {
+          business: null, pickup: { name: 'Juma', phone: '+254700900001' }, destination: null,
+          recipient: null, operator: null, driver: null,
+        },
+      });
+      const user = userEvent.setup();
+      renderAtJob('01a0a4123456');
+
+      await user.click(await screen.findByRole('button', { name: 'Show contact details' }));
+      expect(revealContacts).toHaveBeenCalledTimes(1);
+      expect(await screen.findByRole('link', { name: '+254700900001' })).toHaveAttribute('href', 'tel:+254700900001');
     });
   });
 });
