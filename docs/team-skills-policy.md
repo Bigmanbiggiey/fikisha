@@ -157,7 +157,11 @@ for a classification it is omitted.
   diagrams) · `accessibility-compliance` (`wcag-audit-patterns`,
   `screen-reader-testing`, `ui-visual-validator`) · `frontend-design` (aesthetic
   direction, light touch at wireframe stage) · `doc-coauthoring` · `context7` /
-  `modern-web-guidance` for current PWA/responsive patterns.
+  `modern-web-guidance` for current PWA/responsive patterns. Added 2026-09-23
+  (founder approval, Design Phase 7 brief D-3): `design:design-critique` ·
+  `design:accessibility-review` · `design:ux-copy` · `design:design-system`.
+  For Design Phase 7 the mockup tools `web-artifacts-builder` / `playground` and
+  `webapp-testing` (headless screenshot capture) are also approved.
 - **OPTIONAL (founder request):** `web-artifacts-builder`, `playground`
   (clickable prototype) · `document-skills` `docx`/`pdf` (packaged deliverable) ·
   `tailwind-design-system`, `shadcn` (only once a token system is approved).

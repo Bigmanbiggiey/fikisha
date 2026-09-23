@@ -1,7 +1,7 @@
 # Design Phase 7 — UI/UX Pass: Phase Brief
 
-**Status:** DRAFT, awaiting founder approval (2026-09-23). Nothing in this
-phase starts until the founder approves this brief and answers §10.
+**Status:** APPROVED 2026-09-23. The founder approved all §10 recommendations
+("approved as recommended"), with one amendment to D-6 (see §10).
 
 **Kind of phase:** a **findings and proposals** phase. It produces
 documents, screenshots and mockups only. **No application code, tokens,
@@ -95,21 +95,20 @@ into a fix.
 
 | Step | What happens | Skills / tools |
 | --- | --- | --- |
-| 1. Capture | Launch the app (dev stack on :5173 / :8010) and screenshot every in-scope screen at 3 widths × 2 languages, plus the reachable exception states, using seeded demo data. **The founder signs in for each role; Claude never types sign-in codes.** | `run`, Claude in Chrome |
+| 1. Capture | Launch the app (dev stack on :5173 / :8010) and screenshot every in-scope screen at 3 widths × 2 languages, plus the reachable exception states, using seeded demo data. A headless Playwright script (scratch, not committed) signs in as each seeded role with the dev-only code (D-6 as amended). | `run`, `webapp-testing` (Playwright) |
 | 2. Map | Inventory components, token usage, one-off styles, duplicated patterns (e.g. page-local tables, raw `<textarea>`s, ad-hoc selects) | Read/Grep (no agent fan-out unless approved) |
 | 3. Critique | Visual hierarchy, consistency across roles, clarity of the "one primary next action" principle (P1 IA), density per role | `frontend-design`, `design:design-critique`* |
 | 4. Accessibility | WCAG 2.2 AA: contrast of composed screens (not just tokens), focus order and traps, target size, ARIA, reduced motion, screen-reader naming | `accessibility-compliance` (`wcag-audit-patterns`, `ui-visual-validator`, `screen-reader-testing`), `design:accessibility-review`* |
 | 5. Copy | EN and SW microcopy: labels, empty states, errors, confirmation dialogs, length and overflow in Swahili | `design:ux-copy`* |
 | 6. Consistency | Token drift, spacing and type scale, component reuse; candidates for new shared primitives (e.g. Table, Textarea, FilterBar) | `design:design-system`*, `tailwind-design-system` (optional) |
 | 7. Report | Findings report, one entry per finding (see §6) | `doc-coauthoring` |
-| 8. Propose | Before/after mockups for the top-priority proposals, inside the approved tokens | `frontend-design`, `artifact-design` + `web-artifacts-builder` / `playground` (optional, founder request) |
+| 8. Propose | Before/after mockups for the top-priority proposals, inside the approved tokens | `frontend-design`, `artifact-design` + `web-artifacts-builder` / `playground` (approved for this phase, D-3) |
 | 9. Plan | For the approved proposals only: a file-by-file implementation plan for a later build step | `superpowers:writing-plans` (as a plan writer only, not the `using-superpowers` preamble, which stays rejected) |
 
 \* The `design:*` skills (`design-critique`, `accessibility-review`,
 `ux-copy`, `design-system`) are **not classified** in
-`docs/team-skills-policy.md`. Under that policy they need founder approval
-before use. This brief asks for that approval (§10, D-3) and proposes adding
-them to §5.4 as **STANDARD (design phases)**.
+`docs/team-skills-policy.md`. **Approved 2026-09-23 (D-3)** and added to the
+policy's §5.4 as STANDARD (design phases).
 
 ## 6. Deliverables
 
@@ -184,7 +183,7 @@ Then Claude **stops**. Implementation needs its own approval.
 | D-3 | Skills | Approve the four unclassified `design:*` skills for this phase and add them to `team-skills-policy.md` §5.4 as STANDARD (design phases). Approve `web-artifacts-builder` / `playground` for the mockups (currently OPTIONAL, founder request) | **Approve both** |
 | D-4 | Mockup count and form | Up to 8 interactive before/after mockups as a private artifact page, or static images in the repo only | **Artifact**, up to 8 |
 | D-5 | Baseline changes | May the report propose changes to approved docs (palette, wireframes), clearly marked for separate decision, or must it stay strictly within baseline? | **Allow, clearly marked** |
-| D-6 | Sign-in for screenshots | The founder signs in to the browser for each role when asked; Claude never types sign-in codes | Required, not really optional |
+| D-6 | Sign-in for screenshots | ~~The founder signs in for each role~~ **Amended by the founder:** capture runs automatically. It uses a headless Playwright script, outside the repo, against the local dev stack, signing in with the seeded test accounts and the dev-only `dev_code`. It never uses the founder's own browser or credentials. The founder signs in and explores each section after the revamps | Approved (amended) |
 
 ## 11. Effort and cadence
 

@@ -567,6 +567,13 @@ Users & organizations (§19.5).
 
 ### Increment 10 — Cross-cutting verification pass
 
+> **Re-scoped 2026-09-23 (founder, Design Phase 7 brief D-2):** the *audit*
+> half of this increment is now **Design Phase 7 — UI/UX Pass**
+> (`design-phase-7-ui-ux-pass-brief.md`), which runs **before Increment 9**
+> (D-1). Increment 10 becomes the build step that implements the proposals
+> the founder approves from Phase 7's decision sheet, plus the final
+> lint/typecheck/test/build and multi-width smoke pass below.
+
 Sweep every screen against: the exception-state catalogue (P3 §22 — Loading/
 Empty/Offline/Error/Unauthorized/Expired/Already-done/Conflicting-stale/
 Missing-proof/Cancelled/Couldn't-complete/Under-dispute/Sync-issue);
