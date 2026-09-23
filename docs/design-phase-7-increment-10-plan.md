@@ -1,8 +1,10 @@
 # Increment 10 — Build the approved UI/UX proposals: Implementation Plan
 
-**Status:** DRAFT, awaiting founder approval (2026-09-23). The founder
-approved *writing* this plan. The build itself needs approval of this plan,
-per the Phase 7 brief §9 and exit criteria.
+**Status:** APPROVED 2026-09-23. The founder approved the plan and added a
+**Messages inbox** (§2, sub-increment 10g; scope chosen by the founder).
+Defaults taken for the two unanswered questions: new Swahili strings are
+flagged in each PR for founder review, and 10a–10c are built before
+Increment 9.
 
 **Source:** `design-phase-7-ui-ux-findings.md` (all 16 proposals approved
 2026-09-23) and the mockups (https://claude.ai/artifact/Acqpw9Knkebi3G8fUhsALf).
@@ -14,8 +16,9 @@ multi-width smoke checks are kept as the last sub-increment.
 
 ## 1. Shape of the work
 
-**Frontend only, no backend changes.** Every proposal is a presentation
-change. One data check confirmed this:
+**Frontend only, no backend changes, except 10g** (the inbox needs one
+read-only endpoint and a small read-marker table). Every other proposal is a
+presentation change. One data check confirmed this:
 - **Driver contacts (P-03):** the job payload already returns the pickup
   contact name and phone and the recipient's name and phone to every job
   party, including the assigned driver. The founder's ruling (an assigned
@@ -36,7 +39,8 @@ reviewably, not one giant diff" rule in `CLAUDE.md` §7.
 | **10c** Role navigation shell | P-04 | F-04, F-16 | L |
 | **10d** Language, sync label, dates | P-05, P-06, P-14 | F-05, F-06, F-14, F-15 | M |
 | **10e** Consistency and copy | P-07, P-08, P-09, P-11, P-13, P-15, P-16 | F-07, F-08, F-09, F-11, F-13, F-17, F-18 | M |
-| **10f** Verification close-out | — | the report's coverage gaps | S |
+| **10g** Messages inbox | new (founder, 2026-09-23) | IA §26 Business "Messages" | M |
+| **10f** Verification close-out (runs last) | — | the report's coverage gaps | S |
 
 **The same checks for every sub-increment:**
 - `npm run typecheck`, `lint`, `vitest` and `vite build` (within the 200 kB
@@ -285,6 +289,45 @@ The founder signs in and explores after the revamps (brief D-6).
 - **P-16:** remove the literal "· " from the report-issue link copy in en
   and sw.
 
+### 10g — Messages inbox (founder addition, 2026-09-23)
+
+**Founder-chosen scope:** one list of the conversations that **already
+exist**, across all of the user's jobs, newest first, with unread markers.
+Each item opens its existing screen. **No new chat channel:** negotiation
+stays the authoritative record, and WhatsApp stays a notification channel.
+
+- **Backend:** a new read-only composition app, `fikisha.inbox`. It reads
+  only through each module's public surface (module boundary rule).
+  - **Sources:**
+    - negotiation threads the user is party to (latest entry, whose turn it
+      is)
+    - "Updates from Fikisha" notes on the user's jobs (`jobs.ops.notes_for`)
+    - incident and dispute statements on the user's jobs, plus status
+      changes where the user is a party
+  - **`GET /messages`:** cursor-paginated items `{kind, job_id, job_reference,
+    title, preview, at, unread, link}`, scoped by each module's existing
+    party checks. Staff see nothing new here; they already have the Ops
+    queues.
+  - **Read markers:** a small `InboxReadMarker(user, conversation_key,
+    last_read_at)` table. `POST /messages/read {conversation_key}` sets it.
+    Opening the linked screen marks it read. This is a new migration.
+  - **Records:** ADR-2D-37 for the new app, the read-marker table, and
+    "aggregates only, no new messages"; plus IDOR/BOLA tests (a user never
+    sees another business's or operator's items).
+- **Frontend:**
+  - `features/messages/MessagesPage.tsx`: list with filters (All · Offers ·
+    Fikisha updates · Issues), unread badge, relative age (P-14 helper), EN
+    and SW.
+  - The Messages item joins the Business primary nav (and the Operator
+    one, which also has offer threads) in `navConfig`, with an unread count
+    badge on the tab/sidebar item.
+- **Tests:**
+  - aggregation per source
+  - scoping (IDOR)
+  - read markers
+  - frontend list, filters and unread badge
+- **Order:** after 10c (it needs the nav shell), before 10f.
+
 ### 10f — Verification close-out
 
 - **Exception states:** extend the capture script to reach and screenshot
@@ -305,8 +348,8 @@ The founder signs in and explores after the revamps (brief D-6).
 
 ## 3. Open items (not decided here)
 
-1. **Messages** in the Business primary nav (IA §26): no screen exists.
-   Build an inbox later, or drop it from the IA. **Founder decision.**
+1. ~~Messages~~ **Resolved 2026-09-23:** build an inbox of existing threads
+   (10g).
 2. **Swahili copy review:** the new sw strings (cancel consequences, proof
    explanations, driver state lines) need a native-speaker pass before 10b
    and 10d land. Can the founder name a reviewer, or should Claude flag them
