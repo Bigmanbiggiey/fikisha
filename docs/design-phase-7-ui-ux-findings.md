@@ -1,8 +1,12 @@
 # Design Phase 7 — UI/UX Pass: Findings Report
 
-**Status:** FINDINGS COMPLETE, awaiting founder review (2026-09-23). Per the
-brief (§11), work **stops here** until the founder has reviewed this report
-and the decision sheet (§5). Mockups (brief §6.3) start after that.
+**Status:** FINDINGS COMPLETE. **Decision sheet returned 2026-09-23: all 16
+proposals APPROVED**, with the 8 proposed mockups. Driver-contact question
+resolved (see §5). **Mockups delivered 2026-09-23:** a private artifact,
+https://claude.ai/artifact/Acqpw9Knkebi3G8fUhsALf (before/after for P-01, P-02,
+P-03, P-04, P-08, P-10, P-12, P-14; EN/SW toggle; new Swahili lines are drafts
+for native-speaker review). Next is the implementation plan (brief step 9), then
+the Increment 10 build.
 **No application code was changed in this phase.**
 
 **Brief:** `design-phase-7-ui-ux-pass-brief.md` (APPROVED 2026-09-23).
@@ -141,8 +145,8 @@ proposed fix.
 - **Fix (within baseline):** a driver rendering of Job Detail per §10.1 (or
   a dedicated Current Job route), with driver-voiced state lines (add
   `jobs:statusLine.*_DRIVER` keys) and the step contact with a `tel:` link.
-  *Open data question:* the driver's view of the pickup/recipient phone
-  needs checking against minimum disclosure (see ADR-2D-36 open items).
+  **Resolved by the founder (2026-09-23):** once assigned, the driver sees
+  both the sender's (pickup) and the receiver's (recipient) name and phone.
 
 ### Majors
 
@@ -338,27 +342,29 @@ the ≤ 8 before/after mockups (brief D-4).
 
 | Proposal | Fixes | Mockup? | Decision |
 | --- | --- | --- | --- |
-| P-01 Single-column phone layouts (move `sm:` to `md:`/`lg:`) + guard | F-01 | ✅ Jobs list @360 | |
-| P-02 Business cancel sheet: reason + late-cancel consequence | F-02 | ✅ | |
-| P-03 Driver "Current Job" per P3 §10.1, driver-voiced lines, step contact | F-03 | ✅ | |
-| P-04 Role nav shell: bottom tabs (mobile) and sidebar (desktop) | F-04, F-16 | ✅ Business + Driver | |
-| P-05 Translation-driven shared components + switcher on login | F-05 | — | |
-| P-06 "Online / Offline" instead of "Synced" | F-06 | — | |
-| P-07 Target-size rule: no compact buttons outside dense tables | F-07 | — | |
-| P-08 Job header with reference and heading; staff adds band and high-value status | F-08 | ✅ | |
-| P-09 "Delivered — completes automatically" status instead of an action | F-09 | — | |
-| P-10 Recipient code entry with a visible label and helper text | F-10 | ✅ | |
-| P-11 Offer-history copy: "Replaced by a newer offer" | F-11 | — | |
-| P-12 Driver proof-method rows (56px, explained, default) | F-12 | ✅ | |
-| P-13 `Textarea` and `Select` primitives; fix the axe errors | F-13 | — | |
-| P-14 Date/time helper (language + EAT + relative age) | F-14, F-15 | ✅ Ops queue row | |
-| P-15 Load-time API call clean-up | F-17 | — | |
-| P-16 Copy polish ("·" in links) | F-18 | — | |
+| P-01 Single-column phone layouts (move `sm:` to `md:`/`lg:`) + guard | F-01 | ✅ Jobs list @360 | **Approved** |
+| P-02 Business cancel sheet: reason + late-cancel consequence | F-02 | ✅ | **Approved** |
+| P-03 Driver "Current Job" per P3 §10.1, driver-voiced lines, step contact | F-03 | ✅ | **Approved** |
+| P-04 Role nav shell: bottom tabs (mobile) and sidebar (desktop) | F-04, F-16 | ✅ Business + Driver | **Approved** |
+| P-05 Translation-driven shared components + switcher on login | F-05 | — | **Approved** |
+| P-06 "Online / Offline" instead of "Synced" | F-06 | — | **Approved** |
+| P-07 Target-size rule: no compact buttons outside dense tables | F-07 | — | **Approved** |
+| P-08 Job header with reference and heading; staff adds band and high-value status | F-08 | ✅ | **Approved** |
+| P-09 "Delivered — completes automatically" status instead of an action | F-09 | — | **Approved** |
+| P-10 Recipient code entry with a visible label and helper text | F-10 | ✅ | **Approved** |
+| P-11 Offer-history copy: "Replaced by a newer offer" | F-11 | — | **Approved** |
+| P-12 Driver proof-method rows (56px, explained, default) | F-12 | ✅ | **Approved** |
+| P-13 `Textarea` and `Select` primitives; fix the axe errors | F-13 | — | **Approved** |
+| P-14 Date/time helper (language + EAT + relative age) | F-14, F-15 | ✅ Ops queue row | **Approved** |
+| P-15 Load-time API call clean-up | F-17 | — | **Approved** |
+| P-16 Copy polish ("·" in links) | F-18 | — | **Approved** |
 
 **Proposed mockup set (8):** P-01, P-02, P-03, P-04, P-08, P-10, P-12, P-14.
 The founder can swap any of them.
 
-**Open question carried forward (not part of this phase):** F-03's driver
-contact depends on what the driver may see (ADR-2D-36: phone exposure
-before assignment). The driver *after* assignment is presumably entitled to
-the step contact; the founder should confirm.
+**Founder decision (2026-09-23), driver contacts:** once assigned, the driver
+may see **both the sender's (pickup contact) and the receiver's (recipient)
+name and phone**, for communication. This settles F-03's data question for
+the assigned driver only. The separate ADR-2D-36 open item (phones visible to
+operators who are only negotiating, *before* assignment) is unaffected and
+stays open.
