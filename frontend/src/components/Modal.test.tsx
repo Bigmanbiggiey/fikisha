@@ -61,4 +61,26 @@ describe('Modal', () => {
     render(<Harness dismissible={false} />);
     expect(screen.queryByRole('button', { name: 'Close' })).not.toBeInTheDocument();
   });
+  it('keeps focus in a field while typing (inline onClose re-created each render)', async () => {
+    // Regression (Design Phase 6 Increment 8): the focus effect used to
+    // re-run on every re-render, yanking focus to the Close button so the
+    // next Space closed the modal mid-sentence.
+    function Typing(): JSX.Element {
+      const [open, setOpen] = useState(true);
+      const [text, setText] = useState('');
+      return (
+        <Modal open={open} onClose={() => setOpen(false)} title="Tell us why">
+          <label htmlFor="r">Reason</label>
+          <textarea id="r" value={text} onChange={(e) => setText(e.target.value)} />
+        </Modal>
+      );
+    }
+    const user = userEvent.setup();
+    render(<Typing />);
+    const field = screen.getByLabelText('Reason');
+    await user.click(field);
+    await user.type(field, 'two words here');
+    expect(field).toHaveValue('two words here');
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+  });
 });

@@ -1,4 +1,4 @@
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 
 import { TopBar } from './TopBar';
 
@@ -6,9 +6,13 @@ import { TopBar } from './TopBar';
  * AppShell — Design Phase 5B retone. Structure (navigation, IA) is unchanged
  * from Phase 2A; only colours/spacing move to the token system. The content
  * column stays readable-width; role-specific layouts (Operator workspace
- * expansion, Driver focus) are Phase 5C.
+ * expansion, Driver focus) are Phase 5C. The Ops console (`/ops/*`, Design
+ * Phase 6 Increment 8) gets a wider column — P3 §18 is a desktop-first dense
+ * workspace (queue board, monitoring table).
  */
 export function AppShell(): JSX.Element {
+  const { pathname } = useLocation();
+  const wide = pathname === '/ops' || pathname.startsWith('/ops/');
   return (
     <div className="flex min-h-full flex-col bg-surface-page">
       <a
@@ -18,7 +22,7 @@ export function AppShell(): JSX.Element {
         Skip to content
       </a>
       <TopBar />
-      <main id="main" className="mx-auto w-full max-w-3xl flex-1 px-4 py-6">
+      <main id="main" className={`mx-auto w-full ${wide ? 'max-w-6xl' : 'max-w-3xl'} flex-1 px-4 py-6`}>
         <Outlet />
       </main>
       <footer className="border-t border-line py-4 text-center text-caption text-fg-muted">

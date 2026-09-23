@@ -38,13 +38,31 @@ def display_name_for(operator_id: Any) -> str | None:
     """The operator's public display name — for another module (e.g.
     negotiation) to label a counterparty without reaching through the FK
     into this module's model fields directly (module boundary rule)."""
-    row = OperatorProfile.objects.filter(id=operator_id).values_list(
-        "display_name", "full_name"
-    ).first()
+    row = (
+        OperatorProfile.objects.filter(id=operator_id)
+        .values_list("display_name", "full_name")
+        .first()
+    )
     if row is None:
         return None
     display_name, full_name = row
     return display_name or full_name
+
+
+def contact_for(operator_id: Any) -> dict[str, str] | None:
+    """The operator's name + reachable phone (the first listed contact phone,
+    else the login phone). Callers authorise and audit the reveal — this is a
+    plain read (Design Phase 6 Increment 8, Ops "contact parties")."""
+    row = (
+        OperatorProfile.objects.filter(id=operator_id)
+        .values_list("display_name", "full_name", "phones", "user__phone")
+        .first()
+    )
+    if row is None:
+        return None
+    display_name, full_name, phones, login_phone = row
+    phone = next(iter(phones or []), "") or login_phone or ""
+    return {"name": display_name or full_name, "phone": str(phone)}
 
 
 @transaction.atomic

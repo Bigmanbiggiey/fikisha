@@ -493,6 +493,108 @@ removing it.
 
 ---
 
+## ADR-2D-33 — Staff cancel is band-limited: an Ops Officer cancels ≤ STANDARD, above that only a Platform Admin — CONFIRMED (Design Phase 6, Increment 8; founder decision 2026-09-23)
+
+The lifecycle engine gave every staff actor (Ops Officer or Platform Admin)
+the same `ADMIN` initiator token on all six ordinary `* → CANCELLED` rules,
+with no guard. So `POST /jobs/<id>/cancel` already let an Ops Officer cancel a
+HIGH or VERY_HIGH job. That contradicted P3 §18.2 ("binding lifecycle moves
+above Standard route to Platform Admin"), and it was inconsistent with the
+dispute rule (D-ADM-1 / `AdminBandAuthorised`). The founder ruled that cancel
+**should** be band-limited.
+
+New guard `AdminCancelBandAuthorised` on the six ordinary cancel rules
+(`DRAFT`, `REQUESTED`, `NEGOTIATING`, `CONFIRMED`, `ASSIGNED` and `AT_PICKUP →
+CANCELLED`). `DISPUTED → CANCELLED` already has `AdminBandAuthorised`. The
+guard:
+- returns immediately if the caller asserted a **party** token
+  (`BUSINESS_PARTY` / `BUSINESS_OWNER_OR_DISPATCHER` / `OPERATOR_PARTY` /
+  `GROUP_MANAGER` in `initiator_tokens`, which server code sets, e.g.
+  `cancel_job`'s `BUSINESS_PARTY`). **A business cancelling its own job is
+  never affected, at any band.**
+- on the staff path, requires a non-empty `reason_text`
+  (`admin_reason_required`, FR-ADM-2 "each logged with … reason").
+- above STANDARD, requires the `PLATFORM_ADMIN` role (`platform_admin_required`,
+  the same code `AdminBandAuthorised` uses).
+- skips the band check for `DRAFT`. The band isn't frozen yet (the cancel
+  apply fn freezes it), and a draft isn't live work.
+
+`AdminBandAuthorised` itself couldn't be reused, because it has no notion of
+initiator kind and would have blocked business parties on ELEVATED+ jobs. No
+transition was added or removed; only a guard was added.
+
+## ADR-2D-34 — Operational note = an append-only `JobEvent(NOTE, ADMIN_ACTION)`, visible to the job's parties — CONFIRMED (Design Phase 6, Increment 8; founder decisions 2026-09-23)
+
+P3 §18.2's "nudge" is not a system-sent message (that would need an
+SMS/WhatsApp provider, which is outside the STOP line). It is the P4 §18
+"operational note": `jobs.ops.add_note()` appends a
+`JobEvent(type=NOTE, category=ADMIN_ACTION, note=text)` under the job-row
+lock (the same lock `transition()` holds, so `seq` stays gapless) and writes
+`audit.record("job.note.added")`. It **never** changes `job.status` or
+`version`, and it is allowed in any state. Filtering on
+`category=ADMIN_ACTION` matters because `(REQUESTED, NEGOTIATING)` also
+writes `type=NOTE` events.
+
+Visibility (founder decision): notes are visible to the job's parties through
+`GET /jobs/<id>/notes` (`job.read` + `is_job_party`). Parties see the author
+only as "Fikisha Operations" (minimum disclosure). The staff member's
+user id and role are returned to staff only. Writing requires `job.intervene`.
+
+The contact reveal (`POST /jobs/<id>/contacts/reveal`, also `job.intervene`)
+returns each party's name and phone for a staff member to call or WhatsApp,
+which digitises existing practice rather than adding an in-app channel.
+Every call writes one `job.contacts.revealed` audit row that names the
+parties revealed and **never** includes a phone number. The new Ops monitor
+rows (`GET /ops/jobs`) carry no contacts, so the audited reveal is the only
+staff path to a phone.
+
+## ADR-2D-35 — `audit.view.scoped` = the Ops remit, an allowlist of entity types — CONFIRMED (Design Phase 6, Increment 8; founder decision 2026-09-23)
+
+`platform_config.role_permissions` granted the Operations Officer
+`audit.view.scoped`, but no document defined "scoped". The founder chose the
+Ops remit. `fikisha.audit.scopes.OPS_AUDIT_ENTITY_TYPES` covers: `job,
+negotiation_entry, high_value_approval, recipient_access_link,
+recipient_reported_issue, incident, incident_statement, incident_evidence,
+dispute, resolution, escalation, verification_record, vehicle`. A Platform
+Admin (`"*"`) sees everything. It is an **allowlist**, so a new entity type
+added later stays Platform-Admin-only until someone deliberately adds it.
+Commission, platform config, identity, session and membership entries are
+excluded. `GET /audit/entries` never returns `source_ip` or `source_device`.
+
+## ADR-2D-36 — The Ops Officer's config permissions are now enforced, config-driven, with no `is_admin` shortcut — CONFIRMED (Design Phase 6, Increment 8)
+
+`job.monitor.view`, `job.intervene`, `audit.view.scoped` and `incident.intake`
+were named in the approved `role_permissions` config but enforced nowhere.
+They are now `@policy` functions that call
+`identity.authz.policies.actor_has_permission` (roles-based, deny by default),
+for the same reason `incidents.services._require_review_permission` gives:
+an active AdminProfile **with no role** gets nothing. Two
+`actor_has_permission` implementations exist (identity's is roles-only;
+incidents' also counts `audit_role`). This increment uses the identity one
+and records the divergence as an open item rather than silently merging
+them.
+
+Endpoints: `GET /ops/jobs` (monitor: status / band / attention / stale_hours
+filters, plus the job-reference quick jump. `ref` matches the id suffix, so
+both the 6-character UI reference and the recipient page's 8-character
+`delivery_reference` resolve), `GET /ops/high-value` +
+`POST /jobs/<id>/high-value-decision` (over the existing `decide_high_value()`,
+which is unchanged; the serializer makes `rationale` required),
+`GET /jobs/<id>/events` (the staff event log), `GET /ops/incidents` +
+`GET /ops/disputes` (overview queues), and `GET /audit/entries`. See
+`phase-2d-api.md`.
+
+**Open items found, not fixed (recorded for the founder):**
+- `GET /jobs` and job detail return contact and recipient phones unmasked to
+  any party that can see the job, including an operator who has only opened a
+  negotiation thread. What an operator should see before assignment is a
+  product decision.
+- A high-value REJECT is permanent. There is no correction path.
+- The reference formats disagree: the recipient page shows 8 characters, the
+  UI shows 6.
+
+---
+
 ## Self-caught defects fixed during implementation
 
 Every one of these was found by the implementation's own review or test

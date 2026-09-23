@@ -23,6 +23,21 @@ urlpatterns = [
         views.JobAssignmentCandidatesView.as_view(),
         name="assignment-candidates",
     ),
+    # ─── Operations Officer console (Design Phase 6 Increment 8) ────
+    path("ops/jobs", views.OpsJobMonitorView.as_view(), name="ops-jobs"),
+    path("ops/high-value", views.OpsHighValueQueueView.as_view(), name="ops-high-value"),
+    path("jobs/<uuid:job_id>/notes", views.JobNotesView.as_view(), name="notes"),
+    path("jobs/<uuid:job_id>/events", views.JobEventsView.as_view(), name="events"),
+    path(
+        "jobs/<uuid:job_id>/contacts/reveal",
+        views.JobContactsRevealView.as_view(),
+        name="contacts-reveal",
+    ),
+    path(
+        "jobs/<uuid:job_id>/high-value-decision",
+        views.JobHighValueDecisionView.as_view(),
+        name="high-value-decision",
+    ),
     path("jobs/<uuid:job_id>/assign", views.JobAssignView.as_view(), name="assign"),
     path("jobs/<uuid:job_id>/commission", views.JobCommissionView.as_view(), name="commission"),
     # ─── Custody ─────────────────────────────────────────────────────

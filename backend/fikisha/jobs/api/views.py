@@ -22,9 +22,10 @@ from fikisha.evidence import services as evidence_services
 from fikisha.evidence.models import EvidencePurpose, PiiClass, UploaderKind
 from fikisha.jobs import assignment_candidates as assignment_candidates_service
 from fikisha.jobs import commission as commission_service
-from fikisha.jobs import creation, custody, discovery, job_authz
+from fikisha.jobs import creation, custody, discovery, job_authz, ops
 from fikisha.jobs import recipient as recipient_service
 from fikisha.jobs.api.serializers import (
+    AddNoteSerializer,
     ArriveSerializer,
     AssignSerializer,
     CancelJobSerializer,
@@ -33,12 +34,14 @@ from fikisha.jobs.api.serializers import (
     ConfirmPickupBusinessSerializer,
     ConfirmPickupOtpSerializer,
     FailAtPickupSerializer,
+    HighValueDecisionSerializer,
     JobCreateSerializer,
     RecipientConfirmSerializer,
     RecipientReportIssueSerializer,
 )
 from fikisha.jobs.assignment import assign_job
 from fikisha.jobs.errors import CommissionRecordNotFound
+from fikisha.jobs.high_value import decide_high_value
 from fikisha.jobs.models import CommissionAdjustment, CommissionRecord, Job
 from fikisha.jobs.selectors import get_job
 
@@ -159,6 +162,106 @@ class JobCancelView(OrgApiView):
         return Response(view)
 
 
+# ─── Operations Officer console (Design Phase 6 Increment 8, P3 §18) ────
+def _int_param(request: Request, name: str) -> int | None:
+    raw = request.query_params.get(name)
+    if raw in (None, ""):
+        return None
+    try:
+        return int(str(raw))
+    except (TypeError, ValueError) as exc:
+        raise ops.InvalidFilter(f"{name} must be a whole number.") from exc
+
+
+def _paginate_rows(request: Request, qs: Any, render: Any) -> Response:
+    """Cursor-paginate ``qs`` and render the page in one bulk call (the row
+    renderers resolve business/operator names for the whole page at once)."""
+    from fikisha.common.pagination import CursorPagination
+
+    paginator = CursorPagination()
+    page = paginator.paginate_queryset(qs, request) or []
+    return paginator.get_paginated_response(render(list(page)))
+
+
+class OpsJobMonitorView(OrgApiView):
+    action_get = "job.monitor.view"
+
+    def get(self, request: Request) -> Response:
+        params = request.query_params
+        statuses = [s for s in (params.get("status") or "").split(",") if s]
+        qs = ops.monitored_jobs(
+            statuses=statuses or None,
+            value_band=params.get("value_band") or None,
+            ref=params.get("ref") or None,
+            attention=params.get("attention") or None,
+            stale_hours=_int_param(request, "stale_hours"),
+        )
+        return _paginate_rows(request, qs, ops.ops_rows)
+
+
+class OpsHighValueQueueView(OrgApiView):
+    action_get = "job.monitor.view"
+
+    def get(self, request: Request) -> Response:
+        qs = ops.high_value_pending().select_related(
+            "pickup_location", "destination_location", "agreement"
+        )
+        return _paginate_rows(request, qs, ops.high_value_rows)
+
+
+class JobHighValueDecisionView(OrgApiView):
+    action_post = "highvalue.approve"
+
+    def post(self, request: Request, job_id: str) -> Response:
+        serializer = HighValueDecisionSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        view = decide_high_value(
+            actor=self.actor(request),
+            job_id=job_id,
+            decision=serializer.validated_data["decision"],
+            rationale=serializer.validated_data["rationale"],
+        )
+        return Response(view, status=status.HTTP_201_CREATED)
+
+
+class JobNotesView(OrgApiView):
+    """GET: any party to the job (founder decision 2026-09-23 — notes are
+    visible to the job's parties). POST: staff with ``job.intervene``."""
+
+    action_get = "job.read"
+    action_post = "job.intervene"
+
+    def resolve_target(self) -> Job:
+        return get_job(self.kwargs["job_id"])
+
+    def get(self, request: Request, job_id: str) -> Response:
+        job = self.get_authz_resource()
+        staff = job_authz.is_admin(self.actor(request))
+        return Response({"data": ops.notes_for(job, staff=staff)})
+
+    def post(self, request: Request, job_id: str) -> Response:
+        serializer = AddNoteSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        view = ops.add_note(
+            actor=self.actor(request), job_id=job_id, text=serializer.validated_data["text"]
+        )
+        return Response(view, status=status.HTTP_201_CREATED)
+
+
+class JobEventsView(OrgApiView):
+    action_get = "job.monitor.view"
+
+    def get(self, request: Request, job_id: str) -> Response:
+        return Response({"data": ops.events_for(get_job(job_id))})
+
+
+class JobContactsRevealView(OrgApiView):
+    action_post = "job.intervene"
+
+    def post(self, request: Request, job_id: str) -> Response:
+        return Response(ops.reveal_contacts(actor=self.actor(request), job_id=job_id))
+
+
 # ─── Work discovery (Design Phase 6 Increment 4, individual-operator-only —
 # see jobs.assignment_candidates module docstring) ──────────────────────
 class JobOpportunitiesView(OrgApiView):
@@ -168,9 +271,7 @@ class JobOpportunitiesView(OrgApiView):
         actor = self.actor(request)
         value_band = request.query_params.get("value_band") or None
         qs = discovery.open_jobs_for(actor, value_band=value_band)
-        return paginated(
-            request, qs, _JobOpportunitySerializer, context={"discovery_actor": actor}
-        )
+        return paginated(request, qs, _JobOpportunitySerializer, context={"discovery_actor": actor})
 
 
 class JobOpportunityDetailView(OrgApiView):

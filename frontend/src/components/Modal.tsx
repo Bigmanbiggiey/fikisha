@@ -38,9 +38,18 @@ export function Modal({
   const restoreRef = useRef<HTMLElement | null>(null);
   const titleId = useId();
 
-  const close = useCallback(() => {
+  // The latest `onClose`/`dismissible`, read through a ref so the focus
+  // effect below runs only when `open` changes. Callers pass an inline
+  // `onClose` arrow, so depending on it re-ran the effect on every
+  // re-render — i.e. every keystroke in a field inside the modal — which
+  // yanked focus back to the first focusable element (the Close button),
+  // where the next Space "clicked" Close. Found in Design Phase 6
+  // Increment 8; it also affected Increment 4's counter-offer sheet.
+  const closeRef = useRef<() => void>(() => undefined);
+  closeRef.current = () => {
     if (dismissible) onClose();
-  }, [dismissible, onClose]);
+  };
+  const close = useCallback(() => closeRef.current(), []);
 
   useEffect(() => {
     if (!open) return;

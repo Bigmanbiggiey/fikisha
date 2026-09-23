@@ -7,6 +7,9 @@ from fikisha.incidents.api import views
 app_name = "incidents"
 
 urlpatterns = [
+    # ─── Ops console queues (Design Phase 6 Increment 8) ─────────────
+    path("ops/incidents", views.OpsIncidentQueueView.as_view(), name="ops-incidents"),
+    path("ops/disputes", views.OpsDisputeQueueView.as_view(), name="ops-disputes"),
     # ─── Incidents ───────────────────────────────────────────────────
     path(
         "jobs/<uuid:job_id>/incidents",

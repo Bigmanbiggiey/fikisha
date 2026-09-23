@@ -112,4 +112,27 @@ describe('useWorkspaces', () => {
     await waitFor(() => expect(screen.queryByText('loading')).not.toBeInTheDocument());
     expect(screen.getByRole('list')).toBeEmptyDOMElement();
   });
+  it('gives an Ops Officer (who also has is_admin, like every AdminProfile) no Platform Admin workspace', async () => {
+    // Regression (Design Phase 6 Increment 8): the backend sets is_admin for
+    // any active AdminProfile, so an Ops Officer has it too — it must not be
+    // read as 'Platform Admin'.
+    meMock.mockResolvedValue({
+      id: 'u1',
+      phone: '+254700000008',
+      display_name: 'Ops',
+      locale: 'en',
+      status: 'ACTIVE',
+      roles: ['OPERATIONS_OFFICER'],
+      is_admin: true,
+    });
+    listBusinesses.mockResolvedValue({ data: [], page: { next_cursor: null, prev_cursor: null } });
+    getMyOperator.mockRejectedValue(
+      new ApiError({ type: 'about:blank', title: 'Not Found', status: 404, code: 'not_found', detail: '' }, 404, 'not found'),
+    );
+    listGroups.mockResolvedValue({ data: [], page: { next_cursor: null, prev_cursor: null } });
+
+    renderWithProviders(<Probe />);
+    expect(await screen.findByText('OPERATIONS_OFFICER:Operations')).toBeInTheDocument();
+    expect(screen.queryByText(/PLATFORM_ADMIN/)).not.toBeInTheDocument();
+  });
 });

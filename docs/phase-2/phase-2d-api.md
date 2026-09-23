@@ -141,6 +141,32 @@ outbox consumer; still true after Step 10.
 
 ---
 
+## 4a. Operations Officer console (Design Phase 6 Increment 8, ADR-2D-33–36)
+
+Staff-only endpoints are gated by **config-driven** permissions
+(`platform_config.role_permissions`: an Operations Officer holds the named
+permission, a Platform Admin holds `"*"`). There is no `is_admin` shortcut.
+
+| Method | Path | Action (authz) | Purpose |
+| --- | --- | --- | --- |
+| GET | `/ops/jobs` | `job.monitor.view` | Job monitor. Filters: `status` (comma list), `value_band`, `attention` (`disputed` / `failed` / `high_value_pending` / `stale`), `stale_hours`, `ref` (job-reference quick jump, matched by id suffix, so the 6- and 8-character forms both work). Slim rows with **no contacts or phones** |
+| GET | `/ops/high-value` | `job.monitor.view` | CONFIRMED HIGH/VERY_HIGH jobs with no decision yet. Each row has `needs_platform_admin` (VERY_HIGH) |
+| POST | `/jobs/<job_id>/high-value-decision` | `highvalue.approve` | `{decision, rationale}` (rationale required) passed to `decide_high_value()`: Ops decides HIGH, Platform Admin decides VERY_HIGH, one decision per job (409 on a second) |
+| GET | `/jobs/<job_id>/notes` | `job.read` | Operational notes. Any job party may read them; the author shows as "Fikisha Operations" |
+| POST | `/jobs/<job_id>/notes` | `job.intervene` | Add an operational note (an append-only `JobEvent` of type NOTE; never changes status) |
+| POST | `/jobs/<job_id>/contacts/reveal` | `job.intervene` | Parties' names and phones. Each call writes one `job.contacts.revealed` audit row, with no phone in it |
+| GET | `/jobs/<job_id>/events` | `job.monitor.view` | Full job event log in `seq` order (staff raw-event drawer, no `source_meta`) |
+| GET | `/ops/incidents` | `incident.queue.view` (`incident.intake`) | Open incidents across all jobs |
+| GET | `/ops/disputes` | `incident.queue.view` (`incident.intake`) | Open disputes across all jobs, with `needs_platform_admin` (band above STANDARD) |
+| GET | `/audit/entries` | `audit.view.scoped` | Read-only audit log, newest first. Filters: `actor_user`, `entity_type`, `entity_id`, `action` (prefix), `from`, `to`. An Ops Officer is limited to the Ops-remit allowlist (ADR-2D-35); never returns `source_ip` or `source_device` |
+
+**Staff cancel** stays on `POST /jobs/<job_id>/cancel`, now behind the
+`AdminCancelBandAuthorised` guard (ADR-2D-33). A staff cancel needs
+`reason_text`, and above STANDARD it needs a Platform Admin. A business
+party's own cancel is unchanged at every band.
+
+---
+
 ## 5. What is deliberately absent
 
 No route exposes: a raw scheduler/lifecycle transition (sweeps run only as

@@ -8,7 +8,11 @@
     "myJobs": "My Jobs",
     "diagnostics": "Diagnostics",
     "signOut": "Sign out",
-    "signIn": "Sign in"
+    "signIn": "Sign in",
+    "ops": "Operations",
+    "opsJobs": "Monitor",
+    "highValue": "High-value",
+    "audit": "Audit"
   },
   "language": {
     "label": "Language",

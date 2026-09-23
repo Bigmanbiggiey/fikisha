@@ -97,3 +97,18 @@ def _dispute_resolve(actor: Any, _action: str, _resource: Any) -> Decision:
     if not getattr(actor, "is_authenticated", False):
         return deny("authz.unauthenticated")
     return ALLOW if _is_admin(actor) else deny("authz.forbidden")
+
+
+@policy("incident.queue.view")
+def _incident_queue_view(actor: Any, _action: str, _resource: Any) -> Decision:
+    """Cross-job incident/dispute queues for the Ops console (Design Phase 6
+    Increment 8, P3 §18.1) — the approved ``incident.intake`` staff
+    permission (``platform_config.role_permissions``), config-driven like
+    ``services._require_review_permission``, not an ``is_admin`` shortcut."""
+    if not getattr(actor, "is_authenticated", False):
+        return deny("authz.unauthenticated")
+    from fikisha.identity.authz.policies import actor_has_permission
+
+    if actor_has_permission(actor, "incident.intake"):
+        return ALLOW
+    return deny("authz.forbidden", "missing permission 'incident.intake'")

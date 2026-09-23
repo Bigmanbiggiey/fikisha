@@ -49,6 +49,7 @@ ALLOWED_TRANSITIONS: dict[tuple[str, str], Rule] = {
     ),
     (S.DRAFT, S.CANCELLED): Rule(
         initiators=("BUSINESS_PARTY", "ADMIN"),
+        guards=("AdminCancelBandAuthorised",),
         apply="cancel",
         events=("JobCancelled",),
         event_type=JobEventType.CANCELLED,
@@ -69,6 +70,7 @@ ALLOWED_TRANSITIONS: dict[tuple[str, str], Rule] = {
     ),
     (S.REQUESTED, S.CANCELLED): Rule(
         initiators=("BUSINESS_PARTY", "ADMIN"),
+        guards=("AdminCancelBandAuthorised",),
         apply="cancel",
         events=("JobCancelled",),
         event_type=JobEventType.CANCELLED,
@@ -95,6 +97,7 @@ ALLOWED_TRANSITIONS: dict[tuple[str, str], Rule] = {
     ),
     (S.NEGOTIATING, S.CANCELLED): Rule(
         initiators=("BUSINESS_PARTY", "ADMIN"),
+        guards=("AdminCancelBandAuthorised",),
         apply="cancel",
         events=("JobCancelled",),
         event_type=JobEventType.CANCELLED,
@@ -123,6 +126,7 @@ ALLOWED_TRANSITIONS: dict[tuple[str, str], Rule] = {
     ),
     (S.CONFIRMED, S.CANCELLED): Rule(
         initiators=("BUSINESS_PARTY", "OPERATOR_PARTY", "GROUP_MANAGER", "ADMIN"),
+        guards=("AdminCancelBandAuthorised",),
         apply="cancel",
         events=("JobCancelled",),
         event_type=JobEventType.CANCELLED,
@@ -137,6 +141,7 @@ ALLOWED_TRANSITIONS: dict[tuple[str, str], Rule] = {
     ),
     (S.ASSIGNED, S.CANCELLED): Rule(
         initiators=("BUSINESS_PARTY", "OPERATOR_PARTY", "GROUP_MANAGER", "ADMIN"),
+        guards=("AdminCancelBandAuthorised",),
         apply="cancel",
         events=("JobCancelled",),
         event_type=JobEventType.CANCELLED,
@@ -164,6 +169,7 @@ ALLOWED_TRANSITIONS: dict[tuple[str, str], Rule] = {
     ),
     (S.AT_PICKUP, S.CANCELLED): Rule(
         initiators=("BUSINESS_PARTY", "OPERATOR_PARTY", "GROUP_MANAGER", "ADMIN"),
+        guards=("AdminCancelBandAuthorised",),
         apply="cancel",
         events=("JobCancelled",),
         event_type=JobEventType.CANCELLED,

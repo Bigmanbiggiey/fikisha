@@ -18,6 +18,10 @@ import { useWorkspaces } from './useWorkspaces';
  * before. A full `RoleTabBar`/`RoleSidebar` (nav that also *hides* the
  * non-relevant links, per the Design Phase 6 plan §4) is still not built;
  * this is deliberately the smallest correct step rather than that redesign.
+ * Design Phase 6 Increment 8 adds the same kind of gate for Fikisha staff
+ * (Ops Officer / Platform Admin): Operations · Monitor · High-value · Audit,
+ * and the Verification queue link now shows only to staff (it was an
+ * everyone-link to a reviewer-only screen). UX only — the server enforces.
  */
 export function TopBar(): JSX.Element {
   const { t } = useTranslation(['common', 'org']);
@@ -26,6 +30,7 @@ export function TopBar(): JSX.Element {
   const navigate = useNavigate();
   const { workspaces } = useWorkspaces();
   const isOperator = workspaces.some((w) => w.kind === 'OPERATOR');
+  const isStaff = workspaces.some((w) => w.kind === 'OPERATIONS_OFFICER' || w.kind === 'PLATFORM_ADMIN');
 
   const linkClass = ({ isActive }: { isActive: boolean }): string =>
     cn(
@@ -60,6 +65,22 @@ export function TopBar(): JSX.Element {
                 </NavLink>
               </>
             )}
+            {isStaff && (
+              <>
+                <NavLink to="/ops" end className={linkClass}>
+                  {t('common:nav.ops')}
+                </NavLink>
+                <NavLink to="/ops/jobs" className={linkClass}>
+                  {t('common:nav.opsJobs')}
+                </NavLink>
+                <NavLink to="/ops/high-value" className={linkClass}>
+                  {t('common:nav.highValue')}
+                </NavLink>
+                <NavLink to="/ops/audit" className={linkClass}>
+                  {t('common:nav.audit')}
+                </NavLink>
+              </>
+            )}
             <NavLink to="/businesses" className={linkClass}>
               {t('org:nav.businesses')}
             </NavLink>
@@ -72,9 +93,11 @@ export function TopBar(): JSX.Element {
             <NavLink to="/vehicles" className={linkClass}>
               {t('org:nav.vehicles')}
             </NavLink>
-            <NavLink to="/verification" className={linkClass}>
-              {t('org:nav.verification')}
-            </NavLink>
+            {isStaff && (
+              <NavLink to="/verification" className={linkClass}>
+                {t('org:nav.verification')}
+              </NavLink>
+            )}
             <NavLink to="/operating-locations" className={linkClass}>
               {t('org:nav.locations')}
             </NavLink>

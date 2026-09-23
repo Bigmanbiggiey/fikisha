@@ -69,7 +69,9 @@ export function useWorkspaces(): WorkspacesState {
   if (user.roles.includes('OPERATIONS_OFFICER')) {
     workspaces.push({ kind: 'OPERATIONS_OFFICER', id: null, label: 'Operations' });
   }
-  if (user.roles.includes('PLATFORM_ADMIN') || user.is_admin) {
+  // By role only — `is_admin` is true for Ops Officers too (any active
+  // AdminProfile), so it must not grant a Platform Admin workspace.
+  if (user.roles.includes('PLATFORM_ADMIN')) {
     workspaces.push({ kind: 'PLATFORM_ADMIN', id: null, label: 'Platform Admin' });
   }
 

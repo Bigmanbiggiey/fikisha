@@ -20,6 +20,11 @@ import { PickupProofPage } from '@/features/jobs/PickupProofPage';
 import { WorkListPage } from '@/features/jobs/WorkListPage';
 import { HomeOrLanding } from '@/features/landing/HomeOrLanding';
 import { NegotiationPage } from '@/features/negotiation/NegotiationPage';
+import { AuditLogPage } from '@/features/ops/AuditLogPage';
+import { HighValueReviewPage } from '@/features/ops/HighValueReviewPage';
+import { OpsHomePage } from '@/features/ops/OpsHomePage';
+import { OpsJobsPage } from '@/features/ops/OpsJobsPage';
+import { RequireStaff } from '@/features/ops/RequireStaff';
 import { BusinessDetailPage } from '@/features/org/BusinessDetailPage';
 import { BusinessesPage } from '@/features/org/BusinessesPage';
 import { GroupDetailPage } from '@/features/org/GroupDetailPage';
@@ -88,6 +93,20 @@ export function AppRoutes(): JSX.Element {
           <Route path="verification" element={<VerificationQueuePage />} />
           <Route path="verification/:recordId" element={<VerificationRecordPage />} />
           <Route path="diagnostics" element={<DiagnosticsPage />} />
+          {/* Operations Officer console (Design Phase 6 Increment 8, P3 §18). */}
+          <Route
+            path="ops"
+            element={
+              <RequireStaff>
+                <Outlet />
+              </RequireStaff>
+            }
+          >
+            <Route index element={<OpsHomePage />} />
+            <Route path="jobs" element={<OpsJobsPage />} />
+            <Route path="high-value" element={<HighValueReviewPage />} />
+            <Route path="audit" element={<AuditLogPage />} />
+          </Route>
         </Route>
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

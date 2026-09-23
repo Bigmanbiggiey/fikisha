@@ -2,8 +2,8 @@
 
 **Status:** APPROVED 2026-09-15 — founder confirmed, including the proposed
 defaults for all 6 open questions in §9. Implementation proceeds per §7's
-increment sequence. **Progress (2026-09-23): Increments 1–7 DONE; Increment
-8 (Operations Officer console) next, pending founder review.**
+increment sequence. **Progress (2026-09-23): Increments 1–8 DONE; Increment
+9 (Platform Admin console) next, pending founder review.**
 
 **Continues the design track:** `design-brief.md` (P0) → `design-phase-1-ia.md`
 (P1, IA/nav) → `design-phase-2-user-flows.md` (P2, journeys) →
@@ -496,26 +496,66 @@ incidents-app backend tests, 169 frontend tests.
 Stopped here for review. Increment 8 (Operations Officer console) is not
 started.
 
-### Increment 8 — Operations Officer console (P3 §18)
+### Increment 8 — Operations Officer console (P3 §18) — DONE, 2026-09-23
 
 Operations overview/triage (§18.1) · Job monitoring table (§18.2) ·
 High-value review (§18.3, HIGH/VERY_HIGH bands) · Search (§18.4) ·
 Audit/activity read (§18.5).
 
-**Pre-build research (2026-09-22; the detailed plan isn't written yet):**
-unlike 4–7, most of this increment needs new backend read surfaces: job-list
-filters (state/band/age) on the existing `GET /jobs`; a list-and-decide
-HTTP pair over the already-built `decide_high_value()`; a read-only
-`fikisha.audit` API (the app has no `api/` package). The Ops Officer
-permission strings in `platform_config.role_permissions`
-(`job.monitor.view`, `audit.view.scoped`, …) are not yet wired to any
-policy. They should follow `incidents.services._require_review_permission`'s
-config-driven check, not a coarse `is_admin`. **Founder decision:** §18.4
-Search this increment is a minimal job-reference "quick jump" (one filter
-on the job list). Full cross-entity search is deferred to its own later
-increment. **Open:** §18.2's "nudge"/"flag" interventions aren't defined
-in any doc. The proposal is informational placeholders (like the Resume
-shell), which the founder still needs to confirm.
+**Founder decisions (2026-09-22/23):**
+- §18.4 Search is a job-reference quick jump only. Full cross-entity search
+  gets its own later increment.
+- §18.2's interventions come from FR-ADM-2 / trust-and-safety §6. My earlier
+  claim that they were undefined was wrong. "Nudge" means an operational
+  note. Built now: note, audited contact reveal, open incident,
+  band-limited cancel. Deferred: reassign, force-fail, flag-for-review
+  queue, system-sent nudge.
+- Staff cancel is limited by band: an Ops Officer can cancel up to STANDARD,
+  a Platform Admin above that (ADR-2D-33).
+- Notes are visible to the job's parties (ADR-2D-34).
+- `audit.view.scoped` means the Ops-remit allowlist (ADR-2D-35).
+
+**Backend:** new endpoints `GET /ops/jobs`, `GET /ops/high-value`,
+`POST /jobs/<id>/high-value-decision`, `GET|POST /jobs/<id>/notes`,
+`POST /jobs/<id>/contacts/reveal`, `GET /jobs/<id>/events`,
+`GET /ops/incidents`, `GET /ops/disputes` and `GET /audit/entries` (a new
+`audit/api` package). The Ops Officer permissions approved in config are now
+enforced, config-driven, with no `is_admin` shortcut (ADR-2D-36).
+`AdminCancelBandAuthorised` is on the six ordinary cancel rules. See
+`phase-2d-api.md` §4a.
+
+**Frontend:** `features/ops/` contains `OpsHomePage`, `OpsJobsPage` (the
+first real table), `HighValueReviewPage`, `AuditLogPage` and
+`JobReferenceJump`. Job Detail gets a STAFF view (`StaffJobPanel`: note,
+contacts, incident/dispute links, cancel with a reason, event-log drawer),
+and every viewer gets "Updates from Fikisha". Nav links are staff-gated,
+`/ops/*` uses a wider layout, there's a new `ops` i18n namespace, and an
+en/sw key-parity test now covers every namespace.
+
+**Defects found and fixed:**
+- `Modal`'s focus effect re-ran on every re-render. Each keystroke in a
+  modal field sent focus to Close, and the next Space closed the modal. This
+  also affected Increment 4's counter-offer sheet.
+- `useWorkspaces` gave every Ops Officer a Platform Admin workspace,
+  because `is_admin` is true for any AdminProfile.
+- An Ops Officer on Job Detail got the Business view, including a cancel
+  button hardcoded to `BUSINESS_CHANGED_MIND`.
+- The Verification nav link was shown to everyone.
+
+**Open items (ADR-2D-36):**
+- Phones are unmasked on job list and detail for operators who are still
+  negotiating.
+- A high-value REJECT is permanent.
+- Reference formats disagree: 6 characters in the UI, 8 on the recipient
+  page.
+
+**Verification:** 966 backend tests (40 new) and 190 frontend tests (21 new)
+pass; lint, typecheck and build are clean (145 kB gzip). Every new endpoint
+was exercised over real HTTP against the running Docker stack as an Ops
+Officer, a Platform Admin and a business owner, including CORS. The founder
+declared the increment done on 2026-09-23. **The in-browser screen
+walkthrough was not performed by Claude**, because the Chrome extension
+wasn't connected. This is the first increment where that check is missing.
 
 ### Increment 9 — Platform Admin console (P3 §19)
 

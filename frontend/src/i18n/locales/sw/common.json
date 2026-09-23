@@ -8,7 +8,11 @@
     "myJobs": "Kazi Zangu",
     "diagnostics": "Uchunguzi",
     "signOut": "Toka",
-    "signIn": "Ingia"
+    "signIn": "Ingia",
+    "ops": "Uendeshaji",
+    "opsJobs": "Ufuatiliaji",
+    "highValue": "Thamani ya juu",
+    "audit": "Ukaguzi"
   },
   "language": {
     "label": "Lugha",

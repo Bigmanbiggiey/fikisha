@@ -1,0 +1,136 @@
+{
+  "overview": {
+    "title": "What needs attention?",
+    "subtitle": "Queues first, oldest items at the top of each.",
+    "nothing": "Nothing needs attention",
+    "nothingHint": "Every queue is clear right now.",
+    "jobsNeedingAttention": "Jobs needing attention",
+    "highValuePending": "High-value reviews waiting",
+    "openIncidents": "Open incidents",
+    "disputes": "Disputes awaiting action",
+    "verification": "Verification queue",
+    "openVerification": "Open the verification queue",
+    "count": "{{count}} in this list",
+    "countMore": "{{count}}+ in this list",
+    "viewAll": "View all",
+    "needsPlatformAdmin": "Needs a Platform Administrator",
+    "reconnect": "Reconnect to work the console."
+  },
+  "jump": {
+    "label": "Go to a job by reference",
+    "placeholder": "e.g. 7F3A2C",
+    "go": "Go",
+    "notFound": "No job matches reference {{ref}}.",
+    "tooShort": "Enter at least 4 characters of the reference."
+  },
+  "monitor": {
+    "title": "Job monitoring",
+    "filters": "Filters",
+    "status": "State",
+    "anyStatus": "Any state",
+    "band": "Value band",
+    "anyBand": "Any band",
+    "attention": "Needs attention",
+    "anyAttention": "Everything",
+    "attentionOption": {
+      "disputed": "Under dispute",
+      "failed": "Couldn't complete",
+      "high_value_pending": "High-value review waiting",
+      "stale": "No change for 24 hours+"
+    },
+    "col": {
+      "reference": "Reference",
+      "status": "State",
+      "band": "Band",
+      "business": "Business",
+      "route": "Route",
+      "lastChange": "Last change"
+    },
+    "empty": "No jobs match these filters.",
+    "loadMore": "Load more",
+    "open": "Open job {{ref}}"
+  },
+  "band": {
+    "STANDARD": "Standard",
+    "ELEVATED": "Elevated",
+    "HIGH": "High",
+    "VERY_HIGH": "Very high",
+    "none": "Not set yet"
+  },
+  "highValue": {
+    "title": "High-value review",
+    "intro": "Jobs at or above KES 250,000 need an admin review before a driver can be assigned. Very-high jobs (over KES 1,000,000) are decided by a Platform Administrator.",
+    "empty": "No high-value jobs are waiting for review.",
+    "declared": "Declared value",
+    "operator": "Operator",
+    "decide": "Review this job",
+    "platformAdminDecides": "A Platform Administrator decides this one",
+    "modalTitle": "High-value decision — {{ref}}",
+    "eligibilityNote": "Driver and vehicle eligibility is still checked by the system at assignment. This decision doesn't override it.",
+    "approve": "Approve",
+    "reject": "Reject",
+    "rationale": "Reason for your decision",
+    "rejectWarning": "A rejection is permanent. There is no way to change it later.",
+    "confirmApprove": "Approve",
+    "confirmReject": "Reject permanently",
+    "decided": "Decision recorded."
+  },
+  "audit": {
+    "title": "Audit / activity",
+    "intro": "Read-only. Shows who acted, what happened, when, and to which record.",
+    "entityType": "Record type",
+    "entityId": "Record ID",
+    "actor": "Actor user ID",
+    "action": "Action starts with",
+    "from": "From",
+    "to": "To",
+    "apply": "Apply filters",
+    "clear": "Clear",
+    "col": {
+      "time": "When",
+      "actor": "Who",
+      "action": "What happened",
+      "resource": "Record"
+    },
+    "empty": "No audit entries match these filters.",
+    "details": "Details",
+    "loadMore": "Load more"
+  },
+  "staff": {
+    "title": "Fikisha Operations",
+    "note": "Add an update for this job",
+    "noteHint": "The business and operator on this job will see it, signed \"Fikisha Operations\".",
+    "sendNote": "Post update",
+    "noteSent": "Update posted.",
+    "contacts": "Contact the parties",
+    "showContacts": "Show contact details",
+    "contactsLogged": "Viewing contact details is recorded in the audit log.",
+    "party": {
+      "business": "Business",
+      "pickup": "Pickup contact",
+      "destination": "Destination contact",
+      "recipient": "Recipient",
+      "operator": "Operator",
+      "driver": "Driver"
+    },
+    "noPhone": "No phone on record",
+    "call": "Call",
+    "whatsapp": "WhatsApp",
+    "openIncident": "Open an incident for this job",
+    "viewDispute": "View the dispute",
+    "cancel": "Cancel this job",
+    "cancelTitle": "Cancel job {{ref}}",
+    "cancelReason": "Reason for cancelling",
+    "cancelHint": "Recorded with your name in the audit log.",
+    "confirmCancel": "Cancel the job",
+    "keep": "Keep the job",
+    "needsPlatformAdmin": "Cancelling this job needs a Platform Administrator. It is above the Standard band.",
+    "events": "Event log",
+    "showEvents": "Show all events",
+    "hideEvents": "Hide events",
+    "eventNote": "Note"
+  },
+  "notes": {
+    "title": "Updates from Fikisha"
+  }
+}

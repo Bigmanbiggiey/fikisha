@@ -28,5 +28,13 @@
   "no_negotiation_thread": "Bado hakuna mazungumzo ya ofa — opereta lazima atoe ofa ya kwanza.",
   "invalid_offer": "Opereta amebadilisha ofa yao — hii ndiyo ya hivi karibuni.",
   "nothing_to_accept": "Hakuna kinachoweza kukubaliwa kwa sasa.",
-  "not_a_negotiation_party": "Wewe si sehemu ya mazungumzo haya."
+  "not_a_negotiation_party": "Wewe si sehemu ya mazungumzo haya.",
+  "platform_admin_required": "Hili linahitaji Msimamizi Mkuu wa Mfumo — liko juu ya kiwango cha Kawaida.",
+  "admin_reason_required": "Hatua za wafanyakazi zinahitaji sababu. Iongeze kisha ujaribu tena.",
+  "note_empty": "Andika kitu kabla ya kutuma ujumbe.",
+  "note_too_long": "Ujumbe huo ni mrefu mno — usizidi herufi 2,000.",
+  "invalid_filter": "Kichujio hicho si sahihi. Kiangalie kisha ujaribu tena.",
+  "high_value_already_decided": "Uamuzi tayari umerekodiwa kwa kazi hii.",
+  "not_a_high_value_job": "Kazi hii haiko katika kiwango cha thamani ya juu, kwa hivyo hakuna ukaguzi.",
+  "not_authorised_to_assign": "Huruhusiwi kufanya uamuzi huu."
 }

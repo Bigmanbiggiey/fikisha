@@ -11,6 +11,8 @@ import { JobTimeline, type TimelineStep } from '@/components/JobTimeline';
 import { NextActionCard } from '@/components/NextActionCard';
 import { PageLoader } from '@/components/PageLoader';
 import { disputesApi } from '@/features/incidents/incidentsApi';
+import { JobNotesSection } from '@/features/ops/JobNotesSection';
+import { StaffJobPanel } from '@/features/ops/StaffJobPanel';
 import { localizeError } from '@/services/errorMessage';
 
 import { getOneShotGeo } from './geo';
@@ -87,10 +89,11 @@ export function JobDetailPage(): JSX.Element {
 
   const canCancel = data.next_allowed_statuses.includes('CANCELLED');
   const isOperatorViewer = viewer.role === 'OPERATOR';
+  const isStaffViewer = viewer.role === 'STAFF';
   const operatorAction: OperatorActionKey | null = isOperatorViewer
     ? operatorNextAction(data.status, data.assigned_driver_id === viewer.operatorId)
     : null;
-  const businessAction = !isOperatorViewer ? businessNextAction(data.status) : null;
+  const businessAction = viewer.role === 'BUSINESS' ? businessNextAction(data.status) : null;
 
   return (
     <div className="mx-auto max-w-2xl space-y-5">
@@ -109,7 +112,9 @@ export function JobDetailPage(): JSX.Element {
         )}
       />
 
-      {isOperatorViewer ? (
+      {isStaffViewer ? (
+        <StaffJobPanel job={data} isPlatformAdmin={viewer.isPlatformAdmin} />
+      ) : isOperatorViewer ? (
         <OperatorNextActionSection
           action={operatorAction}
           onArrivePickup={() => arrivePickup.mutate()}
@@ -170,10 +175,12 @@ export function JobDetailPage(): JSX.Element {
         </div>
       </Card>
 
+      <JobNotesSection jobId={data.id} />
+
       {/* A DRAFT job has no operator/driver relationship yet to report
           about; every later status is left to the server's own
           `party_kind_for_job` eligibility check rather than predicted here. */}
-      {data.status !== 'DRAFT' && (
+      {data.status !== 'DRAFT' && !isStaffViewer && (
         <div className="flex justify-end">
           <Link to={`/jobs/${jobId}/report-issue`} className="text-body-sm text-action-secondary-text underline">
             {t('incidents:report.entryLink')}
@@ -184,7 +191,7 @@ export function JobDetailPage(): JSX.Element {
       {/* Operator-side cancel (a different reason code, and — post-ASSIGNED
           — the late-cancellation consequence screen, §23) is out of scope
           this increment; only the Business's own cancel action renders. */}
-      {canCancel && !isOperatorViewer && (
+      {canCancel && viewer.role === 'BUSINESS' && (
         <div className="flex justify-end">
           <Button
             variant="destructive"

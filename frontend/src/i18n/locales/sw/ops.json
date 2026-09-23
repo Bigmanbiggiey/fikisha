@@ -1,0 +1,136 @@
+{
+  "overview": {
+    "title": "Nini kinahitaji kushughulikiwa?",
+    "subtitle": "Foleni kwanza, vitu vya zamani zaidi juu ya kila foleni.",
+    "nothing": "Hakuna kinachohitaji kushughulikiwa",
+    "nothingHint": "Kila foleni iko wazi sasa hivi.",
+    "jobsNeedingAttention": "Kazi zinazohitaji kushughulikiwa",
+    "highValuePending": "Ukaguzi wa thamani ya juu unaosubiri",
+    "openIncidents": "Matukio yaliyo wazi",
+    "disputes": "Migogoro inayosubiri hatua",
+    "verification": "Foleni ya uthibitishaji",
+    "openVerification": "Fungua foleni ya uthibitishaji",
+    "count": "{{count}} katika orodha hii",
+    "countMore": "{{count}}+ katika orodha hii",
+    "viewAll": "Tazama zote",
+    "needsPlatformAdmin": "Inahitaji Msimamizi Mkuu wa Mfumo",
+    "reconnect": "Unganisha tena ili kufanya kazi kwenye dashibodi."
+  },
+  "jump": {
+    "label": "Nenda kwenye kazi kwa namba ya kumbukumbu",
+    "placeholder": "mf. 7F3A2C",
+    "go": "Nenda",
+    "notFound": "Hakuna kazi inayolingana na kumbukumbu {{ref}}.",
+    "tooShort": "Andika angalau herufi 4 za kumbukumbu."
+  },
+  "monitor": {
+    "title": "Ufuatiliaji wa kazi",
+    "filters": "Vichujio",
+    "status": "Hali",
+    "anyStatus": "Hali yoyote",
+    "band": "Kiwango cha thamani",
+    "anyBand": "Kiwango chochote",
+    "attention": "Inahitaji kushughulikiwa",
+    "anyAttention": "Zote",
+    "attentionOption": {
+      "disputed": "Kuna mgogoro",
+      "failed": "Haikukamilika",
+      "high_value_pending": "Ukaguzi wa thamani ya juu unasubiri",
+      "stale": "Hakuna mabadiliko kwa saa 24+"
+    },
+    "col": {
+      "reference": "Kumbukumbu",
+      "status": "Hali",
+      "band": "Kiwango",
+      "business": "Biashara",
+      "route": "Njia",
+      "lastChange": "Badiliko la mwisho"
+    },
+    "empty": "Hakuna kazi zinazolingana na vichujio hivi.",
+    "loadMore": "Pakia zaidi",
+    "open": "Fungua kazi {{ref}}"
+  },
+  "band": {
+    "STANDARD": "Kawaida",
+    "ELEVATED": "Juu kiasi",
+    "HIGH": "Juu",
+    "VERY_HIGH": "Juu sana",
+    "none": "Bado haijawekwa"
+  },
+  "highValue": {
+    "title": "Ukaguzi wa thamani ya juu",
+    "intro": "Kazi za KES 250,000 au zaidi zinahitaji ukaguzi wa msimamizi kabla dereva kupangiwa. Kazi za thamani ya juu sana (zaidi ya KES 1,000,000) huamuliwa na Msimamizi Mkuu wa Mfumo.",
+    "empty": "Hakuna kazi za thamani ya juu zinazosubiri ukaguzi.",
+    "declared": "Thamani iliyotajwa",
+    "operator": "Mhudumu",
+    "decide": "Kagua kazi hii",
+    "platformAdminDecides": "Msimamizi Mkuu wa Mfumo ndiye anayeamua hii",
+    "modalTitle": "Uamuzi wa thamani ya juu — {{ref}}",
+    "eligibilityNote": "Mfumo bado unakagua kustahiki kwa dereva na gari wakati wa kupangiwa. Uamuzi huu haubadilishi hilo.",
+    "approve": "Idhinisha",
+    "reject": "Kataa",
+    "rationale": "Sababu ya uamuzi wako",
+    "rejectWarning": "Kukataa ni kwa kudumu. Hakuna njia ya kubadilisha baadaye.",
+    "confirmApprove": "Idhinisha",
+    "confirmReject": "Kataa kwa kudumu",
+    "decided": "Uamuzi umerekodiwa."
+  },
+  "audit": {
+    "title": "Ukaguzi / shughuli",
+    "intro": "Kusoma tu. Inaonyesha nani alifanya nini, lini, na kwenye rekodi gani.",
+    "entityType": "Aina ya rekodi",
+    "entityId": "Kitambulisho cha rekodi",
+    "actor": "Kitambulisho cha mtumiaji aliyefanya",
+    "action": "Kitendo kinaanza na",
+    "from": "Kuanzia",
+    "to": "Hadi",
+    "apply": "Tumia vichujio",
+    "clear": "Futa",
+    "col": {
+      "time": "Lini",
+      "actor": "Nani",
+      "action": "Kilichotokea",
+      "resource": "Rekodi"
+    },
+    "empty": "Hakuna kumbukumbu za ukaguzi zinazolingana na vichujio hivi.",
+    "details": "Maelezo",
+    "loadMore": "Pakia zaidi"
+  },
+  "staff": {
+    "title": "Uendeshaji wa Fikisha",
+    "note": "Ongeza taarifa kwa kazi hii",
+    "noteHint": "Biashara na mhudumu wa kazi hii wataiona, imesainiwa \"Uendeshaji wa Fikisha\".",
+    "sendNote": "Tuma taarifa",
+    "noteSent": "Taarifa imetumwa.",
+    "contacts": "Wasiliana na wahusika",
+    "showContacts": "Onyesha mawasiliano",
+    "contactsLogged": "Kutazama mawasiliano kunarekodiwa kwenye kumbukumbu za ukaguzi.",
+    "party": {
+      "business": "Biashara",
+      "pickup": "Mtu wa kuchukua mzigo",
+      "destination": "Mtu wa kupokea mzigo",
+      "recipient": "Mpokeaji",
+      "operator": "Mhudumu",
+      "driver": "Dereva"
+    },
+    "noPhone": "Hakuna namba iliyorekodiwa",
+    "call": "Piga simu",
+    "whatsapp": "WhatsApp",
+    "openIncident": "Fungua tukio kwa kazi hii",
+    "viewDispute": "Tazama mgogoro",
+    "cancel": "Ghairi kazi hii",
+    "cancelTitle": "Ghairi kazi {{ref}}",
+    "cancelReason": "Sababu ya kughairi",
+    "cancelHint": "Inarekodiwa pamoja na jina lako kwenye kumbukumbu za ukaguzi.",
+    "confirmCancel": "Ghairi kazi",
+    "keep": "Endelea na kazi",
+    "needsPlatformAdmin": "Kughairi kazi hii kunahitaji Msimamizi Mkuu wa Mfumo. Iko juu ya kiwango cha Kawaida.",
+    "events": "Kumbukumbu za matukio",
+    "showEvents": "Onyesha matukio yote",
+    "hideEvents": "Ficha matukio",
+    "eventNote": "Ujumbe"
+  },
+  "notes": {
+    "title": "Taarifa kutoka Fikisha"
+  }
+}

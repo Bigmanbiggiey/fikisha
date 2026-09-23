@@ -15,6 +15,7 @@ import incidentsEn from './locales/en/incidents.json';
 import jobsEn from './locales/en/jobs.json';
 import landingEn from './locales/en/landing.json';
 import negotiationEn from './locales/en/negotiation.json';
+import opsEn from './locales/en/ops.json';
 import orgEn from './locales/en/org.json';
 import recipientEn from './locales/en/recipient.json';
 import authSw from './locales/sw/auth.json';
@@ -24,6 +25,7 @@ import incidentsSw from './locales/sw/incidents.json';
 import jobsSw from './locales/sw/jobs.json';
 import landingSw from './locales/sw/landing.json';
 import negotiationSw from './locales/sw/negotiation.json';
+import opsSw from './locales/sw/ops.json';
 import orgSw from './locales/sw/org.json';
 import recipientSw from './locales/sw/recipient.json';
 
@@ -41,6 +43,7 @@ export const resources = {
     negotiation: negotiationEn,
     recipient: recipientEn,
     incidents: incidentsEn,
+    ops: opsEn,
   },
   sw: {
     common: commonSw,
@@ -52,6 +55,7 @@ export const resources = {
     negotiation: negotiationSw,
     recipient: recipientSw,
     incidents: incidentsSw,
+    ops: opsSw,
   },
 } as const;
 
@@ -63,7 +67,7 @@ void i18n
     fallbackLng: 'en',
     supportedLngs: SUPPORTED_LANGUAGES as unknown as string[],
     defaultNS: 'common',
-    ns: ['common', 'auth', 'errors', 'org', 'landing', 'jobs', 'negotiation', 'recipient', 'incidents'],
+    ns: ['common', 'auth', 'errors', 'org', 'landing', 'jobs', 'negotiation', 'recipient', 'incidents', 'ops'],
     interpolation: { escapeValue: false },
     detection: {
       order: ['localStorage', 'navigator', 'htmlTag'],

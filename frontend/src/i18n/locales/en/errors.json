@@ -28,5 +28,13 @@
   "no_negotiation_thread": "There is no offer thread yet — the operator must make the first offer.",
   "invalid_offer": "The operator changed their offer — here's the latest.",
   "nothing_to_accept": "There is nothing to accept right now.",
-  "not_a_negotiation_party": "You are not a party to this negotiation."
+  "not_a_negotiation_party": "You are not a party to this negotiation.",
+  "platform_admin_required": "This needs a Platform Administrator — it is above the Standard band.",
+  "admin_reason_required": "Staff actions need a reason. Add one and try again.",
+  "note_empty": "Write something before sending the note.",
+  "note_too_long": "That note is too long — keep it under 2,000 characters.",
+  "invalid_filter": "That filter is not valid. Check it and try again.",
+  "high_value_already_decided": "A decision has already been recorded for this job.",
+  "not_a_high_value_job": "This job is not in a high-value band, so no review applies.",
+  "not_authorised_to_assign": "You are not allowed to make this decision."
 }
