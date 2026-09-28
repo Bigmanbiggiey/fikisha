@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { Link, NavLink, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 
 import { Button } from '@/components/Button';
 import { ConnectivityIndicator } from '@/components/ConnectivityIndicator';
@@ -7,103 +7,62 @@ import { cn } from '@/components/cn';
 import { useAuth } from '@/features/auth/useAuth';
 import { useOnline } from '@/design/useOnline';
 
+import { useActiveRole } from './activeRole';
 import { LanguageSwitcher } from './LanguageSwitcher';
-import { useWorkspaces } from './useWorkspaces';
+import { NAV, isNavItemActive, type NavItem } from './navConfig';
 
 /**
- * TopBar — Design Phase 5B retone. IA / links unchanged from Phase 2A,
- * plus a minimal role-aware addition (Design Phase 6 Increment 4): "Work"
- * and "My Jobs" show only for a signed-in user who actually holds an
- * Operator workspace — Business/Group-Manager/etc. links stay exactly as
- * before. A full `RoleTabBar`/`RoleSidebar` (nav that also *hides* the
- * non-relevant links, per the Design Phase 6 plan §4) is still not built;
- * this is deliberately the smallest correct step rather than that redesign.
- * Design Phase 6 Increment 8 adds the same kind of gate for Fikisha staff
- * (Ops Officer / Platform Admin): Operations · Monitor · High-value · Audit,
- * and the Verification queue link now shows only to staff (it was an
- * everyone-link to a reviewer-only screen). UX only — the server enforces.
+ * TopBar (Design Phase 7 P-04). No longer lists every link: navigation
+ * lives in the role tab bar (phones) and sidebar (desktop). What stays is
+ * the wordmark, connectivity and language on every width, plus:
+ * - tablets (`md` up to `lg`): the active role's items inline, with More,
+ *   since neither the tab bar nor the sidebar shows there;
+ * - from `md`: Sign out (on phones it lives in More).
+ * The inner container matches the page body's width, so the header lines
+ * up with the content on every route, including `/ops`.
  */
 export function TopBar(): JSX.Element {
   const { t } = useTranslation(['common', 'org']);
   const { status, logout } = useAuth();
   const online = useOnline();
   const navigate = useNavigate();
-  const { workspaces } = useWorkspaces();
-  const isOperator = workspaces.some((w) => w.kind === 'OPERATOR');
-  const isStaff = workspaces.some((w) => w.kind === 'OPERATIONS_OFFICER' || w.kind === 'PLATFORM_ADMIN');
+  const { pathname } = useLocation();
+  const { role } = useActiveRole();
 
-  const linkClass = ({ isActive }: { isActive: boolean }): string =>
-    cn(
-      'rounded-md px-2 py-1 text-label',
-      isActive
-        ? 'bg-surface-brand-tint text-action-primary-hover'
-        : 'text-fg-secondary hover:text-fg',
-    );
+  const nav = status === 'authenticated' && role ? NAV[role] : null;
+  const inline: NavItem[] = nav
+    ? [
+        ...nav.primary,
+        ...(nav.action ? [nav.action] : []),
+        { to: '/more', labelKey: 'common:nav.more', icon: 'menu', end: true },
+      ]
+    : [];
 
   return (
     <header className="border-b border-line bg-surface-nav">
-      <div className="mx-auto flex max-w-3xl flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3">
+      <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3">
         <Link to="/" className="text-h3 font-bold text-action-primary">
           {t('common:appName')}
         </Link>
 
-        {status === 'authenticated' && (
-          <nav className="flex flex-wrap items-center gap-1" aria-label={t('common:appName')}>
-            <NavLink to="/home" className={linkClass}>
-              {t('common:nav.home')}
-            </NavLink>
-            <NavLink to="/jobs" className={linkClass}>
-              {t('common:nav.jobs')}
-            </NavLink>
-            {isOperator && (
-              <>
-                <NavLink to="/work" className={linkClass}>
-                  {t('common:nav.work')}
-                </NavLink>
-                <NavLink to="/my-jobs" className={linkClass}>
-                  {t('common:nav.myJobs')}
-                </NavLink>
-              </>
-            )}
-            {isStaff && (
-              <>
-                <NavLink to="/ops" end className={linkClass}>
-                  {t('common:nav.ops')}
-                </NavLink>
-                <NavLink to="/ops/jobs" className={linkClass}>
-                  {t('common:nav.opsJobs')}
-                </NavLink>
-                <NavLink to="/ops/high-value" className={linkClass}>
-                  {t('common:nav.highValue')}
-                </NavLink>
-                <NavLink to="/ops/audit" className={linkClass}>
-                  {t('common:nav.audit')}
-                </NavLink>
-              </>
-            )}
-            <NavLink to="/businesses" className={linkClass}>
-              {t('org:nav.businesses')}
-            </NavLink>
-            <NavLink to="/operator" className={linkClass}>
-              {t('org:nav.operator')}
-            </NavLink>
-            <NavLink to="/groups" className={linkClass}>
-              {t('org:nav.groups')}
-            </NavLink>
-            <NavLink to="/vehicles" className={linkClass}>
-              {t('org:nav.vehicles')}
-            </NavLink>
-            {isStaff && (
-              <NavLink to="/verification" className={linkClass}>
-                {t('org:nav.verification')}
-              </NavLink>
-            )}
-            <NavLink to="/operating-locations" className={linkClass}>
-              {t('org:nav.locations')}
-            </NavLink>
-            <NavLink to="/diagnostics" className={linkClass}>
-              {t('common:nav.diagnostics')}
-            </NavLink>
+        {inline.length > 0 && (
+          <nav aria-label={t('common:nav.main')} className="hidden items-center gap-1 md:flex lg:hidden">
+            {inline.map((item) => {
+              const active = isNavItemActive(item, pathname);
+              return (
+                <Link
+                  key={item.to}
+                  to={item.to}
+                  aria-current={active ? 'page' : undefined}
+                  className={cn(
+                    'flex min-h-target items-center rounded-md px-2 text-label',
+                    active ? 'bg-surface-brand-tint text-action-primary-hover' : 'text-fg-secondary hover:text-fg',
+                  )}
+                >
+                  {t(item.labelKey)}
+                </Link>
+              );
+            })}
           </nav>
         )}
 
@@ -111,12 +70,14 @@ export function TopBar(): JSX.Element {
           <ConnectivityIndicator state={online ? 'online' : 'offline'} />
           <LanguageSwitcher />
           {status === 'authenticated' && (
-            <Button variant="tertiary" size="compact" onClick={() => void logout()}>
-              {t('common:nav.signOut')}
-            </Button>
+            <span className="hidden md:inline-flex">
+              <Button variant="tertiary" onClick={() => void logout()}>
+                {t('common:nav.signOut')}
+              </Button>
+            </span>
           )}
           {status === 'anonymous' && (
-            <Button variant="secondary" size="compact" onClick={() => navigate('/login')}>
+            <Button variant="secondary" onClick={() => navigate('/login')}>
               {t('common:nav.signIn')}
             </Button>
           )}

@@ -12,7 +12,11 @@
     "ops": "Uendeshaji",
     "opsJobs": "Ufuatiliaji",
     "highValue": "Thamani ya juu",
-    "audit": "Ukaguzi"
+    "audit": "Ukaguzi",
+    "main": "Kuu",
+    "currentJob": "Kazi ya sasa",
+    "more": "Zaidi",
+    "requestTransport": "Omba usafiri"
   },
   "language": {
     "label": "Lugha",
@@ -44,5 +48,17 @@
   },
   "otp": {
     "digit": "Tarakimu {{n}} kati ya {{total}}"
+  },
+  "role": {
+    "BUSINESS": "Biashara",
+    "OPERATOR": "Opereta",
+    "DRIVER": "Dereva",
+    "GROUP_MANAGER": "Msimamizi wa kikundi",
+    "OPERATIONS_OFFICER": "Uendeshaji",
+    "PLATFORM_ADMIN": "Msimamizi wa mfumo",
+    "staffDescription": "Wafanyakazi wa Fikisha"
+  },
+  "roleSwitch": {
+    "title": "Unafanya kazi kama"
   }
 }

@@ -75,7 +75,7 @@ describe('useWorkspaces', () => {
     listGroups.mockResolvedValue({
       data: [
         { id: 'g1', name: 'Kitengela Yard', my_role: 'MANAGER' },
-        { id: 'g2', name: 'Not managed', my_role: 'DRIVER' },
+        { id: 'g2', name: 'Drives for', my_role: 'DRIVER', assignment_mode: 'DRIVER_ACCEPTS' },
       ],
       page: { next_cursor: null, prev_cursor: null },
     });
@@ -86,10 +86,47 @@ describe('useWorkspaces', () => {
     expect(screen.getByText('OPERATOR:A. Otieno')).toBeInTheDocument();
     expect(screen.getByText('GROUP_MANAGER:Kitengela Yard')).toBeInTheDocument();
     expect(screen.getByText('OPERATIONS_OFFICER:Operations')).toBeInTheDocument();
-    // not a party to b2, not a manager/owner of g2 (DRIVER-only), not a platform admin:
+    // A DRIVER membership is a Driver workspace, not a Group Manager one
+    // (Design Phase 7 P-04, founder ruling 2026-09-28):
+    expect(screen.getByText('DRIVER:Drives for')).toBeInTheDocument();
+    expect(screen.queryByText('GROUP_MANAGER:Drives for')).not.toBeInTheDocument();
+    // not a party to b2, not a platform admin:
     expect(screen.queryByText(/Not mine/)).not.toBeInTheDocument();
-    expect(screen.queryByText(/Not managed/)).not.toBeInTheDocument();
     expect(screen.queryByText(/PLATFORM_ADMIN/)).not.toBeInTheDocument();
+  });
+
+  it('asks for the operator profile once, however many readers mount (no 404 loop)', async () => {
+    // Regression (10c re-capture): with the 404 kept as an error, each newly
+    // mounted reader re-fetched it and flipped everything back to loading,
+    // in a loop, for anyone without an operator profile.
+    meMock.mockResolvedValue({
+      id: 'u1', phone: '+254700000001', display_name: 'B', locale: 'en', status: 'ACTIVE', roles: [], is_admin: false,
+    });
+    listBusinesses.mockResolvedValue({
+      data: [{ id: 'b1', trading_name: 'Mama Njeri Hardware', my_role: 'OWNER' }],
+      page: { next_cursor: null, prev_cursor: null },
+    });
+    getMyOperator.mockRejectedValue(
+      new ApiError({ type: 'about:blank', title: 'Not Found', status: 404, code: 'not_found', detail: '' }, 404, 'not found'),
+    );
+    listGroups.mockResolvedValue({ data: [], page: { next_cursor: null, prev_cursor: null } });
+
+    function Late(): JSX.Element {
+      const { loading } = useWorkspaces();
+      return <p>{loading ? 'late loading' : 'late ready'}</p>;
+    }
+    function Readers(): JSX.Element {
+      const { loading } = useWorkspaces();
+      // More readers mount only once the first has settled, as the shell's
+      // tab bar, sidebar and page do.
+      return <>{loading ? <p>loading</p> : [1, 2, 3].map((i) => <Late key={i} />)}</>;
+    }
+    renderWithProviders(<Readers />);
+
+    expect(await screen.findAllByText('late ready')).toHaveLength(3);
+    await new Promise((r) => setTimeout(r, 50));
+    expect(screen.queryByText('loading')).not.toBeInTheDocument();
+    expect(getMyOperator).toHaveBeenCalledTimes(1);
   });
 
   it('treats a 404 from getMyOperator as "no operator profile", not an error', async () => {

@@ -12,7 +12,11 @@
     "ops": "Operations",
     "opsJobs": "Monitor",
     "highValue": "High-value",
-    "audit": "Audit"
+    "audit": "Audit",
+    "main": "Main",
+    "currentJob": "Current job",
+    "more": "More",
+    "requestTransport": "Request transport"
   },
   "language": {
     "label": "Language",
@@ -44,5 +48,17 @@
   },
   "otp": {
     "digit": "Digit {{n}} of {{total}}"
+  },
+  "role": {
+    "BUSINESS": "Business",
+    "OPERATOR": "Operator",
+    "DRIVER": "Driver",
+    "GROUP_MANAGER": "Group manager",
+    "OPERATIONS_OFFICER": "Operations",
+    "PLATFORM_ADMIN": "Platform admin",
+    "staffDescription": "Fikisha staff"
+  },
+  "roleSwitch": {
+    "title": "Working as"
   }
 }

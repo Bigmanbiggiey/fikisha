@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next';
+import { Navigate } from 'react-router-dom';
 
 import { Alert } from '@/components/Alert';
 import { Card } from '@/components/Card';
@@ -8,29 +9,37 @@ import { useAuth } from '@/features/auth/useAuth';
 import { BusinessHomePage } from '@/features/jobs/BusinessHomePage';
 import { OperatorHomePage } from '@/features/jobs/OperatorHomePage';
 import { OpsHomePage } from '@/features/ops/OpsHomePage';
+import { useActiveRole } from '@/shell/activeRole';
 import { useWorkspaces } from '@/shell/useWorkspaces';
 
 /**
  * `/home` is one route for every workspace (`design-phase-6-jobs-frontend-
- * plan.md` §3.1) — it dispatches on which workspace(s) the signed-in user
- * actually holds rather than being six separate home routes. Business
- * (Increment 2) and Operator (Increment 4) exist; everyone else still sees
- * the Phase 2A placeholder below until their workspace's Home is built. A
- * person with both a Business and an Operator workspace sees Business —
- * same documented simplification as `useActiveBusiness`'s "first workspace
- * of its kind" rule.
+ * plan.md` §3.1). It shows the Home of the **active navigation role**
+ * (Design Phase 7 P-04; the person picks it with the role switch, default
+ * Business → Operator → Driver → Group Manager → staff). A driver's home is
+ * Current job; a group manager sees the operator Home (their own operator
+ * profile's work) until a group Home exists; staff land on the Ops overview.
+ * Someone with no role yet sees the placeholder below.
  */
 export function HomePage(): JSX.Element {
-  const { loading, workspaces } = useWorkspaces();
-  if (loading) return <PageLoader />;
-  if (workspaces.some((w) => w.kind === 'BUSINESS')) return <BusinessHomePage />;
-  if (workspaces.some((w) => w.kind === 'OPERATOR')) return <OperatorHomePage />;
-  // Staff with no business/operator workspace of their own land on the Ops
-  // console overview (Design Phase 6 Increment 8).
-  if (workspaces.some((w) => w.kind === 'OPERATIONS_OFFICER' || w.kind === 'PLATFORM_ADMIN')) {
-    return <OpsHomePage />;
+  const { loading: workspacesLoading, workspaces } = useWorkspaces();
+  const { loading, role } = useActiveRole();
+  if (loading || workspacesLoading) return <PageLoader />;
+  switch (role) {
+    case 'BUSINESS':
+      return <BusinessHomePage />;
+    case 'OPERATOR':
+      return <OperatorHomePage />;
+    case 'DRIVER':
+      return <Navigate to="/current-job" replace />;
+    case 'GROUP_MANAGER':
+      return workspaces.some((w) => w.kind === 'OPERATOR') ? <OperatorHomePage /> : <GenericHomePlaceholder />;
+    case 'OPERATIONS_OFFICER':
+    case 'PLATFORM_ADMIN':
+      return <OpsHomePage />;
+    default:
+      return <GenericHomePlaceholder />;
   }
-  return <GenericHomePlaceholder />;
 }
 
 function GenericHomePlaceholder(): JSX.Element {
