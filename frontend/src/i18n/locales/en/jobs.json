@@ -269,5 +269,24 @@
     "retake": "Retake",
     "photoAdded": "Photo added",
     "confirmDelivery": "Confirm delivery"
+  },
+  "cancel": {
+    "title": "Cancel job {{ref}}?",
+    "why": "Why are you cancelling?",
+    "note": "Anything to add? (optional)",
+    "keep": "Keep the job",
+    "confirm": "Cancel the job",
+    "reason": {
+      "BUSINESS_CHANGED_MIND": "My plans changed",
+      "PRICE_DISAGREEMENT": "We didn’t agree on price",
+      "NO_ACCEPTABLE_OFFER": "No offer suits me",
+      "OPERATOR_UNAVAILABLE": "The operator isn’t available",
+      "OTHER": "Something else"
+    },
+    "consequence": {
+      "none": "No driver is assigned yet, so this doesn’t count against you.",
+      "late": "A driver is already assigned. This counts as a late cancellation. Three late cancellations or wasted trips in 30 days lead to a review of your account.",
+      "wastedTrip": "The driver is already at pickup. This counts as a wasted trip. Three late cancellations or wasted trips in 30 days lead to a review of your account."
+    }
   }
 }

@@ -82,7 +82,7 @@ export function VerificationPanel({
             </div>
             {openDomain === r.domain && (
               <form
-                className="mt-2 flex flex-col gap-2 rounded-md bg-surface-sunken p-3 sm:flex-row sm:items-end"
+                className="mt-2 flex flex-col gap-2 rounded-md bg-surface-sunken p-3 md:flex-row md:items-end"
                 onSubmit={(e: FormEvent) => {
                   e.preventDefault();
                   if (file) submit.mutate(r.domain);

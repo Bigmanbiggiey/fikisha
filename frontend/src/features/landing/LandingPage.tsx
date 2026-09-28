@@ -16,7 +16,7 @@ export function LandingPage(): JSX.Element {
 
   return (
     <div className="space-y-10">
-      <section className="space-y-4 py-6 text-center sm:py-10">
+      <section className="space-y-4 py-6 text-center md:py-10">
         <h1 className="text-h1 text-fg">{t('common:appName')}</h1>
         <p className="text-h3 font-normal text-fg-secondary">{t('landing:hero.tagline')}</p>
         <p className="mx-auto max-w-xl text-body text-fg-secondary">{t('landing:hero.lead')}</p>
@@ -28,7 +28,7 @@ export function LandingPage(): JSX.Element {
         </div>
       </section>
 
-      <section className="grid gap-4 sm:grid-cols-2">
+      <section className="grid gap-4 md:grid-cols-2">
         <Card>
           <h2 className="text-h3 text-fg">{t('landing:audiences.business.title')}</h2>
           <p className="mt-2 text-body-sm text-fg-secondary">

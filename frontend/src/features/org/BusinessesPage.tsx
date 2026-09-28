@@ -45,7 +45,7 @@ export function BusinessesPage(): JSX.Element {
 
       <Card>
         <h2 className="text-label text-fg-secondary">{t('org:business.createTitle')}</h2>
-        <form className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-end" onSubmit={submit}>
+        <form className="mt-3 flex flex-col gap-3 md:flex-row md:items-end" onSubmit={submit}>
           <div className="flex-1">
             <Field label={t('org:business.tradingName')}>
               {({ id }) => (

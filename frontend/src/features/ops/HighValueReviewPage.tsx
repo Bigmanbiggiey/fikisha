@@ -94,7 +94,7 @@ export function HighValueReviewPage(): JSX.Element {
                     label={t(`ops:band.${row.value_band ?? 'none'}`)}
                   />
                 </div>
-                <dl className="grid grid-cols-1 gap-1 text-body-sm sm:grid-cols-2">
+                <dl className="grid grid-cols-1 gap-1 text-body-sm md:grid-cols-2">
                   <div>
                     <dt className="inline text-fg-muted">{t('ops:highValue.declared')}: </dt>
                     <dd className="inline fk-numeric text-fg">{formatKes(row.declared_value_kes)}</dd>
@@ -103,7 +103,7 @@ export function HighValueReviewPage(): JSX.Element {
                     <dt className="inline text-fg-muted">{t('ops:highValue.operator')}: </dt>
                     <dd className="inline text-fg">{row.operator_name ?? '—'}</dd>
                   </div>
-                  <div className="sm:col-span-2 text-fg-secondary">{row.business_name}</div>
+                  <div className="md:col-span-2 text-fg-secondary">{row.business_name}</div>
                 </dl>
                 {row.needs_platform_admin && !platformAdmin ? (
                   <p className="text-body-sm text-fg-secondary">{t('ops:highValue.platformAdminDecides')}</p>

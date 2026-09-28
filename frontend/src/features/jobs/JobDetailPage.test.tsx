@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Route, Routes } from 'react-router-dom';
@@ -144,7 +144,7 @@ describe('JobDetailPage', () => {
     expect(screen.getByRole('button', { name: 'Cancel request' })).toBeInTheDocument();
   });
 
-  it('cancels the job on confirmation', async () => {
+  it('never cancels on one tap: the sheet needs a reason, then cancels with it', async () => {
     get.mockResolvedValue(
       baseJob({ status: 'CONFIRMED', next_allowed_statuses: ['ASSIGNED', 'CANCELLED'] }),
     );
@@ -153,14 +153,36 @@ describe('JobDetailPage', () => {
     const user = userEvent.setup();
     renderAtJob('01a0a4123456');
 
-    const cancelButton = await screen.findByRole('button', { name: 'Cancel request' });
-    await user.click(cancelButton);
+    await user.click(await screen.findByRole('button', { name: 'Cancel request' }));
+    expect(cancel).not.toHaveBeenCalled();
 
-    expect(cancel).toHaveBeenCalledWith(
-      '01a0a4123456',
-      { reason_code: 'BUSINESS_CHANGED_MIND' },
-      expect.any(String),
+    const confirm = screen.getByRole('button', { name: 'Cancel the job' });
+    expect(confirm).toBeDisabled();
+    expect(screen.getByText(/doesn’t count against you/)).toBeInTheDocument();
+
+    await user.click(screen.getByLabelText('We didn’t agree on price'));
+    await user.click(confirm);
+
+    await waitFor(() =>
+      expect(cancel).toHaveBeenCalledWith(
+        '01a0a4123456',
+        { reason_code: 'PRICE_DISAGREEMENT', reason_text: undefined },
+        expect.any(String),
+      ),
     );
+  });
+
+  it.each([
+    ['ASSIGNED', /late cancellation/],
+    ['AT_PICKUP', /wasted trip/],
+  ])('warns about the consequence of cancelling at %s before confirming', async (status, text) => {
+    get.mockResolvedValue(baseJob({ status, next_allowed_statuses: ['CANCELLED'] }));
+    const user = userEvent.setup();
+    renderAtJob('01a0a4123456');
+
+    await user.click(await screen.findByRole('button', { name: 'Cancel request' }));
+    expect(screen.getByText(text)).toBeInTheDocument();
+    expect(cancel).not.toHaveBeenCalled();
   });
 
   it('navigates to the negotiation thread from "Review offers" while NEGOTIATING', async () => {
@@ -172,6 +194,35 @@ describe('JobDetailPage', () => {
 
     await user.click(await screen.findByRole('button', { name: 'Review offers' }));
     expect(await screen.findByText('Negotiation screen')).toBeInTheDocument();
+  });
+
+  it('clears a failed attempt\'s error when the sheet is reopened', async () => {
+    get.mockResolvedValue(baseJob({ status: 'ASSIGNED', next_allowed_statuses: ['CANCELLED'] }));
+    cancel.mockRejectedValue(new Error('conflict'));
+    const user = userEvent.setup();
+    renderAtJob('01a0a4123456');
+
+    await user.click(await screen.findByRole('button', { name: 'Cancel request' }));
+    await user.click(screen.getByLabelText('My plans changed'));
+    await user.click(screen.getByRole('button', { name: 'Cancel the job' }));
+    expect(await screen.findByText('Something went wrong. Please try again.')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Keep the job' }));
+    await user.click(screen.getByRole('button', { name: 'Cancel request' }));
+
+    expect(screen.getByRole('button', { name: 'Cancel the job' })).toBeDisabled();
+    expect(screen.queryByText('Something went wrong. Please try again.')).not.toBeInTheDocument();
+  });
+
+  it('does not offer the business Cancel on a DISPUTED job (admin-only there)', async () => {
+    get.mockResolvedValue(
+      baseJob({ status: 'DISPUTED', next_allowed_statuses: ['CANCELLED', 'COMPLETED', 'FAILED'] }),
+    );
+    renderAtJob('01a0a4123456');
+
+    // Wait for the loaded page (the route), then check.
+    expect(await screen.findByText('Depot, Kitengela')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Cancel request' })).not.toBeInTheDocument();
   });
 
   it('does not show Cancel once the job cannot be cancelled', async () => {

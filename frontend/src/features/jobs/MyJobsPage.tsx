@@ -60,7 +60,7 @@ export function MyJobsPage(): JSX.Element {
             return <EmptyState title={t(`jobs:work.myJobsEmpty${capitalize(segment)}`)} />;
           }
           return (
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
               {rows.map((job) => (
                 <JobCard
                   key={job.id}

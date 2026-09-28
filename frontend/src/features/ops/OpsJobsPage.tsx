@@ -61,7 +61,7 @@ export function OpsJobsPage(): JSX.Element {
 
       <Card className="space-y-4">
         <JobReferenceJump />
-        <fieldset className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <fieldset className="grid grid-cols-1 gap-3 lg:grid-cols-3">
           <legend className="sr-only">{t('ops:monitor.filters')}</legend>
           <FilterSelect
             id="f-status"

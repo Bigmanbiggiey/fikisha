@@ -107,7 +107,7 @@ export function BusinessDetailPage(): JSX.Element {
 
         {isOwner && (
           <form
-            className="mt-4 flex flex-col gap-3 border-t border-line pt-4 sm:flex-row sm:items-end"
+            className="mt-4 flex flex-col gap-3 border-t border-line pt-4 md:flex-row md:items-end"
             onSubmit={(e: FormEvent) => {
               e.preventDefault();
               if (contactPhone.trim()) saveProfile.mutate();
@@ -168,7 +168,7 @@ export function BusinessDetailPage(): JSX.Element {
 
         {isOwner && (
           <form
-            className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-end"
+            className="mt-3 flex flex-col gap-2 md:flex-row md:items-end"
             onSubmit={(e: FormEvent) => {
               e.preventDefault();
               if (memberPhone.trim()) addMember.mutate();
@@ -249,7 +249,7 @@ export function BusinessDetailPage(): JSX.Element {
 
         {canManageLocations && (
           <form
-            className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-end"
+            className="mt-3 flex flex-col gap-2 md:flex-row md:items-end"
             onSubmit={(e: FormEvent) => {
               e.preventDefault();
               if (locLabel.trim()) addLocation.mutate();

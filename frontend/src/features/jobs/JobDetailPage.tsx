@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 
@@ -15,6 +16,7 @@ import { JobNotesSection } from '@/features/ops/JobNotesSection';
 import { StaffJobPanel } from '@/features/ops/StaffJobPanel';
 import { localizeError } from '@/services/errorMessage';
 
+import { CancelJobSheet } from './CancelJobSheet';
 import { getOneShotGeo } from './geo';
 import { jobsApi } from './jobsApi';
 import {
@@ -25,7 +27,7 @@ import {
   operatorNextAction,
 } from './jobHelpers';
 import { formatKes } from './money';
-import type { CancellationReason, Job, JobStatus } from './types';
+import type { Job, JobStatus } from './types';
 import { useJobViewerRole } from './useJobViewerRole';
 
 /** Formats an ISO timestamp as a local HH:MM — the same "as of HH:MM" /
@@ -47,14 +49,9 @@ export function JobDetailPage(): JSX.Element {
     retry: false,
   });
 
-  const cancel = useMutation({
-    mutationFn: (reasonCode: CancellationReason) =>
-      jobsApi.cancel(jobId!, { reason_code: reasonCode }, crypto.randomUUID()),
-    onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ['jobs', jobId] });
-      void qc.invalidateQueries({ queryKey: ['jobs'] });
-    },
-  });
+  // Business cancel goes through a reason + consequence sheet (Design
+  // Phase 7 P-02), never a one-tap mutation.
+  const [cancelOpen, setCancelOpen] = useState(false);
 
   const retrySubmit = useMutation({
     mutationFn: () => jobsApi.submit(jobId!, crypto.randomUUID()),
@@ -87,7 +84,9 @@ export function JobDetailPage(): JSX.Element {
   }
   const data = job.data!;
 
-  const canCancel = data.next_allowed_statuses.includes('CANCELLED');
+  // `next_allowed_statuses` is structural (not per actor): it includes
+  // CANCELLED for a DISPUTED job, but only an admin may cancel from there.
+  const canCancel = data.next_allowed_statuses.includes('CANCELLED') && data.status !== 'DISPUTED';
   const isOperatorViewer = viewer.role === 'OPERATOR';
   const isStaffViewer = viewer.role === 'STAFF';
   const operatorAction: OperatorActionKey | null = isOperatorViewer
@@ -188,22 +187,26 @@ export function JobDetailPage(): JSX.Element {
         </div>
       )}
 
-      {/* Operator-side cancel (a different reason code, and — post-ASSIGNED
-          — the late-cancellation consequence screen, §23) is out of scope
-          this increment; only the Business's own cancel action renders. */}
+      {/* Operator-side cancel is still out of scope; only the Business's own
+          cancel renders, and only through the reason + consequence sheet. */}
       {canCancel && viewer.role === 'BUSINESS' && (
         <div className="flex justify-end">
-          <Button
-            variant="destructive"
-            size="compact"
-            loading={cancel.isPending}
-            onClick={() => cancel.mutate('BUSINESS_CHANGED_MIND')}
-          >
+          <Button variant="secondary" onClick={() => setCancelOpen(true)}>
             {t('jobs:detail.cancel')}
           </Button>
         </div>
       )}
-      {cancel.isError && <Alert tone="danger">{localizeError(cancel.error, t)}</Alert>}
+      <CancelJobSheet
+        open={cancelOpen}
+        onClose={() => setCancelOpen(false)}
+        jobId={data.id}
+        status={data.status}
+        onCancelled={() => {
+          setCancelOpen(false);
+          void qc.invalidateQueries({ queryKey: ['jobs', jobId] });
+          void qc.invalidateQueries({ queryKey: ['jobs'] });
+        }}
+      />
       {(arrivePickup.isError || startTransit.isError || arriveDestination.isError) && (
         <Alert tone="danger">
           {localizeError((arrivePickup.error ?? startTransit.error ?? arriveDestination.error)!, t)}

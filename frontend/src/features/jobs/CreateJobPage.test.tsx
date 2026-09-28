@@ -129,5 +129,7 @@ describe('CreateJobPage', () => {
       expect.any(String),
     );
     expect(submit).toHaveBeenCalledWith('job123', expect.any(String));
-  });
+    // Eight steps of simulated typing: ~4.5 s alone, over the 5 s default
+    // under full-suite load (intermittent timeout seen 2026-09-28).
+  }, 15_000);
 });
