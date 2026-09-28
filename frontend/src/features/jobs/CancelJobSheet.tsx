@@ -39,19 +39,23 @@ export function CancelJobSheet({
   const [note, setNote] = useState('');
   const [key, setKey] = useState('');
 
-  useEffect(() => {
-    if (open) {
-      setReason(null);
-      setNote('');
-      setKey(crypto.randomUUID());
-    }
-  }, [open]);
-
   const cancel = useMutation({
     mutationFn: () =>
       jobsApi.cancel(jobId, { reason_code: reason!, reason_text: note.trim() || undefined }, key),
     onSuccess: (result) => onCancelled(result),
   });
+  const resetCancel = cancel.reset;
+
+  // Each opening is a fresh attempt: clear the form, the key and any error
+  // left from a previous, failed attempt.
+  useEffect(() => {
+    if (open) {
+      setReason(null);
+      setNote('');
+      setKey(crypto.randomUUID());
+      resetCancel();
+    }
+  }, [open, resetCancel]);
 
   const consequence = cancelConsequence(status);
 

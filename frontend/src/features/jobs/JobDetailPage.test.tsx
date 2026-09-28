@@ -196,6 +196,35 @@ describe('JobDetailPage', () => {
     expect(await screen.findByText('Negotiation screen')).toBeInTheDocument();
   });
 
+  it('clears a failed attempt\'s error when the sheet is reopened', async () => {
+    get.mockResolvedValue(baseJob({ status: 'ASSIGNED', next_allowed_statuses: ['CANCELLED'] }));
+    cancel.mockRejectedValue(new Error('conflict'));
+    const user = userEvent.setup();
+    renderAtJob('01a0a4123456');
+
+    await user.click(await screen.findByRole('button', { name: 'Cancel request' }));
+    await user.click(screen.getByLabelText('My plans changed'));
+    await user.click(screen.getByRole('button', { name: 'Cancel the job' }));
+    expect(await screen.findByText('Something went wrong. Please try again.')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Keep the job' }));
+    await user.click(screen.getByRole('button', { name: 'Cancel request' }));
+
+    expect(screen.getByRole('button', { name: 'Cancel the job' })).toBeDisabled();
+    expect(screen.queryByText('Something went wrong. Please try again.')).not.toBeInTheDocument();
+  });
+
+  it('does not offer the business Cancel on a DISPUTED job (admin-only there)', async () => {
+    get.mockResolvedValue(
+      baseJob({ status: 'DISPUTED', next_allowed_statuses: ['CANCELLED', 'COMPLETED', 'FAILED'] }),
+    );
+    renderAtJob('01a0a4123456');
+
+    // Wait for the loaded page (the route), then check.
+    expect(await screen.findByText('Depot, Kitengela')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Cancel request' })).not.toBeInTheDocument();
+  });
+
   it('does not show Cancel once the job cannot be cancelled', async () => {
     get.mockResolvedValue(baseJob({ status: 'COMPLETED', next_allowed_statuses: ['DISPUTED'] }));
     renderAtJob('01a0a4123456');

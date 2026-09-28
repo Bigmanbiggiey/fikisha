@@ -144,10 +144,7 @@ export function DeliveryProofPage(): JSX.Element {
       ) : (
         <>
           <Card>
-            <h2 className="text-label text-fg-secondary">{t('jobs:deliveryProof.otpLabel')}</h2>
-            <div className="mt-2">
-              <OtpInput label={t('jobs:deliveryProof.otpLabel')} value={code} onChange={setCode} />
-            </div>
+            <OtpInput label={t('jobs:deliveryProof.otpLabel')} value={code} onChange={setCode} />
           </Card>
           <Card>
             <h2 className="text-label text-fg-secondary">{t('jobs:deliveryProof.photoLabel')}</h2>

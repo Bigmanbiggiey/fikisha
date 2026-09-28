@@ -84,7 +84,9 @@ export function JobDetailPage(): JSX.Element {
   }
   const data = job.data!;
 
-  const canCancel = data.next_allowed_statuses.includes('CANCELLED');
+  // `next_allowed_statuses` is structural (not per actor): it includes
+  // CANCELLED for a DISPUTED job, but only an admin may cancel from there.
+  const canCancel = data.next_allowed_statuses.includes('CANCELLED') && data.status !== 'DISPUTED';
   const isOperatorViewer = viewer.role === 'OPERATOR';
   const isStaffViewer = viewer.role === 'STAFF';
   const operatorAction: OperatorActionKey | null = isOperatorViewer
