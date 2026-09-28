@@ -52,6 +52,13 @@ export function DriverJobView({
   });
 
   const pickedUp = !!job.timestamps.picked_up_at;
+  // Name and phone come as a pair from one source, so "Call <name>" never
+  // dials someone else: the recipient if either recipient field is set,
+  // otherwise the drop-off location's own contact.
+  const receiverContact =
+    job.recipient_name || job.recipient_phone
+      ? { name: job.recipient_name, phone: job.recipient_phone }
+      : { name: job.destination_location?.contact_name, phone: job.destination_location?.contact_phone };
   const sender = (
     <ContactCard
       key="sender"
@@ -68,8 +75,8 @@ export function DriverJobView({
       key="receiver"
       title={t('jobs:driver.dropoffCard')}
       address={job.destination_location?.address_text}
-      name={job.recipient_name || job.destination_location?.contact_name}
-      phone={job.recipient_phone || job.destination_location?.contact_phone}
+      name={receiverContact.name}
+      phone={receiverContact.phone}
       mapHref={mapsHref(job.destination_location)}
       goLabel={t('jobs:driver.goDropoff')}
     />
