@@ -285,7 +285,19 @@ The founder signs in and explores after the revamps (brief D-6).
     (`staleTime: Infinity`, no refetch on mount).
   - Check the double `/me` + `/auth/refresh` on first load. If it's React
     StrictMode double-invoking in dev only, record that and change nothing.
-    Otherwise, de-duplicate in `AuthProvider`.
+    Otherwise, de-duplicate in `AuthProvider`. *(10a live check,
+    2026-09-28: `main.tsx` does wrap the app in `StrictMode`, so the doubles
+    are expected to be dev-only. Confirm against a production build before
+    closing this item.)*
+  - Check whether two concurrent `refreshSession()` calls in
+    `services/apiClient.ts` can race. It matters only if the backend rotates
+    refresh tokens on use: then the loser presents a spent token and the
+    user is logged out. If so, make it single-flight (one in-flight promise
+    shared by all callers). Added by the founder, 2026-09-28.
+  - The 401s themselves (signed-out `/me` and `/auth/refresh`) and the
+    `/operators/me` 404 for users without an operator profile are correct
+    API responses. The fix is to ask less often, not to change the
+    backend. Changing the backend would be an API contract change.
 - **P-16:** remove the literal "· " from the report-issue link copy in en
   and sw.
 
