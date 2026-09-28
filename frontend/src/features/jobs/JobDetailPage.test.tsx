@@ -527,6 +527,28 @@ describe('JobDetailPage', () => {
         expect(screen.queryByRole('link', { name: 'Call Mary W.' })).not.toBeInTheDocument();
       });
 
+      it('never pairs the recipient name with the drop-off contact number', async () => {
+        get.mockResolvedValue(
+          driverJob({
+            recipient_name: 'J. Mwangi',
+            recipient_phone: '',
+            destination_location: {
+              address_text: 'Shop 4',
+              lat: null,
+              lng: null,
+              contact_name: 'Shop manager',
+              contact_phone: '0722 999 888',
+            },
+          }),
+        );
+        renderAtJob('01a0a4123456');
+
+        await screen.findByRole('link', { name: 'Call Mary W.' });
+        expect(screen.queryByRole('link', { name: 'Call J. Mwangi' })).not.toBeInTheDocument();
+        expect(screen.queryByRole('link', { name: /0722|Shop manager/ })).not.toBeInTheDocument();
+        expect(screen.getAllByText(/No number given/)).toHaveLength(1);
+      });
+
       it('shows the vehicle when it can be read, and leaves it out when refused', async () => {
         getVehicle.mockResolvedValue({ id: 'veh1', registration: 'KDA 200B', vehicle_class: 'PICKUP' });
         get.mockResolvedValue(driverJob());
