@@ -9,6 +9,7 @@ import { Card } from '@/components/Card';
 import { ErrorState } from '@/components/ErrorState';
 import { Field } from '@/components/Field';
 import { Input } from '@/components/Input';
+import { OptionRows } from '@/components/OptionRow';
 import { OtpInput } from '@/components/OtpInput';
 import { PageLoader } from '@/components/PageLoader';
 import { PhotoCapture } from '@/components/PhotoCapture';
@@ -37,7 +38,9 @@ export function PickupProofPage(): JSX.Element {
   const navigate = useNavigate();
   const qc = useQueryClient();
 
-  const [method, setMethod] = useState<Method | null>(null);
+  // The code is the common path, so it starts selected (P-12): the one
+  // primary action is on screen from the first render.
+  const [method, setMethod] = useState<Method>('otp');
   const [code, setCode] = useState('');
   const [contactName, setContactName] = useState('');
   const [photo, setPhoto] = useState<File | null>(null);
@@ -106,21 +109,30 @@ export function PickupProofPage(): JSX.Element {
 
       <Alert tone="info">{t(isStandard ? 'jobs:pickupProof.bandStandard' : 'jobs:pickupProof.bandElevated')}</Alert>
 
-      <div className="flex flex-wrap gap-2">
-        <MethodPill active={method === 'otp'} onClick={() => setMethod('otp')} label={t('jobs:pickupProof.enterCode')} />
-        <MethodPill
-          active={method === 'business'}
-          onClick={() => setMethod('business')}
-          label={t('jobs:pickupProof.senderConfirms')}
-        />
-        {isStandard && (
-          <MethodPill
-            active={method === 'attested'}
-            onClick={() => setMethod('attested')}
-            label={t('jobs:pickupProof.codeNotWorking')}
-          />
-        )}
-      </div>
+      <OptionRows<Method>
+        legend={t('jobs:pickupProof.howProve')}
+        value={method}
+        onChange={setMethod}
+        options={[
+          { value: 'otp', label: t('jobs:pickupProof.enterCode'), description: t('jobs:pickupProof.enterCodeDesc') },
+          {
+            value: 'business',
+            label: t('jobs:pickupProof.senderConfirms'),
+            description: t('jobs:pickupProof.senderConfirmsDesc'),
+          },
+          // The operator-attested fallback exists on STANDARD only (P3 §11.2);
+          // ELEVATED+ offers no fallback anywhere (§11.3).
+          ...(isStandard
+            ? [
+                {
+                  value: 'attested' as const,
+                  label: t('jobs:pickupProof.codeNotWorking'),
+                  description: t('jobs:pickupProof.codeNotWorkingDesc'),
+                },
+              ]
+            : []),
+        ]}
+      />
 
       {method === 'otp' && (
         <Card>
@@ -192,20 +204,5 @@ export function PickupProofPage(): JSX.Element {
         </Card>
       )}
     </div>
-  );
-}
-
-function MethodPill({ active, onClick, label }: { active: boolean; onClick: () => void; label: string }): JSX.Element {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={active}
-      className={`rounded-full border px-3 py-2 text-body-sm ${
-        active ? 'border-action-primary bg-surface-brand-tint text-fg' : 'border-line text-fg-secondary'
-      }`}
-    >
-      {label}
-    </button>
   );
 }
