@@ -41,5 +41,8 @@
     "status": "Status",
     "healthy": "healthy",
     "unreachable": "unreachable"
+  },
+  "otp": {
+    "digit": "Digit {{n}} of {{total}}"
   }
 }

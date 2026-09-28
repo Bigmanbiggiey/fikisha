@@ -27,7 +27,7 @@
   "confirm": {
     "title": "Confirm receipt",
     "nameLabel": "Your name",
-    "otpLabel": "Delivery code",
+    "otpLabel": "Enter the 6-digit code",
     "moreProofToggle": "Add a photo or signature (some deliveries need this)",
     "signatureLabel": "Signature",
     "clearSignature": "Clear",
@@ -35,7 +35,8 @@
     "retake": "Retake",
     "photoAdded": "Photo added",
     "confirm": "Confirm I received the goods",
-    "proofIncomplete": "This delivery needs a photo of the goods too — please add one below."
+    "proofIncomplete": "This delivery needs a photo of the goods too — please add one below.",
+    "otpHint": "We sent it by SMS to the number the sender gave for you."
   },
   "reportIssue": {
     "title": "Report a problem",

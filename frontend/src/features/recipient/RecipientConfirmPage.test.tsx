@@ -47,9 +47,19 @@ describe('RecipientConfirmPage', () => {
     await user.type(screen.getByLabelText(/Your name/), 'A. Recipient');
     expect(submit).toBeDisabled();
 
-    const cells = within(screen.getByRole('group', { name: 'Delivery code' })).getAllByRole('textbox');
+    const cells = within(screen.getByRole('group', { name: 'Enter the 6-digit code' })).getAllByRole('textbox');
     for (const cell of cells) await user.type(cell, '1');
     expect(submit).toBeEnabled();
+  });
+
+  it('labels the code entry visibly and names every box (Design Phase 7 F-10)', async () => {
+    renderAtToken('tok123');
+    const group = await screen.findByRole('group', { name: 'Enter the 6-digit code' });
+    expect(screen.getByText('We sent it by SMS to the number the sender gave for you.')).toBeVisible();
+    expect(group).toHaveAccessibleDescription('We sent it by SMS to the number the sender gave for you.');
+    const cells = within(group).getAllByRole('textbox');
+    expect(cells).toHaveLength(6);
+    cells.forEach((cell, i) => expect(cell).toHaveAccessibleName(`Digit ${i + 1} of 6`));
   });
 
   it('submits name + code, and navigates back to the shell on success', async () => {
@@ -58,7 +68,7 @@ describe('RecipientConfirmPage', () => {
     renderAtToken('tok123');
 
     await user.type(screen.getByLabelText(/Your name/), 'A. Recipient');
-    const cells = within(screen.getByRole('group', { name: 'Delivery code' })).getAllByRole('textbox');
+    const cells = within(screen.getByRole('group', { name: 'Enter the 6-digit code' })).getAllByRole('textbox');
     for (const cell of cells) await user.type(cell, '0');
     await user.click(screen.getByRole('button', { name: 'Confirm I received the goods' }));
 
@@ -88,7 +98,7 @@ describe('RecipientConfirmPage', () => {
     renderAtToken('tok123');
 
     await user.type(screen.getByLabelText(/Your name/), 'A. Recipient');
-    const cells = within(screen.getByRole('group', { name: 'Delivery code' })).getAllByRole('textbox');
+    const cells = within(screen.getByRole('group', { name: 'Enter the 6-digit code' })).getAllByRole('textbox');
     for (const cell of cells) await user.type(cell, '0');
     await user.click(screen.getByRole('button', { name: 'Confirm I received the goods' }));
 

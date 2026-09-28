@@ -74,7 +74,7 @@ export function RecipientConfirmPage(): JSX.Element {
         </Card>
 
         <Card>
-          <OtpInput label={t('confirm.otpLabel')} value={code} onChange={setCode} />
+          <OtpInput label={t('confirm.otpLabel')} hint={t('confirm.otpHint')} value={code} onChange={setCode} />
         </Card>
 
         {proofIncomplete && <Alert tone="danger">{t('confirm.proofIncomplete')}</Alert>}

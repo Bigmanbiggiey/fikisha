@@ -27,7 +27,7 @@
   "confirm": {
     "title": "Thibitisha upokeaji",
     "nameLabel": "Jina lako",
-    "otpLabel": "Msimbo wa kufikisha",
+    "otpLabel": "Weka msimbo wa tarakimu 6",
     "moreProofToggle": "Ongeza picha au sahihi (baadhi ya ufikishaji unahitaji hii)",
     "signatureLabel": "Sahihi",
     "clearSignature": "Futa",
@@ -35,7 +35,8 @@
     "retake": "Piga tena",
     "photoAdded": "Picha imeongezwa",
     "confirm": "Thibitisha nimepokea mzigo",
-    "proofIncomplete": "Ufikishaji huu unahitaji picha ya mzigo pia — tafadhali ongeza moja hapa chini."
+    "proofIncomplete": "Ufikishaji huu unahitaji picha ya mzigo pia — tafadhali ongeza moja hapa chini.",
+    "otpHint": "Tulikutumia kwa SMS kwenye nambari aliyotoa mtumaji."
   },
   "reportIssue": {
     "title": "Ripoti tatizo",

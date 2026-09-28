@@ -41,5 +41,8 @@
     "status": "Hali",
     "healthy": "nzuri",
     "unreachable": "haipatikani"
+  },
+  "otp": {
+    "digit": "Tarakimu {{n}} kati ya {{total}}"
   }
 }

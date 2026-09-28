@@ -10,7 +10,7 @@ import { LanguageSwitcher } from '@/shell/LanguageSwitcher';
 export function RecipientHeader(): JSX.Element {
   return (
     <header className="flex items-center justify-between border-b border-line px-4 py-3">
-      <span className="text-h3 font-bold text-action-primary">fikisha</span>
+      <span className="text-h3 font-bold text-action-primary">Fikisha</span>
       <LanguageSwitcher />
     </header>
   );
