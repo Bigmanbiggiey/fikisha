@@ -71,6 +71,20 @@ describe('role navigation (Design Phase 7 P-04)', () => {
     expect(screen.getAllByRole('link', { name: /Businesses/ }).length).toBeGreaterThan(0);
   });
 
+  it('gives someone with no role yet Home, More, the setup screens and sign out', () => {
+    active = { role: null, roles: [] };
+    renderWithProviders(
+      <>
+        <RoleTabBar />
+        <MorePage />
+      </>,
+    );
+    expect(tabNames()).toEqual(['Home', 'More']);
+    expect(screen.getByRole('link', { name: 'Businesses' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Operator' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Sign out' })).toBeInTheDocument();
+  });
+
   it('hides the tab bar from md up and shows the sidebar only from lg', () => {
     const { container } = renderWithProviders(
       <>

@@ -5,7 +5,7 @@ import { cn } from '@/components/cn';
 import { Icon } from '@/design/Icon';
 
 import { useActiveRole } from './activeRole';
-import { NAV, isNavItemActive, type NavItem } from './navConfig';
+import { isNavItemActive, navFor, type NavItem } from './navConfig';
 
 const MORE: NavItem = { to: '/more', labelKey: 'common:nav.more', icon: 'menu', end: true };
 
@@ -19,10 +19,10 @@ const MORE: NavItem = { to: '/more', labelKey: 'common:nav.more', icon: 'menu', 
 export function RoleTabBar(): JSX.Element | null {
   const { t } = useTranslation(['common', 'org']);
   const { pathname } = useLocation();
-  const { role } = useActiveRole();
-  if (!role) return null;
+  const { loading, role } = useActiveRole();
+  if (loading) return null;
 
-  const nav = NAV[role];
+  const nav = navFor(role);
   const items = [...nav.primary, ...(nav.action ? [nav.action] : []), MORE];
   // "More" also covers the secondary screens it links to.
   const moreActive = pathname === '/more' || nav.secondary.some((s) => isNavItemActive(s, pathname));

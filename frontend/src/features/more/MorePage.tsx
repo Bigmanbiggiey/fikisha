@@ -7,7 +7,7 @@ import { Icon } from '@/design/Icon';
 import { useAuth } from '@/features/auth/useAuth';
 import { useActiveRole } from '@/shell/activeRole';
 import { LanguageSwitcher } from '@/shell/LanguageSwitcher';
-import { NAV } from '@/shell/navConfig';
+import { navFor } from '@/shell/navConfig';
 import { RoleSwitch } from '@/shell/RoleSwitch';
 
 /**
@@ -19,7 +19,7 @@ export function MorePage(): JSX.Element {
   const { t } = useTranslation(['common', 'org']);
   const { logout } = useAuth();
   const { role } = useActiveRole();
-  const secondary = role ? NAV[role].secondary : [];
+  const secondary = navFor(role).secondary;
 
   return (
     <div className="space-y-5">

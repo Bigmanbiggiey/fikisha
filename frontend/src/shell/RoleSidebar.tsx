@@ -5,7 +5,7 @@ import { cn } from '@/components/cn';
 import { Icon } from '@/design/Icon';
 
 import { useActiveRole } from './activeRole';
-import { NAV, isNavItemActive, type NavItem } from './navConfig';
+import { isNavItemActive, navFor, type NavItem } from './navConfig';
 import { RoleSwitch } from './RoleSwitch';
 
 /**
@@ -17,10 +17,10 @@ import { RoleSwitch } from './RoleSwitch';
 export function RoleSidebar(): JSX.Element | null {
   const { t } = useTranslation(['common', 'org']);
   const { pathname } = useLocation();
-  const { role } = useActiveRole();
-  if (!role) return null;
+  const { loading, role } = useActiveRole();
+  if (loading) return null;
 
-  const nav = NAV[role];
+  const nav = navFor(role);
   const link = (item: NavItem): JSX.Element => {
     const active = isNavItemActive(item, pathname);
     return (

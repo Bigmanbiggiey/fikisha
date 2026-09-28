@@ -97,6 +97,22 @@ export const NAV: Record<NavRole, RoleNav> = {
   PLATFORM_ADMIN: staff,
 };
 
+/**
+ * For a signed-in person with no role yet (no business, operator profile or
+ * group): Home, plus the screens where they set one up, and More (which
+ * holds language and sign out). Without this a new user on a phone had no
+ * navigation and no way to sign out.
+ */
+export const SETUP_NAV: RoleNav = {
+  primary: [home],
+  secondary: [{ to: '/businesses', labelKey: 'org:nav.businesses', icon: 'box' }, profile],
+};
+
+/** The navigation to show: the active role's, or the setup set. */
+export function navFor(role: NavRole | null): RoleNav {
+  return role ? NAV[role] : SETUP_NAV;
+}
+
 /** Default when a person holds several roles and hasn't picked one. */
 export const ROLE_PRIORITY: readonly NavRole[] = NAV_ROLES;
 
