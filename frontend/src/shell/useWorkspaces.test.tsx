@@ -1,6 +1,9 @@
-import { screen, waitFor } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { render, screen, waitFor } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { AuthProvider } from '@/features/auth/AuthProvider';
 import { ApiError } from '@/services/problem';
 import { renderWithProviders } from '@/test/renderWithProviders';
 
@@ -93,6 +96,41 @@ describe('useWorkspaces', () => {
     // not a party to b2, not a platform admin:
     expect(screen.queryByText(/Not mine/)).not.toBeInTheDocument();
     expect(screen.queryByText(/PLATFORM_ADMIN/)).not.toBeInTheDocument();
+  });
+
+  it("never shows the previous user's operator profile to the next person on the same tab", async () => {
+    // One query cache, two sign-ins (sign-out doesn't clear the cache).
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const renderShared = (): ReturnType<typeof render> =>
+      render(
+        <QueryClientProvider client={client}>
+          <MemoryRouter>
+            <AuthProvider>
+              <Probe />
+            </AuthProvider>
+          </MemoryRouter>
+        </QueryClientProvider>,
+      );
+    const user = (id: string): Record<string, unknown> => ({
+      id, phone: '+254700000001', display_name: id, locale: 'en', status: 'ACTIVE', roles: [], is_admin: false,
+    });
+    listBusinesses.mockResolvedValue({ data: [], page: { next_cursor: null, prev_cursor: null } });
+    listGroups.mockResolvedValue({ data: [], page: { next_cursor: null, prev_cursor: null } });
+
+    meMock.mockResolvedValue(user('u1'));
+    getMyOperator.mockResolvedValue({ id: 'op1', full_name: 'First Person', display_name: '' });
+    const first = renderShared();
+    expect(await screen.findByText('OPERATOR:First Person')).toBeInTheDocument();
+    first.unmount();
+
+    meMock.mockResolvedValue(user('u2'));
+    getMyOperator.mockRejectedValue(
+      new ApiError({ type: 'about:blank', title: 'Not Found', status: 404, code: 'not_found', detail: '' }, 404, 'not found'),
+    );
+    renderShared();
+    await waitFor(() => expect(getMyOperator).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(screen.queryByText('loading')).not.toBeInTheDocument());
+    expect(screen.queryByText(/OPERATOR:/)).not.toBeInTheDocument();
   });
 
   it('asks for the operator profile once, however many readers mount (no 404 loop)', async () => {

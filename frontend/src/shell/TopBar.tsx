@@ -9,7 +9,7 @@ import { useOnline } from '@/design/useOnline';
 
 import { useActiveRole } from './activeRole';
 import { LanguageSwitcher } from './LanguageSwitcher';
-import { NAV, isNavItemActive, type NavItem } from './navConfig';
+import { isNavItemActive, navFor, type NavItem } from './navConfig';
 
 /**
  * TopBar (Design Phase 7 P-04). No longer lists every link: navigation
@@ -27,9 +27,9 @@ export function TopBar(): JSX.Element {
   const online = useOnline();
   const navigate = useNavigate();
   const { pathname } = useLocation();
-  const { role } = useActiveRole();
+  const { loading, role } = useActiveRole();
 
-  const nav = status === 'authenticated' && role ? NAV[role] : null;
+  const nav = status === 'authenticated' && !loading ? navFor(role) : null;
   const inline: NavItem[] = nav
     ? [
         ...nav.primary,

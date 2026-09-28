@@ -45,7 +45,10 @@ export function useWorkspaces(): WorkspacesState {
   // profile screen still sees the 404 it relies on; the profile screen's
   // invalidation of ['operator', 'me'] still refreshes this one (prefix).
   const operator = useQuery({
-    queryKey: ['operator', 'me', 'workspace'],
+    // Keyed by user: it's cached indefinitely and sign-out doesn't clear the
+    // cache, so without the id a second person signing in on the same tab
+    // would inherit the first person's operator profile.
+    queryKey: ['operator', 'me', 'workspace', user?.id],
     queryFn: async () => {
       try {
         return await orgApi.getMyOperator();
