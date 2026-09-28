@@ -1,4 +1,4 @@
-import type { JobStatus } from './types';
+import type { CancellationReason, JobStatus } from './types';
 
 /** The Jobs list is segmented (`design-phase-3-wireframes.md` §6.5) — never
  * the raw 14 states as tabs. `DRAFT` isn't named in that section explicitly;
@@ -213,4 +213,31 @@ export function businessNextAction(status: JobStatus): BusinessActionKey | null 
     default:
       return null;
   }
+}
+
+// ─── Business cancel (Design Phase 7 P-02) ───────────────────────────────
+/** The reasons a *business* may give. `ADMIN_ACTION` is staff-only. */
+export const BUSINESS_CANCEL_REASONS: CancellationReason[] = [
+  'BUSINESS_CHANGED_MIND',
+  'PRICE_DISAGREEMENT',
+  'NO_ACCEPTABLE_OFFER',
+  'OPERATOR_UNAVAILABLE',
+  'OTHER',
+];
+
+export type CancelConsequence = 'none' | 'late' | 'wastedTrip';
+
+/**
+ * What cancelling *now* means for the business (P2 correction 4):
+ * - after ASSIGNED, before AT_PICKUP: a late cancellation
+ * - at AT_PICKUP: a wasted trip
+ * - earlier: nothing counts against them
+ *
+ * Copy only. The rule itself (3 in a rolling 30 days, per side, gives an
+ * admin-review flag) is enforced and counted server-side.
+ */
+export function cancelConsequence(status: JobStatus): CancelConsequence {
+  if (status === 'ASSIGNED') return 'late';
+  if (status === 'AT_PICKUP') return 'wastedTrip';
+  return 'none';
 }

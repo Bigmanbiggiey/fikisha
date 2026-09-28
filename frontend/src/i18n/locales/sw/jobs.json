@@ -269,5 +269,24 @@
     "retake": "Piga tena",
     "photoAdded": "Picha imeongezwa",
     "confirmDelivery": "Thibitisha ufikishaji"
+  },
+  "cancel": {
+    "title": "Ghairi kazi {{ref}}?",
+    "why": "Kwa nini unaghairi?",
+    "note": "Kuna la kuongeza? (si lazima)",
+    "keep": "Endelea na kazi",
+    "confirm": "Ghairi kazi",
+    "reason": {
+      "BUSINESS_CHANGED_MIND": "Mipango yangu imebadilika",
+      "PRICE_DISAGREEMENT": "Hatukukubaliana bei",
+      "NO_ACCEPTABLE_OFFER": "Hakuna ofa inayonifaa",
+      "OPERATOR_UNAVAILABLE": "Mhudumu hapatikani",
+      "OTHER": "Sababu nyingine"
+    },
+    "consequence": {
+      "none": "Bado hakuna dereva aliyepangiwa, kwa hivyo hili halitahesabiwa dhidi yako.",
+      "late": "Dereva tayari amepangiwa. Hii inahesabiwa kama kughairi kwa kuchelewa. Kughairi kwa kuchelewa au safari zilizopotea mara tatu ndani ya siku 30 husababisha akaunti yako kukaguliwa.",
+      "wastedTrip": "Dereva tayari yuko mahali pa kuchukua. Hii inahesabiwa kama safari iliyopotea. Kughairi kwa kuchelewa au safari zilizopotea mara tatu ndani ya siku 30 husababisha akaunti yako kukaguliwa."
+    }
   }
 }
