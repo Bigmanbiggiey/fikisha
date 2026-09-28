@@ -30,7 +30,14 @@
     "COMPLETED": "Usafirishaji huu umekamilika.",
     "CANCELLED": "Ombi hili lilighairiwa.",
     "FAILED": "Usafirishaji huu haukukamilika.",
-    "DISPUTED": "Ina mgogoro — hatua za kawaida zimesimamishwa."
+    "DISPUTED": "Ina mgogoro — hatua za kawaida zimesimamishwa.",
+    "ASSIGNED_DRIVER": "Elekea mahali pa kuchukua. Ukifika, bonyeza kitufe hapa chini.",
+    "AT_PICKUP_DRIVER": "Uko mahali pa kuchukua — thibitisha kukabidhiwa.",
+    "PICKED_UP_DRIVER": "Umechukua bidhaa — anza safari ukiondoka.",
+    "IN_TRANSIT_DRIVER": "Uko njiani kuelekea mahali pa kufikisha.",
+    "AT_DESTINATION_DRIVER": "Umefika — thibitisha ufikishaji.",
+    "DELIVERED_DRIVER": "Ufikishaji umerekodiwa. Hakuna zaidi la kufanya.",
+    "DISPUTED_DRIVER": "Imesimamishwa — Fikisha inakagua tatizo."
   },
   "detail": {
     "route": "Njia",
@@ -161,7 +168,7 @@
     "respond": "Jibu",
     "assignDriverVehicle": "Panga dereva na gari",
     "arriveAtPickup": "Niko mahali pa kuchukua",
-    "arriveAtPickupNote": "Fungua anwani kwenye programu ya ramani au piga simu mtu wa kuchukua kutoka Kazi ya Sasa.",
+    "arriveAtPickupNote": "Maelekezo na nambari ya mtumaji yako hapa chini.",
     "confirmPickup": "Thibitisha uchukuzi",
     "startTransit": "Anza safari",
     "arriveAtDestination": "Nimefika",
@@ -295,6 +302,33 @@
       "none": "Bado hakuna dereva aliyepangiwa, kwa hivyo hili halitahesabiwa dhidi yako.",
       "late": "Dereva tayari amepangiwa. Hii inahesabiwa kama kughairi kwa kuchelewa. Kughairi kwa kuchelewa au safari zilizopotea mara tatu ndani ya siku 30 husababisha akaunti yako kukaguliwa.",
       "wastedTrip": "Dereva tayari yuko mahali pa kuchukua. Hii inahesabiwa kama safari iliyopotea. Kughairi kwa kuchelewa au safari zilizopotea mara tatu ndani ya siku 30 husababisha akaunti yako kukaguliwa."
+    }
+  },
+  "driver": {
+    "jobRef": "Kazi {{ref}}",
+    "pickupCard": "Kuchukua — mtumaji",
+    "dropoffCard": "Kufikisha — mpokezi",
+    "call": "Piga simu",
+    "callWho": "Piga simu {{who}}",
+    "whatsapp": "WhatsApp",
+    "whatsappWho": "WhatsApp {{who}}",
+    "goPickup": "Nenda mahali pa kuchukua",
+    "goDropoff": "Nenda mahali pa kufikisha",
+    "noName": "Jina halijatolewa",
+    "noPhone": "Hakuna nambari iliyotolewa",
+    "contactFallback": "mhusika",
+    "vehicle": "Gari",
+    "fullDetail": "Maelezo kamili ya kazi",
+    "deliveryRecorded": "Ufikishaji umerekodiwa",
+    "onHold": "Kazi hii imesimamishwa — Fikisha inakagua tatizo.",
+    "progress": {
+      "title": "Maendeleo",
+      "pickup": "Kuchukua",
+      "transit": "Safari",
+      "delivery": "Kufikisha",
+      "done": "imekamilika",
+      "current": "hatua ya sasa",
+      "upcoming": "bado"
     }
   }
 }

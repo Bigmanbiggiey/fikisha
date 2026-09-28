@@ -30,7 +30,14 @@
     "COMPLETED": "This delivery is complete.",
     "CANCELLED": "This request was cancelled.",
     "FAILED": "This delivery couldn't be completed.",
-    "DISPUTED": "Under dispute — normal steps are paused."
+    "DISPUTED": "Under dispute — normal steps are paused.",
+    "ASSIGNED_DRIVER": "Head to pickup. Tap the button below when you get there.",
+    "AT_PICKUP_DRIVER": "You're at pickup — confirm the handover.",
+    "PICKED_UP_DRIVER": "Goods collected — start the trip when you set off.",
+    "IN_TRANSIT_DRIVER": "You're on the way to the drop-off.",
+    "AT_DESTINATION_DRIVER": "You've arrived — confirm the delivery.",
+    "DELIVERED_DRIVER": "Delivery recorded. Nothing more to do.",
+    "DISPUTED_DRIVER": "On hold — Fikisha is reviewing an issue."
   },
   "detail": {
     "route": "Route",
@@ -161,7 +168,7 @@
     "respond": "Respond",
     "assignDriverVehicle": "Assign driver & vehicle",
     "arriveAtPickup": "I'm at pickup",
-    "arriveAtPickupNote": "Open the address in your map app or call the pickup contact from Current Job.",
+    "arriveAtPickupNote": "Directions and the sender's number are below.",
     "confirmPickup": "Confirm pickup",
     "startTransit": "Start transit",
     "arriveAtDestination": "I've arrived",
@@ -295,6 +302,33 @@
       "none": "No driver is assigned yet, so this doesn’t count against you.",
       "late": "A driver is already assigned. This counts as a late cancellation. Three late cancellations or wasted trips in 30 days lead to a review of your account.",
       "wastedTrip": "The driver is already at pickup. This counts as a wasted trip. Three late cancellations or wasted trips in 30 days lead to a review of your account."
+    }
+  },
+  "driver": {
+    "jobRef": "Job {{ref}}",
+    "pickupCard": "Pickup — sender",
+    "dropoffCard": "Drop-off — receiver",
+    "call": "Call",
+    "callWho": "Call {{who}}",
+    "whatsapp": "WhatsApp",
+    "whatsappWho": "WhatsApp {{who}}",
+    "goPickup": "Go to pickup",
+    "goDropoff": "Go to drop-off",
+    "noName": "Name not given",
+    "noPhone": "No number given",
+    "contactFallback": "the contact",
+    "vehicle": "Vehicle",
+    "fullDetail": "Full job detail",
+    "deliveryRecorded": "Delivery recorded",
+    "onHold": "This job is on hold — Fikisha is reviewing an issue.",
+    "progress": {
+      "title": "Progress",
+      "pickup": "Pickup",
+      "transit": "Transit",
+      "delivery": "Delivery",
+      "done": "done",
+      "current": "current step",
+      "upcoming": "not yet"
     }
   }
 }
