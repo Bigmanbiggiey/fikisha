@@ -9,6 +9,7 @@ import { Card } from '@/components/Card';
 import { ErrorState } from '@/components/ErrorState';
 import { Field } from '@/components/Field';
 import { Input } from '@/components/Input';
+import { OptionRows } from '@/components/OptionRow';
 import { OtpInput } from '@/components/OtpInput';
 import { PageLoader } from '@/components/PageLoader';
 import { PhotoCapture } from '@/components/PhotoCapture';
@@ -37,7 +38,8 @@ export function DeliveryProofPage(): JSX.Element {
   const qc = useQueryClient();
 
   const [partyName, setPartyName] = useState('');
-  const [method, setMethod] = useState<StandardMethod | null>(null);
+  // STANDARD: the code is the common path, so it starts selected (P-12).
+  const [method, setMethod] = useState<StandardMethod>('otp');
   const [code, setCode] = useState('');
   const [signature, setSignature] = useState<File | null>(null);
   const [photo, setPhoto] = useState<File | null>(null);
@@ -50,17 +52,23 @@ export function DeliveryProofPage(): JSX.Element {
   });
 
   const confirm = useMutation({
-    mutationFn: () =>
-      jobsApi.confirmDelivery(
+    mutationFn: () => {
+      // STANDARD sends only the chosen method's proof, so a half-typed code
+      // left behind after switching rows can't ride along with a photo.
+      // ELEVATED+ always sends code + photo together.
+      const standard = job.data?.value_band === 'STANDARD';
+      const sends = (m: StandardMethod): boolean => !standard || method === m;
+      return jobsApi.confirmDelivery(
         jobId!,
         {
           party_name: partyName,
-          code: code || undefined,
-          signature: signature ?? undefined,
-          photos: photo ? [photo] : undefined,
+          code: sends('otp') && code ? code : undefined,
+          signature: sends('signature') && signature ? signature : undefined,
+          photos: sends('photo') && photo ? [photo] : undefined,
         },
         crypto.randomUUID(),
-      ),
+      );
+    },
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['jobs', jobId] });
       void qc.invalidateQueries({ queryKey: ['jobs'] });
@@ -80,8 +88,10 @@ export function DeliveryProofPage(): JSX.Element {
   }
 
   const isStandard = data.value_band === 'STANDARD';
+  const chosenProofReady =
+    method === 'otp' ? code.length === 6 : method === 'signature' ? !!signature : !!photo;
   const canSubmit = isStandard
-    ? !!partyName.trim() && (!!code || !!signature || !!photo)
+    ? !!partyName.trim() && chosenProofReady
     : !!partyName.trim() && code.length === 6 && !!photo;
 
   return (
@@ -101,19 +111,20 @@ export function DeliveryProofPage(): JSX.Element {
 
       {isStandard ? (
         <>
-          <div className="flex flex-wrap gap-2">
-            <MethodPill active={method === 'otp'} onClick={() => setMethod('otp')} label={t('jobs:deliveryProof.otpLabel')} />
-            <MethodPill
-              active={method === 'signature'}
-              onClick={() => setMethod('signature')}
-              label={t('jobs:deliveryProof.signatureLabel')}
-            />
-            <MethodPill
-              active={method === 'photo'}
-              onClick={() => setMethod('photo')}
-              label={t('jobs:deliveryProof.photoLabel')}
-            />
-          </div>
+          <OptionRows<StandardMethod>
+            legend={t('jobs:deliveryProof.howProve')}
+            value={method}
+            onChange={setMethod}
+            options={[
+              { value: 'otp', label: t('jobs:deliveryProof.otpLabel'), description: t('jobs:deliveryProof.otpDesc') },
+              {
+                value: 'signature',
+                label: t('jobs:deliveryProof.signatureLabel'),
+                description: t('jobs:deliveryProof.signatureDesc'),
+              },
+              { value: 'photo', label: t('jobs:deliveryProof.photoLabel'), description: t('jobs:deliveryProof.photoDesc') },
+            ]}
+          />
           {method === 'otp' && (
             <Card>
               <OtpInput label={t('jobs:deliveryProof.otpLabel')} value={code} onChange={setCode} />
@@ -167,20 +178,5 @@ export function DeliveryProofPage(): JSX.Element {
 
       {confirm.isError && <Alert tone="danger">{localizeError(confirm.error, t)}</Alert>}
     </div>
-  );
-}
-
-function MethodPill({ active, onClick, label }: { active: boolean; onClick: () => void; label: string }): JSX.Element {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={active}
-      className={`rounded-full border px-3 py-2 text-body-sm ${
-        active ? 'border-action-primary bg-surface-brand-tint text-fg' : 'border-line text-fg-secondary'
-      }`}
-    >
-      {label}
-    </button>
   );
 }
