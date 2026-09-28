@@ -72,7 +72,7 @@ export function BusinessHomePage(): JSX.Element {
             <EmptyState title={t('jobs:home.emptyTitle')} description={t('jobs:home.emptyBody')} />
           </div>
         ) : (
-          <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="mt-2 grid grid-cols-1 gap-3 md:grid-cols-2">
             {active.map((job) => (
               <JobCard
                 key={job.id}

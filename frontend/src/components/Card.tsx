@@ -17,7 +17,7 @@ export function Card({
     <div
       {...rest}
       className={cn(
-        'rounded-md border border-line bg-surface-card p-4 sm:p-5',
+        'rounded-md border border-line bg-surface-card p-4 md:p-5',
         interactive &&
           'cursor-pointer transition-colors duration-fast hover:bg-surface-brand-tint focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-line-focus',
         className,

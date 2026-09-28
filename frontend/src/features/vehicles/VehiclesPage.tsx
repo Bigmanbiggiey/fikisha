@@ -71,7 +71,7 @@ export function VehiclesPage(): JSX.Element {
           </div>
         )}
         <form
-          className="mt-3 grid gap-3 sm:grid-cols-2"
+          className="mt-3 grid gap-3 md:grid-cols-2"
           onSubmit={(e: FormEvent) => {
             e.preventDefault();
             if (canCreate) create.mutate();
@@ -127,7 +127,7 @@ export function VehiclesPage(): JSX.Element {
             </select>
           </label>
           {manageableGroups.length > 0 && (
-            <label className="text-body-sm sm:col-span-2">
+            <label className="text-body-sm md:col-span-2">
               <span className="mb-1 block font-medium text-fg-secondary">
                 {t('org:vehicles.toGroup')}
               </span>
@@ -145,7 +145,7 @@ export function VehiclesPage(): JSX.Element {
               </select>
             </label>
           )}
-          <div className="sm:col-span-2">
+          <div className="md:col-span-2">
             <Button type="submit" loading={create.isPending} disabled={!canCreate}>
               {t('org:common.create')}
             </Button>

@@ -45,7 +45,7 @@ export function GroupsPage(): JSX.Element {
         <h2 className="text-label text-fg-secondary">{t('org:groups.createTitle')}</h2>
         <p className="mt-1 text-caption text-fg-muted">{t('org:groups.needProfile')}</p>
         <form
-          className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-end"
+          className="mt-3 flex flex-col gap-2 md:flex-row md:items-end"
           onSubmit={(e: FormEvent) => {
             e.preventDefault();
             if (name.trim()) create.mutate();

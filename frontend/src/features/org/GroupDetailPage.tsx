@@ -114,7 +114,7 @@ export function GroupDetailPage(): JSX.Element {
 
         {canManage && (
           <form
-            className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-end"
+            className="mt-3 flex flex-col gap-2 md:flex-row md:items-end"
             onSubmit={(e: FormEvent) => {
               e.preventDefault();
               if (operatorId.trim()) addMember.mutate();

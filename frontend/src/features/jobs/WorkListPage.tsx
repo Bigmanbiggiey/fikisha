@@ -68,7 +68,7 @@ export function WorkListPage(): JSX.Element {
       ) : (jobs.data?.data ?? []).length === 0 ? (
         <EmptyState title={t('jobs:work.emptyTitle')} description={t('jobs:work.emptyBody')} />
       ) : (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           {(jobs.data?.data ?? []).map((job) => (
             <JobCard
               key={job.id}
