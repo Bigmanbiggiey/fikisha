@@ -330,5 +330,13 @@
       "current": "hatua ya sasa",
       "upcoming": "bado"
     }
+  },
+  "currentJob": {
+    "title": "Kazi ya sasa",
+    "none": "Hakuna kazi inayoendelea",
+    "noneNotified": "Utaarifiwa ukipangiwa kazi.",
+    "availableWork": "Ona kazi zinazopatikana",
+    "several_one": "Una kazi {{count}} ya sasa.",
+    "several_other": "Una kazi {{count}} za sasa. Chagua moja."
   }
 }

@@ -32,14 +32,34 @@ export function useWorkspaces(): WorkspacesState {
     queryFn: orgApi.listBusinesses,
     enabled,
     retry: false,
+    // A failed lookup isn't re-fetched by every component that mounts (the
+    // shell has several readers); see the operator query below.
+    retryOnMount: false,
   });
+  // "No operator profile" (a 404) is an answer, not an error: resolve it to
+  // null so the query settles once and stays settled. As an error, every
+  // newly mounted reader (the shell, tab bar, sidebar, page) re-fetched it,
+  // and a re-fetch with no data puts the query back to pending, which
+  // flipped the whole app to "loading" in a loop for anyone without an
+  // operator profile (found in the 10c re-capture). Its own key, so the
+  // profile screen still sees the 404 it relies on; the profile screen's
+  // invalidation of ['operator', 'me'] still refreshes this one (prefix).
   const operator = useQuery({
-    queryKey: ['operator', 'me'],
-    queryFn: orgApi.getMyOperator,
+    queryKey: ['operator', 'me', 'workspace'],
+    queryFn: async () => {
+      try {
+        return await orgApi.getMyOperator();
+      } catch (err) {
+        if (err instanceof ApiError && err.status === 404) return null;
+        throw err;
+      }
+    },
     enabled,
-    retry: (count, err) => !(err instanceof ApiError && err.status === 404) && count < 1,
+    staleTime: Infinity,
+    retry: (count) => count < 1,
+    retryOnMount: false,
   });
-  const groups = useQuery({ queryKey: ['groups'], queryFn: orgApi.listGroups, enabled, retry: false });
+  const groups = useQuery({ queryKey: ['groups'], queryFn: orgApi.listGroups, enabled, retry: false, retryOnMount: false });
 
   if (!enabled) {
     return { loading: status === 'loading', workspaces: [] };
@@ -64,6 +84,9 @@ export function useWorkspaces(): WorkspacesState {
   for (const group of groups.data?.data ?? []) {
     if (group.my_role && GROUP_MANAGER_ROLES.has(group.my_role)) {
       workspaces.push({ kind: 'GROUP_MANAGER', id: group.id, label: group.name });
+    }
+    if (group.my_role === 'DRIVER') {
+      workspaces.push({ kind: 'DRIVER', id: group.id, label: group.name, assignmentMode: group.assignment_mode });
     }
   }
   if (user.roles.includes('OPERATIONS_OFFICER')) {

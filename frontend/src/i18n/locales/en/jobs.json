@@ -330,5 +330,13 @@
       "current": "current step",
       "upcoming": "not yet"
     }
+  },
+  "currentJob": {
+    "title": "Current job",
+    "none": "No active job",
+    "noneNotified": "You'll be notified when you're assigned a job.",
+    "availableWork": "See available work",
+    "several_one": "You have {{count}} current job.",
+    "several_other": "You have {{count}} current jobs. Choose one."
   }
 }

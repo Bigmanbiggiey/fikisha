@@ -45,7 +45,11 @@ export function BusinessHomePage(): JSX.Element {
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-3">
         <h1 className="text-h1 text-fg">{t('jobs:home.title')}</h1>
-        <Button onClick={() => navigate('/jobs/new')}>{t('jobs:home.requestTransport')}</Button>
+        {/* From lg the sidebar carries "Request transport" (P-04); below lg
+            it stays here as Home's quick action (P1 §5). */}
+        <Button className="lg:hidden" onClick={() => navigate('/jobs/new')}>
+          {t('jobs:home.requestTransport')}
+        </Button>
       </div>
 
       {needsAttention.length > 0 && (
