@@ -8,11 +8,16 @@ stays a notification channel, and no new message channel is created.
 Every source is read through its module's public surface (module boundary
 rule), and each module applies its own party check:
 
-* offers:   ``negotiation.services.inbox_threads`` (sealed threads)
-* notes:    ``jobs.ops.notes_for`` on the jobs from ``jobs.job_authz.jobs_visible_to``
-            that pass ``job_authz.is_job_party`` (the job-notes endpoint's
-            ``job.read`` rule; ``jobs_visible_to`` alone is wider)
-* issues:   ``incidents.services.inbox_items_for_job`` (incident party rule)
+* offers:   ``negotiation.services.inbox_threads_for_jobs`` (sealed threads)
+* notes:    ``jobs.ops.notes_for_jobs`` on the jobs from
+            ``jobs.job_authz.recent_jobs_visible_to`` that pass
+            ``job_authz.is_job_party`` (the job-notes endpoint's ``job.read``
+            rule; the visible-jobs list alone is wider)
+* issues:   ``incidents.services.inbox_items_for_jobs`` (incident party rule)
+
+Each source is one batch read across all the jobs, and the membership
+lookups behind the party checks run under ``common.authz_memo``, so a request
+costs a fixed number of queries rather than a few per job.
 
 Staff get an empty inbox: they already work from the Ops queues, and their
 admin visibility of every job must not turn into an inbox of every job.
@@ -31,6 +36,7 @@ from typing import Any
 from django.utils import timezone
 from rest_framework import status
 
+from fikisha.common.authz_memo import authz_memo
 from fikisha.common.exceptions import DomainError
 from fikisha.inbox.models import InboxReadMarker
 
@@ -70,16 +76,48 @@ def _user(actor: Any) -> Any:
     return getattr(actor, "user", None)
 
 
-def _items_for_job(actor: Any, job: Any) -> list[_Item]:
+def _items_for_jobs(actor: Any, jobs: list[Any]) -> list[_Item]:
+    """One batch read per source across all the jobs, then the items job by
+    job. A fixed number of queries, not a few per job."""
     from fikisha.incidents import services as incidents_services
     from fikisha.jobs import job_authz
     from fikisha.jobs import ops as jobs_ops
     from fikisha.negotiation import services as negotiation_services
 
+    threads = negotiation_services.inbox_threads_for_jobs(actor=actor, jobs=jobs)
+    # ``jobs_visible_to`` is wider than ``job.read`` (it lists a business
+    # VIEWER's or a non-managing group member's jobs), so the notes are
+    # gated on the notes endpoint's own party rule, job by job.
+    notes = jobs_ops.notes_for_jobs(
+        [job.id for job in jobs if job_authz.is_job_party(actor, job)], staff=False
+    )
+    issues = incidents_services.inbox_items_for_jobs(actor=actor, jobs=jobs)
+
+    items: list[_Item] = []
+    for job in jobs:
+        items.extend(
+            _job_items(
+                job,
+                threads.get(str(job.id), []),
+                notes.get(str(job.id), []),
+                issues.get(str(job.id), []),
+            )
+        )
+    return items
+
+
+def _job_items(
+    job: Any,
+    threads: list[dict[str, Any]],
+    notes: list[dict[str, Any]],
+    issues: list[dict[str, Any]],
+) -> list[_Item]:
+    from fikisha.jobs import ops as jobs_ops
+
     base = {"job_id": str(job.id), "job_reference": jobs_ops.job_reference(job.id)}
     items: list[_Item] = []
 
-    for thread in negotiation_services.inbox_threads(actor=actor, job=job):
+    for thread in threads:
         latest = thread["latest"]
         items.append(
             _Item(
@@ -101,10 +139,6 @@ def _items_for_job(actor: Any, job: Any) -> list[_Item]:
             )
         )
 
-    # ``jobs_visible_to`` is wider than ``job.read`` (it lists a business
-    # VIEWER's or a non-managing group member's jobs), so the notes are
-    # gated on the notes endpoint's own party rule, job by job.
-    notes = jobs_ops.notes_for(job, staff=False) if job_authz.is_job_party(actor, job) else []
     if notes:
         last = notes[-1]
         items.append(
@@ -122,7 +156,7 @@ def _items_for_job(actor: Any, job: Any) -> list[_Item]:
             )
         )
 
-    for row in incidents_services.inbox_items_for_job(actor=actor, job=job):
+    for row in issues:
         kind = row["kind"]
         items.append(
             _Item(
@@ -151,10 +185,11 @@ def conversations_for(actor: Any) -> list[dict[str, Any]]:
     if user is None or job_authz.is_admin(actor):
         return []
 
-    jobs = job_authz.jobs_visible_to(actor).order_by("-created_at")[:MAX_JOBS]
-    items: list[_Item] = []
-    for job in jobs:
-        items.extend(_items_for_job(actor, job))
+    # Read-only: the memo only saves repeating the same membership lookup
+    # for every job; each module still applies its own party check per job.
+    with authz_memo():
+        jobs = job_authz.recent_jobs_visible_to(actor, MAX_JOBS)
+        items = _items_for_jobs(actor, jobs)
 
     markers = dict(
         InboxReadMarker.objects.filter(

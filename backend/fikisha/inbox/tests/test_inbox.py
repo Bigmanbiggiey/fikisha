@@ -261,3 +261,77 @@ def test_api_pages_forward_without_overlap(
     assert second["unread_count"] == 2  # the whole inbox, not the page
 
     assert client.get("/api/v1/messages?cursor=garbage!!").status_code == 400
+
+
+# ─── cost ────────────────────────────────────────────────────────────
+def _another_requested_job(business: Any, owner: Any, actor: Any) -> Any:
+    """A second published job on the same business, built like
+    negotiation's ``requested_job`` fixture."""
+    from fikisha.jobs.constants import JobStatus
+    from fikisha.jobs.models import CargoDetails, Job, JobLocation, VehicleRequirement
+    from fikisha.jobs.service import TransitionContext, transition
+
+    job = Job.objects.create(
+        business=business,
+        created_by=owner,
+        status=JobStatus.DRAFT,
+        pickup_location=JobLocation.objects.create(
+            type="PICKUP", source_kind="AD_HOC", address_text="Depot"
+        ),
+        destination_location=JobLocation.objects.create(
+            type="DESTINATION", source_kind="AD_HOC", address_text="Shop"
+        ),
+        cargo=CargoDetails.objects.create(
+            description="10 cartons", declared_value_kes=1_200_000, handling_flags=[]
+        ),
+        vehicle_requirement=VehicleRequirement.objects.create(
+            min_payload_kg=500, required_vehicle_class_codes=[]
+        ),
+        proposed_price_kes=250_000,
+        declared_value_kes=1_200_000,
+    )
+    transition(
+        job_id=job.id,
+        to=JobStatus.REQUESTED,
+        actor=actor,
+        context=TransitionContext(data={"initiator_tokens": ["BUSINESS_OWNER_OR_DISPATCHER"]}),
+    )
+    return job
+
+
+def test_the_query_count_does_not_grow_with_the_number_of_jobs(
+    offers: dict[str, Any],
+    verified_business: Any,
+    business_owner: Any,
+    owner_actor: Any,
+    operator_a: Any,
+    ops_officer: Any,
+    _actor: Callable,
+) -> None:
+    """ADR-2D-37: one batch read per source, membership lookups memoized, so
+    the inbox costs the same for 1 job as for 4 (for both sides)."""
+    from django.db import connection
+    from django.test.utils import CaptureQueriesContext
+
+    from fikisha.jobs import ops
+    from fikisha.negotiation import services as negotiation
+
+    def cost(actor: Any) -> tuple[int, int]:
+        with CaptureQueriesContext(connection) as ctx:
+            items = inbox.conversations_for(actor)
+        return len(ctx.captured_queries), len(items)
+
+    operator_actor = _actor(operator_a.user)
+    before = {"business": cost(owner_actor), "operator": cost(operator_actor)}
+
+    for _ in range(3):
+        job = _another_requested_job(verified_business, business_owner, owner_actor)
+        negotiation.propose(
+            actor=operator_actor, job_id=job.id, operator_id=operator_a.id, amount_kes=240_000
+        )
+        ops.add_note(actor=_actor(ops_officer), job_id=job.id, text="Checked in")
+
+    after = {"business": cost(owner_actor), "operator": cost(operator_actor)}
+    for side in ("business", "operator"):
+        assert after[side][1] > before[side][1]  # more conversations ...
+        assert after[side][0] == before[side][0]  # ... for the same number of queries

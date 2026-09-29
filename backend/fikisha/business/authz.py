@@ -11,6 +11,7 @@ from typing import Any
 from uuid import UUID
 
 from fikisha.business.models import BusinessMembership, BusinessRole, MembershipStatus
+from fikisha.common.authz_memo import memoized
 
 
 def _business_id(resource: Any) -> str | None:
@@ -36,14 +37,15 @@ def active_membership(actor: Any, resource: Any) -> BusinessMembership | None:
     user_id = getattr(actor.user, "id", None)
     if business_id is None or user_id is None:
         return None
-    return (
-        BusinessMembership.objects.filter(  # type: ignore[misc]  # dynamic FK-id lookups
+    return memoized(
+        ("business.active_membership", str(user_id), str(business_id)),
+        lambda: BusinessMembership.objects.filter(  # type: ignore[misc]  # dynamic FK-id lookups
             business_id=business_id,
             user_id=user_id,
             status=MembershipStatus.ACTIVE,
         )
         .select_related("business")
-        .first()
+        .first(),
     )
 
 

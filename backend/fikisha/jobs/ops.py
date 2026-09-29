@@ -226,6 +226,19 @@ def notes_for(job: Job, *, staff: bool) -> list[dict[str, Any]]:
     return [_note_view(e, staff=staff) for e in events]
 
 
+def notes_for_jobs(job_ids: list[Any], *, staff: bool) -> dict[str, list[dict[str, Any]]]:
+    """:func:`notes_for` for many jobs in one query, keyed by job id (the
+    Messages inbox). The caller has already checked the reader may see each
+    job's notes."""
+    out: dict[str, list[dict[str, Any]]] = {}
+    events = JobEvent.objects.filter(
+        job_id__in=job_ids, category=JobEventCategory.ADMIN_ACTION, type=JobEventType.NOTE
+    ).order_by("seq")
+    for event in events:
+        out.setdefault(str(event.job_id), []).append(_note_view(event, staff=staff))
+    return out
+
+
 def _note_view(event: JobEvent, *, staff: bool) -> dict[str, Any]:
     view: dict[str, Any] = {
         "id": str(event.id),
