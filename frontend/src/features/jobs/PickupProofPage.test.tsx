@@ -55,13 +55,29 @@ describe('PickupProofPage', () => {
     confirmPickupAttested.mockReset();
   });
 
+  it('STANDARD: three explained, driver-sized method rows with the code pre-selected', async () => {
+    get.mockResolvedValue(baseJob());
+    renderAtJob('01a0a4123456');
+
+    const rows = await screen.findAllByRole('radio');
+    expect(rows).toHaveLength(3);
+    expect(screen.getByRole('radio', { name: /Enter code/ })).toBeChecked();
+    expect(screen.getByRole('radio', { name: /Enter code/ })).toHaveAccessibleDescription(
+      'The sender reads you a 6-digit code.',
+    );
+    // ≥64 px rows (min-h-16) and the one 56 px primary action.
+    for (const row of rows) expect(row.closest('label')).toHaveClass('min-h-16');
+    expect(screen.getByRole('button', { name: 'Confirm handover' })).toHaveClass('min-h-target-driver');
+    expect(screen.getAllByRole('button', { name: 'Confirm handover' })).toHaveLength(1);
+  });
+
   it('STANDARD: submits the operator-attested fallback with the photo and contact name', async () => {
     get.mockResolvedValue(baseJob());
     confirmPickupAttested.mockResolvedValue(baseJob({ status: 'PICKED_UP' }));
     const user = userEvent.setup();
     renderAtJob('01a0a4123456');
 
-    await user.click(await screen.findByRole('button', { name: 'Code not working?' }));
+    await user.click(await screen.findByRole('radio', { name: /Code not working\?/ }));
     await user.type(screen.getByLabelText(/Pickup contact's name/), 'J. Mwangi');
 
     const file = new File(['goods'], 'goods.jpg', { type: 'image/jpeg' });
@@ -84,9 +100,11 @@ describe('PickupProofPage', () => {
     renderAtJob('01a0a4123456');
 
     expect(await screen.findByText('Elevated delivery — verified pickup required')).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Code not working?' })).not.toBeInTheDocument();
+    // Two verified rows only — no fallback row anywhere (P3 §11.3).
+    expect(screen.getAllByRole('radio')).toHaveLength(2);
+    expect(screen.queryByRole('radio', { name: /Code not working\?/ })).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: 'Enter code' }));
+    // "Enter code" is pre-selected, so the code cells are already on screen.
     const cells = screen.getAllByRole('textbox');
     for (const cell of cells) await user.type(cell, '1');
     await user.click(screen.getByRole('button', { name: 'Confirm handover' }));

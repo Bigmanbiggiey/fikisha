@@ -36,7 +36,11 @@ export type IconName =
   | 'chevronRight'
   | 'phone'
   | 'camera'
-  | 'lock';
+  | 'lock'
+  | 'home'
+  | 'list'
+  | 'plus'
+  | 'menu';
 
 interface IconProps extends Omit<SVGProps<SVGSVGElement>, 'name'> {
   name: IconName;
@@ -151,6 +155,16 @@ const PATHS: Record<IconName, JSX.Element> = {
       <path d="M8 10V7a4 4 0 018 0v3" />
     </>
   ),
+  // Navigation (Design Phase 7 P-04)
+  home: <path d="M4 11l8-7 8 7M6 9.5V20h4.5v-5h3v5H18V9.5" />,
+  list: <path d="M9 6h11M9 12h11M9 18h11M4.5 6h.01M4.5 12h.01M4.5 18h.01" />,
+  plus: (
+    <>
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M12 8v8M8 12h8" />
+    </>
+  ),
+  menu: <path d="M4 7h16M4 12h16M4 17h16" />,
 };
 
 export function Icon({ name, size = 20, title, ...rest }: IconProps): JSX.Element {

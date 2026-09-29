@@ -1,19 +1,24 @@
 /**
- * A person's Fikisha "workspace" (Business / Operator / Group Manager /
- * Operations Officer / Platform Admin) is not one flat account field — it's
- * derived from which BusinessMembership / OperatorProfile / GroupMembership
- * rows exist for them (`docs/design-phase-1-ia.md` §5-§10), plus the
- * identity-level admin roles already on `AuthUser`. "Driver" deliberately
- * has no standalone workspace here: per IA §4.3/§7, it's a role-*scoped
- * view* a group DRIVER sees only in `DRIVER_ACCEPTS` mode, or a mode a solo
- * operator enters contextually (an active assigned Job) — not something to
- * switch into, so it isn't resolved by this module. See
- * `docs/design-phase-6-jobs-frontend-plan.md` §3.1/§4.
+ * A person's Fikisha "workspace" (Business / Operator / Driver / Group
+ * Manager / Operations Officer / Platform Admin) is not one flat account
+ * field — it's derived from which BusinessMembership / OperatorProfile /
+ * GroupMembership rows exist for them (`docs/design-phase-1-ia.md` §5-§10),
+ * plus the identity-level admin roles already on `AuthUser`.
+ *
+ * `DRIVER` (Design Phase 7 P-04, founder ruling 2026-09-28): one per group
+ * where the person's membership role is DRIVER (IA §4.3: "a GroupMembership
+ * with role = DRIVER"). It picks the narrower Driver navigation. A group
+ * driver still has an operator profile, so they keep the `OPERATOR`
+ * workspace too; that one carries their operator id for job-level checks
+ * (`useJobViewerRole`). An individual operator acting as their own driver
+ * gets no `DRIVER` workspace: the driver screen comes to them in context,
+ * on their assigned jobs.
  */
 
 export const WORKSPACE_KINDS = [
   'BUSINESS',
   'OPERATOR',
+  'DRIVER',
   'GROUP_MANAGER',
   'OPERATIONS_OFFICER',
   'PLATFORM_ADMIN',
@@ -27,4 +32,7 @@ export interface Workspace {
    * scoped to a single org. */
   id: string | null;
   label: string;
+  /** DRIVER only: the group's assignment mode. A group driver sees
+   * available work only in `DRIVER_ACCEPTS` (IA §4.3, §7). */
+  assignmentMode?: string;
 }

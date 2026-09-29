@@ -58,7 +58,12 @@ describe('DeliveryProofPage', () => {
     renderAtJob('01a0a4123456');
 
     await user.type(await screen.findByLabelText(/Recipient's name/), 'A. Otieno');
-    await user.click(screen.getByRole('button', { name: 'Photo' }));
+    // Three method rows, the code pre-selected (P-12).
+    expect(screen.getAllByRole('radio')).toHaveLength(3);
+    expect(screen.getByRole('radio', { name: /Delivery code/ })).toBeChecked();
+    // A half-typed code left behind must not be sent with the photo.
+    await user.type(screen.getAllByRole('textbox', { name: /Digit/ })[0]!, '1');
+    await user.click(screen.getByRole('radio', { name: /^Photo/ }));
 
     const file = new File(['pod'], 'pod.jpg', { type: 'image/jpeg' });
     await user.upload(
@@ -81,6 +86,8 @@ describe('DeliveryProofPage', () => {
     renderAtJob('01a0a4123456');
 
     await user.type(await screen.findByLabelText(/Recipient's name/), 'A. Otieno');
+    // ELEVATED+: code and photo are both required — nothing to choose.
+    expect(screen.queryAllByRole('radio')).toHaveLength(0);
     const otpCells = screen.getAllByRole('textbox');
     for (const cell of otpCells) await user.type(cell, '1');
 

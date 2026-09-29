@@ -76,9 +76,9 @@ def operator_is_party(actor: Any, job: Any) -> bool:
             and getattr(driver, "user_id", None) == getattr(user, "id", None)
         ):
             return True
-    from fikisha.negotiation.models import NegotiationThread
-
-    for thread in NegotiationThread.objects.filter(job=job).only("id", "operator_id", "group_id"):
+    # the reverse relation, so a bulk read that prefetched the threads
+    # (``recent_jobs_visible_to``) doesn't query again per job
+    for thread in job.negotiation_threads.all():
         if thread.operator_id is not None and operators_authz.owns_profile(
             actor, {"operator_id": str(thread.operator_id)}
         ):
@@ -94,6 +94,18 @@ def is_job_party(actor: Any, job: Any) -> bool:
     """Coarse "may this actor see/act on this job at all" boundary —
     prevents cross-business / cross-operator access (Step 10 brief §20)."""
     return is_admin(actor) or business_is_party(actor, job) or operator_is_party(actor, job)
+
+
+def recent_jobs_visible_to(actor: Any, limit: int) -> list[Any]:
+    """The actor's ``limit`` newest visible jobs, with what the party checks
+    read (agreement, assignment and its driver, negotiation threads) loaded
+    up front, for a bulk read over many jobs (the Messages inbox)."""
+    return list(
+        jobs_visible_to(actor)
+        .order_by("-created_at")
+        .select_related("agreement", "assignment__assigned_driver_profile")
+        .prefetch_related("negotiation_threads")[:limit]
+    )
 
 
 def jobs_visible_to(actor: Any) -> Any:

@@ -65,6 +65,8 @@ LOCAL_APPS = [
     "fikisha.jobs",
     "fikisha.negotiation",
     "fikisha.incidents",
+    # Design Phase 7 10g — Messages inbox (read-only composition, ADR-2D-37).
+    "fikisha.inbox",
 ]
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 

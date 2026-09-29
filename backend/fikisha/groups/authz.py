@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any
 from uuid import UUID
 
+from fikisha.common.authz_memo import memoized
 from fikisha.groups.models import GroupMemberRole, GroupMembership, GroupMembershipStatus
 from fikisha.operators.models import OperatorProfile
 
@@ -31,20 +32,24 @@ def active_membership(actor: Any, resource: Any) -> GroupMembership | None:
     user_id = getattr(actor.user, "id", None)
     if group_id is None or user_id is None:
         return None
-    profile_id = (
-        OperatorProfile.objects.filter(user_id=user_id).values_list("id", flat=True).first()
-    )
-    if profile_id is None:
-        return None
-    return (
-        GroupMembership.objects.filter(  # type: ignore[misc]  # dynamic FK-id lookups
-            group_id=group_id,
-            operator_id=profile_id,
-            status=GroupMembershipStatus.ACTIVE,
+
+    def lookup() -> GroupMembership | None:
+        profile_id = (
+            OperatorProfile.objects.filter(user_id=user_id).values_list("id", flat=True).first()
         )
-        .select_related("group")
-        .first()
-    )
+        if profile_id is None:
+            return None
+        return (
+            GroupMembership.objects.filter(  # type: ignore[misc]  # dynamic FK-id lookups
+                group_id=group_id,
+                operator_id=profile_id,
+                status=GroupMembershipStatus.ACTIVE,
+            )
+            .select_related("group")
+            .first()
+        )
+
+    return memoized(("groups.active_membership", str(user_id), str(group_id)), lookup)
 
 
 def has_role(actor: Any, resource: Any, roles: set[str]) -> bool:
