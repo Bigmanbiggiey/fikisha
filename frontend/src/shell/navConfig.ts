@@ -6,8 +6,10 @@ import type { IconName } from '@/design/Icon';
  * phones (`RoleTabBar`), a persistent sidebar on desktop (`RoleSidebar`) and
  * the More page. UX only: every route is still authorised server-side.
  *
- * Deliberately absent until their screens exist: Business "Messages"
- * (sub-increment 10g), Group Manager "Team", Ops "Incidents / Disputes"
+ * Messages (10g) is a primary item for Business and Operator, the roles that
+ * have offer threads, with an unread badge.
+ *
+ * Deliberately absent until their screens exist: Group Manager "Team", Ops "Incidents / Disputes"
  * lists and "Search", Platform Admin "Control" (Increment 9), statements,
  * help and settings. Diagnostics is left out of user navigation; it stays
  * reachable at /diagnostics.
@@ -34,6 +36,8 @@ export interface NavItem {
   alsoActive?: string[];
   /** paths that never count as this item, even under its prefix */
   notActive?: string[];
+  /** show the unread-messages count on this item */
+  badge?: 'messages';
 }
 
 export interface RoleNav {
@@ -48,6 +52,7 @@ const home: NavItem = { to: '/home', labelKey: 'common:nav.home', icon: 'home', 
 const vehicles: NavItem = { to: '/vehicles', labelKey: 'org:nav.vehicles', icon: 'truck' };
 const profile: NavItem = { to: '/operator', labelKey: 'org:nav.operator', icon: 'badge' };
 const groups: NavItem = { to: '/groups', labelKey: 'org:nav.groups', icon: 'handshake' };
+const messages: NavItem = { to: '/messages', labelKey: 'common:nav.messages', icon: 'chat', badge: 'messages' };
 
 const staff: RoleNav = {
   primary: [
@@ -63,7 +68,7 @@ const staff: RoleNav = {
 
 export const NAV: Record<NavRole, RoleNav> = {
   BUSINESS: {
-    primary: [home, { to: '/jobs', labelKey: 'common:nav.jobs', icon: 'list', notActive: ['/jobs/new'] }],
+    primary: [home, { to: '/jobs', labelKey: 'common:nav.jobs', icon: 'list', notActive: ['/jobs/new'] }, messages],
     action: { to: '/jobs/new', labelKey: 'common:nav.requestTransport', icon: 'plus', end: true },
     secondary: [{ to: '/businesses', labelKey: 'org:nav.businesses', icon: 'box' }],
   },
@@ -72,6 +77,7 @@ export const NAV: Record<NavRole, RoleNav> = {
       home,
       { to: '/work', labelKey: 'common:nav.work', icon: 'send' },
       { to: '/my-jobs', labelKey: 'common:nav.myJobs', icon: 'list' },
+      messages,
     ],
     secondary: [
       vehicles,

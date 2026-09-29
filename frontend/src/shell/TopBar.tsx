@@ -7,7 +7,10 @@ import { cn } from '@/components/cn';
 import { useAuth } from '@/features/auth/useAuth';
 import { useOnline } from '@/design/useOnline';
 
+import { useUnreadMessages } from '@/features/messages/useUnreadMessages';
+
 import { useActiveRole } from './activeRole';
+import { NavBadge } from './NavBadge';
 import { LanguageSwitcher } from './LanguageSwitcher';
 import { isNavItemActive, navFor, type NavItem } from './navConfig';
 
@@ -37,6 +40,7 @@ export function TopBar(): JSX.Element {
         { to: '/more', labelKey: 'common:nav.more', icon: 'menu', end: true },
       ]
     : [];
+  const unread = useUnreadMessages(inline.some((i) => i.badge === 'messages'));
 
   return (
     <header className="border-b border-line bg-surface-nav">
@@ -55,11 +59,12 @@ export function TopBar(): JSX.Element {
                   to={item.to}
                   aria-current={active ? 'page' : undefined}
                   className={cn(
-                    'flex min-h-target items-center rounded-md px-2 text-label',
+                    'flex min-h-target items-center gap-1 rounded-md px-2 text-label',
                     active ? 'bg-surface-brand-tint text-action-primary-hover' : 'text-fg-secondary hover:text-fg',
                   )}
                 >
                   {t(item.labelKey)}
+                  {item.badge === 'messages' && <NavBadge count={unread} />}
                 </Link>
               );
             })}

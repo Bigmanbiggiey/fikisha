@@ -4,7 +4,10 @@ import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/components/cn';
 import { Icon } from '@/design/Icon';
 
+import { useUnreadMessages } from '@/features/messages/useUnreadMessages';
+
 import { useActiveRole } from './activeRole';
+import { NavBadge } from './NavBadge';
 import { isNavItemActive, navFor, type NavItem } from './navConfig';
 
 const MORE: NavItem = { to: '/more', labelKey: 'common:nav.more', icon: 'menu', end: true };
@@ -20,9 +23,10 @@ export function RoleTabBar(): JSX.Element | null {
   const { t } = useTranslation(['common', 'org']);
   const { pathname } = useLocation();
   const { loading, role } = useActiveRole();
+  const nav = navFor(role);
+  const unread = useUnreadMessages(!loading && nav.primary.some((i) => i.badge === 'messages'));
   if (loading) return null;
 
-  const nav = navFor(role);
   const items = [...nav.primary, ...(nav.action ? [nav.action] : []), MORE];
   // "More" also covers the secondary screens it links to.
   const moreActive = pathname === '/more' || nav.secondary.some((s) => isNavItemActive(s, pathname));
@@ -45,7 +49,10 @@ export function RoleTabBar(): JSX.Element | null {
                   active ? 'font-semibold text-action-primary' : 'text-fg-secondary',
                 )}
               >
-                <Icon name={item.icon} size={22} />
+                <span className="relative">
+                  <Icon name={item.icon} size={22} />
+                  {item.badge === 'messages' && <NavBadge count={unread} className="absolute -right-3 -top-2" />}
+                </span>
                 <span>{t(item.labelKey)}</span>
               </Link>
             </li>

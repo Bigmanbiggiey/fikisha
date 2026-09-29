@@ -1,0 +1,33 @@
+{
+  "title": "Messages",
+  "intro": "Offers, updates from Fikisha and issues on your jobs.",
+  "filterLabel": "Show",
+  "filter": {
+    "all": "All",
+    "offers": "Offers",
+    "updates": "Fikisha updates",
+    "issues": "Issues"
+  },
+  "kind": {
+    "OFFER": "Offer",
+    "FIKISHA_UPDATE": "Update from Fikisha",
+    "INCIDENT": "Issue",
+    "DISPUTE": "Dispute"
+  },
+  "offer": {
+    "youOffered": "You offered {{amount}}",
+    "theyOffered": "{{name}} offered {{amount}}",
+    "youAccepted": "You accepted {{amount}}",
+    "theyAccepted": "{{name}} accepted {{amount}}",
+    "youDeclined": "You declined",
+    "theyDeclined": "{{name}} declined",
+    "fikishaOffered": "Fikisha offered {{amount}}",
+    "fikishaAccepted": "Fikisha accepted {{amount}}",
+    "fikishaDeclined": "Fikisha declined"
+  },
+  "theOtherParty": "The other party",
+  "unread": "Unread",
+  "empty": "No messages yet",
+  "emptyFiltered": "Nothing here for this filter.",
+  "loadMore": "Load more"
+}

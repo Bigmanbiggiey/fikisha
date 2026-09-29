@@ -293,6 +293,50 @@ def list_threads(*, actor: Any, job_id: Any) -> list[dict[str, Any]]:
     return [_thread_payload(t, job, viewer_side=side) for t, side in visible]
 
 
+def inbox_threads(*, actor: Any, job: Any) -> list[dict[str, Any]]:
+    """The Messages inbox summary of this job's threads for ``actor``
+    (Design Phase 7 sub-increment 10g, ADR-2D-37). Read-only, the same
+    sealed-thread scoping as :func:`list_threads`: a business party sees every
+    thread on its job, an operator/group only its own. Staff (the ``ADMIN``
+    side) get nothing here; they work from the Ops queues. One row per thread
+    that has at least one entry: the viewer's side, the counterparty's name,
+    the thread status and the latest entry."""
+    out: list[dict[str, Any]] = []
+    for thread in NegotiationThread.objects.filter(job=job).order_by("created_at"):
+        side = authz.actor_side_for_thread(actor, job, thread)
+        if side not in (EntryActorRole.BUSINESS, EntryActorRole.OPERATOR):
+            continue
+        latest = thread.entries.order_by("-seq").first()
+        if latest is None:
+            continue
+        if side == EntryActorRole.BUSINESS:
+            counterparty = _operator_display_name(thread)
+        else:
+            from fikisha.business import services as business_services
+
+            counterparty = business_services.display_name_for(job.business_id)
+        out.append(
+            {
+                "thread_id": str(thread.id),
+                "viewer_side": side,
+                "status": thread.status,
+                "counterparty_name": counterparty,
+                "latest": {
+                    "type": latest.type,
+                    "amount_kes": latest.amount_kes,
+                    "actor_role": latest.actor_role,
+                    "note": latest.note,
+                    "created_at": latest.created_at,
+                    "by_viewer": latest.actor_role == side,
+                    # staff may post into a thread; never credit it to the
+                    # counterparty
+                    "by_fikisha": latest.actor_role == EntryActorRole.ADMIN,
+                },
+            }
+        )
+    return out
+
+
 # ─── writes ────────────────────────────────────────────────────────────
 @transaction.atomic
 def propose(

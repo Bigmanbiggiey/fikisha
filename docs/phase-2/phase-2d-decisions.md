@@ -595,6 +595,74 @@ which is unchanged; the serializer makes `rationale` required),
 
 ---
 
+## ADR-2D-37 — Messages inbox: a read-only composition app with read markers, no new messages — CONFIRMED (Design Phase 7 sub-increment 10g; founder scope 2026-09-23)
+
+**Decision.** A new module, `fikisha.inbox`, lists the conversations that
+**already exist** on a person's jobs, newest first, with unread markers:
+
+- offer threads, via a new public read `negotiation.services.inbox_threads`
+  (same sealed-thread scoping as `list_threads`);
+- "Updates from Fikisha" notes, via `jobs.ops.notes_for` on the jobs from
+  `jobs.job_authz.jobs_visible_to` (the `job.read` party rule the notes
+  endpoint already uses);
+- incidents and disputes, via a new public read
+  `incidents.services.inbox_items_for_job` (the incidents module's own party
+  rule; an operator that has only negotiated is not an incident party).
+
+It never reads another module's models directly (module boundary rule), and
+it **creates no messages**: negotiation stays the authoritative record of
+offers, WhatsApp stays a notification channel, and there is no new chat.
+
+**The only state it owns** is `InboxReadMarker(user, conversation_key,
+last_read_at)` (table `inbox_read_marker`, unique per user and key, new
+migration `inbox.0001`). A conversation is unread when its latest activity
+was written by someone else after the person's marker. Keys are
+`offer:<thread>`, `notes:<job>` (one conversation per job, not per note),
+`incident:<id>`, `dispute:<id>`. Markers are mutable and not audited: they
+record what a person has looked at, not a sensitive change. Marking only ever
+touches the caller's own row, and a key the caller can't see never matches
+one of their items, so nothing is revealed either way.
+
+**Endpoints.** `GET /messages` (`inbox.read`) and `POST /messages/read`
+(`inbox.mark_read`); see `phase-2d-api.md` §4b.
+
+**Choices recorded here:**
+- **Staff get an empty inbox**, including a staff member who is also a
+  business party. They already work from the Ops queues, and their admin
+  visibility of every job must not become an inbox of every job.
+- **Items carry structured fields, not sentences** (kind, counterparty,
+  amount, whose entry, status, preview), so the frontend writes each row in
+  the reader's language. The offer's stored note is not shown, since it can
+  be system text ("Posted price at publication.").
+- **The newest 200 jobs** per person are scanned per request (`MAX_JOBS`).
+  Enough for the pilot; older jobs' conversations drop off the inbox, their
+  screens are unaffected. The composition is done in memory, per job.
+- **Paging is forward-only** with an opaque cursor (the last item's time and
+  key); `prev_cursor` is always null. `unread_count` in the response covers
+  the whole inbox, for the navigation badge.
+- **What marks a conversation read**: opening it from the inbox. Reaching the
+  same screen another way does not mark it (known gap; a later increment can
+  mark on the screens themselves).
+
+**Why it's safe.** Read-only apart from the caller's own markers; every
+source applies its module's existing party check server-side; IDOR/BOLA
+tests cover a stranger business, a sibling operator's sealed thread, a
+negotiating operator versus incidents, staff, and a business VIEWER.
+
+**Code-review corrections (2026-09-29).** (1) Notes are gated per job on
+`job_authz.is_job_party`: `jobs_visible_to` is wider than `job.read` (it lists
+a business VIEWER's jobs and a non-managing group member's), and the inbox
+must not show notes the notes endpoint refuses. (2) An offer entry posted by
+staff (the negotiation `ADMIN` side) carries `from_fikisha` and is worded
+"Fikisha offered …", never credited to the counterparty. (3) The frontend's
+messages queries are keyed by user id, since sign-out does not clear the
+query cache. **Open:** the per-request cost (about 9–13 queries per job,
+measured on dev data) is fine for today's accounts but reaches thousands of
+queries near `MAX_JOBS`; batching or a smaller scan is for the founder to
+choose.
+
+---
+
 ## Self-caught defects fixed during implementation
 
 Every one of these was found by the implementation's own review or test

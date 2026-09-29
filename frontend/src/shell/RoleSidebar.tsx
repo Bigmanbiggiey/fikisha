@@ -4,7 +4,10 @@ import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/components/cn';
 import { Icon } from '@/design/Icon';
 
+import { useUnreadMessages } from '@/features/messages/useUnreadMessages';
+
 import { useActiveRole } from './activeRole';
+import { NavBadge } from './NavBadge';
 import { isNavItemActive, navFor, type NavItem } from './navConfig';
 import { RoleSwitch } from './RoleSwitch';
 
@@ -18,9 +21,10 @@ export function RoleSidebar(): JSX.Element | null {
   const { t } = useTranslation(['common', 'org']);
   const { pathname } = useLocation();
   const { loading, role } = useActiveRole();
+  const nav = navFor(role);
+  const unread = useUnreadMessages(!loading && nav.primary.some((i) => i.badge === 'messages'));
   if (loading) return null;
 
-  const nav = navFor(role);
   const link = (item: NavItem): JSX.Element => {
     const active = isNavItemActive(item, pathname);
     return (
@@ -34,7 +38,8 @@ export function RoleSidebar(): JSX.Element | null {
           )}
         >
           <Icon name={item.icon} size={20} />
-          {t(item.labelKey)}
+          <span className="flex-1">{t(item.labelKey)}</span>
+          {item.badge === 'messages' && <NavBadge count={unread} />}
         </Link>
       </li>
     );

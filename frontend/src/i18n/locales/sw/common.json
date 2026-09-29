@@ -16,7 +16,9 @@
     "main": "Kuu",
     "currentJob": "Kazi ya sasa",
     "more": "Zaidi",
-    "requestTransport": "Omba usafiri"
+    "requestTransport": "Omba usafiri",
+    "messages": "Ujumbe",
+    "unreadBadge": "{{count}} havijasomwa"
   },
   "language": {
     "label": "Lugha",

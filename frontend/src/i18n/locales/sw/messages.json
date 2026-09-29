@@ -1,0 +1,33 @@
+{
+  "title": "Ujumbe",
+  "intro": "Ofa, taarifa kutoka Fikisha na matatizo kwenye kazi zako.",
+  "filterLabel": "Onyesha",
+  "filter": {
+    "all": "Zote",
+    "offers": "Ofa",
+    "updates": "Taarifa za Fikisha",
+    "issues": "Matatizo"
+  },
+  "kind": {
+    "OFFER": "Ofa",
+    "FIKISHA_UPDATE": "Taarifa kutoka Fikisha",
+    "INCIDENT": "Tatizo",
+    "DISPUTE": "Mgogoro"
+  },
+  "offer": {
+    "youOffered": "Ulitoa ofa ya {{amount}}",
+    "theyOffered": "{{name}} alitoa ofa ya {{amount}}",
+    "youAccepted": "Ulikubali {{amount}}",
+    "theyAccepted": "{{name}} alikubali {{amount}}",
+    "youDeclined": "Ulikataa",
+    "theyDeclined": "{{name}} alikataa",
+    "fikishaOffered": "Fikisha ilitoa ofa ya {{amount}}",
+    "fikishaAccepted": "Fikisha ilikubali {{amount}}",
+    "fikishaDeclined": "Fikisha ilikataa"
+  },
+  "theOtherParty": "Upande mwingine",
+  "unread": "Haijasomwa",
+  "empty": "Bado hakuna ujumbe",
+  "emptyFiltered": "Hakuna kitu hapa kwa kichujio hiki.",
+  "loadMore": "Pakia zaidi"
+}
