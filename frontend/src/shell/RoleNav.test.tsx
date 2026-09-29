@@ -26,6 +26,8 @@ vi.mock('@/shell/useWorkspaces', () => ({
     ],
   }),
 }));
+let unread = 0;
+vi.mock('@/features/messages/useUnreadMessages', () => ({ useUnreadMessages: (enabled: boolean) => (enabled ? unread : 0) }));
 vi.mock('@/features/auth/authApi', () => ({
   authApi: { me: () => Promise.reject(new Error('anon')), logout: vi.fn() },
 }));
@@ -41,11 +43,25 @@ describe('role navigation (Design Phase 7 P-04)', () => {
   beforeEach(() => {
     setRole.mockReset();
     active = { role: 'BUSINESS', roles: ['BUSINESS'] };
+    unread = 0;
+  });
+
+  it('shows the unread count on Messages, read out as words, and nothing at zero', () => {
+    unread = 3;
+    const { unmount } = renderWithProviders(<RoleTabBar />);
+    const link = screen.getByRole('link', { name: /Messages/ });
+    expect(link).toHaveTextContent('3');
+    expect(within(link).getByText('3 unread')).toHaveClass('sr-only');
+    unmount();
+
+    unread = 0;
+    renderWithProviders(<RoleTabBar />);
+    expect(screen.getByRole('link', { name: 'Messages' })).not.toHaveTextContent(/d/);
   });
 
   it.each<[NavRole, string[]]>([
-    ['BUSINESS', ['Home', 'Jobs', 'Request transport', 'More']],
-    ['OPERATOR', ['Home', 'Work', 'My Jobs', 'More']],
+    ['BUSINESS', ['Home', 'Jobs', 'Messages', 'Request transport', 'More']],
+    ['OPERATOR', ['Home', 'Work', 'My Jobs', 'Messages', 'More']],
     ['DRIVER', ['Current job', 'Jobs', 'More']],
     ['GROUP_MANAGER', ['Home', 'Jobs', 'More']],
     ['OPERATIONS_OFFICER', ['Operations', 'Monitor', 'Verification', 'More']],

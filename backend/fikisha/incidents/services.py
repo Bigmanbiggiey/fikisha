@@ -346,6 +346,66 @@ def add_statement(*, actor: Any, incident_id: Any, text: str) -> IncidentStateme
     return statement
 
 
+# ─── Messages inbox (Design Phase 7 10g, ADR-2D-37) ─────────────────────
+def inbox_items_for_job(*, actor: Any, job: Any) -> list[dict[str, Any]]:
+    """The Messages inbox summary of this job's incidents and disputes for
+    ``actor``. Read-only, scoped by this module's own party check
+    (:func:`fikisha.incidents.authz.party_kind_for_job`); staff (``ADMIN``)
+    get nothing here, they work from the Ops queues. Per incident: its
+    latest activity, which is its newest statement if that is the latest
+    change, otherwise the incident record itself (created, or its status
+    changed). Per dispute: its resolution when there is one, otherwise the
+    dispute record. ``by_viewer`` is true only for activity the viewer wrote
+    (their own statement, or an incident they reported and nobody has
+    touched since), so it never counts as unread for them."""
+    from datetime import timedelta
+
+    from fikisha.incidents import authz
+
+    party = authz.party_kind_for_job(actor, job)
+    if party is None or party == PartyKind.ADMIN:
+        return []
+    user = _actor_user(actor)
+    user_id = getattr(user, "id", None)
+    out: list[dict[str, Any]] = []
+
+    for incident in Incident.objects.filter(job=job).prefetch_related("statements"):
+        statements = list(incident.statements.all())
+        last = statements[-1] if statements else None
+        if last is not None and last.created_at >= incident.updated_at:
+            at, text = last.created_at, last.text
+            by_viewer = last.party_user_id is not None and last.party_user_id == user_id
+        else:
+            at, text = incident.updated_at, incident.description
+            untouched = incident.updated_at - incident.created_at < timedelta(seconds=2)
+            by_viewer = untouched and incident.reported_by_user_id == user_id
+        out.append(
+            {
+                "kind": "INCIDENT",
+                "id": str(incident.id),
+                "type": incident.type,
+                "status": incident.status,
+                "at": at,
+                "text": text,
+                "by_viewer": bool(by_viewer),
+            }
+        )
+
+    for dispute in Dispute.objects.filter(job=job).select_related("resolution"):
+        resolution = getattr(dispute, "resolution", None)
+        out.append(
+            {
+                "kind": "DISPUTE",
+                "id": str(dispute.id),
+                "status": dispute.status,
+                "at": resolution.created_at if resolution is not None else dispute.updated_at,
+                "text": resolution.rationale if resolution is not None else "",
+                "by_viewer": False,
+            }
+        )
+    return out
+
+
 # ─── incident review workflow (Ops-Officer / Admin) ─────────────────────
 def _require_review_permission(actor: Any, *, permission: str) -> None:
     """Config-driven only — deliberately **not** ``if incidents_authz.is_admin

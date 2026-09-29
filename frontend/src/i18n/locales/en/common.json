@@ -16,7 +16,9 @@
     "main": "Main",
     "currentJob": "Current job",
     "more": "More",
-    "requestTransport": "Request transport"
+    "requestTransport": "Request transport",
+    "messages": "Messages",
+    "unreadBadge": "{{count}} unread"
   },
   "language": {
     "label": "Language",

@@ -20,6 +20,7 @@ import { PickupConfirmPage } from '@/features/jobs/PickupConfirmPage';
 import { PickupProofPage } from '@/features/jobs/PickupProofPage';
 import { WorkListPage } from '@/features/jobs/WorkListPage';
 import { HomeOrLanding } from '@/features/landing/HomeOrLanding';
+import { MessagesPage } from '@/features/messages/MessagesPage';
 import { MorePage } from '@/features/more/MorePage';
 import { NegotiationPage } from '@/features/negotiation/NegotiationPage';
 import { AuditLogPage } from '@/features/ops/AuditLogPage';
@@ -71,6 +72,7 @@ export function AppRoutes(): JSX.Element {
           <Route path="home" element={<HomePage />} />
           <Route path="current-job" element={<CurrentJobPage />} />
           <Route path="more" element={<MorePage />} />
+          <Route path="messages" element={<MessagesPage />} />
           <Route path="jobs" element={<JobsListPage />} />
           <Route path="jobs/new" element={<CreateJobPage />} />
           <Route path="jobs/:jobId" element={<JobDetailPage />} />

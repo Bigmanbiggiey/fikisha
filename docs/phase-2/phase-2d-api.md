@@ -167,6 +167,26 @@ party's own cancel is unchanged at every band.
 
 ---
 
+## 4b. Messages inbox (Design Phase 7 sub-increment 10g, ADR-2D-37)
+
+A read-only list of the conversations that already exist on the caller's
+jobs. No message is created here. Staff get an empty list.
+
+| Method | Path | Action (authz) | Purpose |
+| --- | --- | --- | --- |
+| GET | `/messages?cursor=&limit=` | `inbox.read` | `{data, page: {next_cursor, prev_cursor: null}, unread_count}`, newest first. `limit` 1–100 (default 25); `unread_count` covers the whole inbox. A bad cursor is 400 `inbox_invalid_cursor` |
+| POST | `/messages/read` | `inbox.mark_read` | `{conversation_key}` → 204. Marks the caller's own conversation read up to now. Anything but `offer:`/`notes:`/`incident:`/`dispute:` + a UUID is 400 `inbox_invalid_conversation_key` |
+
+Each item: `conversation_key`, `kind` (`OFFER` / `FIKISHA_UPDATE` /
+`INCIDENT` / `DISPUTE`), `job_id`, `job_reference`, `at` (latest activity),
+`unread`, `link` (the screen it lives on), `preview`, plus per kind:
+`counterparty_name`, `thread_status`, `entry_type`, `amount_kes`,
+`from_viewer`, `from_fikisha` (OFFER; an entry staff posted is never credited to
+the counterparty); `count` (FIKISHA_UPDATE); `status`, `incident_type`
+(INCIDENT / DISPUTE).
+
+---
+
 ## 5. What is deliberately absent
 
 No route exposes: a raw scheduler/lifecycle transition (sweeps run only as
