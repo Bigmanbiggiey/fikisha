@@ -293,29 +293,46 @@ def list_threads(*, actor: Any, job_id: Any) -> list[dict[str, Any]]:
     return [_thread_payload(t, job, viewer_side=side) for t, side in visible]
 
 
-def inbox_threads(*, actor: Any, job: Any) -> list[dict[str, Any]]:
-    """The Messages inbox summary of this job's threads for ``actor``
-    (Design Phase 7 sub-increment 10g, ADR-2D-37). Read-only, the same
-    sealed-thread scoping as :func:`list_threads`: a business party sees every
-    thread on its job, an operator/group only its own. Staff (the ``ADMIN``
-    side) get nothing here; they work from the Ops queues. One row per thread
-    that has at least one entry: the viewer's side, the counterparty's name,
-    the thread status and the latest entry."""
-    out: list[dict[str, Any]] = []
-    for thread in NegotiationThread.objects.filter(job=job).order_by("created_at"):
+def inbox_threads_for_jobs(*, actor: Any, jobs: list[Any]) -> dict[str, list[dict[str, Any]]]:
+    """The Messages inbox summary of these jobs' threads for ``actor``, keyed
+    by job id (Design Phase 7 sub-increment 10g, ADR-2D-37). Read-only, the
+    same sealed-thread scoping as :func:`list_threads`, checked per thread: a
+    business party sees every thread on its job, an operator/group only its
+    own. Staff (the ``ADMIN`` side) get nothing here; they work from the Ops
+    queues. One row per thread that has at least one entry: the viewer's
+    side, the counterparty's name, the thread status and the latest entry.
+    A fixed number of queries whatever the number of jobs, apart from one
+    name lookup per distinct counterparty operator/group."""
+    from fikisha.business import services as business_services
+
+    by_id = {str(job.id): job for job in jobs}
+    threads = list(NegotiationThread.objects.filter(job_id__in=by_id).order_by("created_at"))
+    latest_by_thread = {
+        e.thread_id: e
+        for e in NegotiationEntry.objects.filter(thread__in=threads)
+        .order_by("thread_id", "-seq")
+        .distinct("thread_id")
+    }
+    business_names = business_services.display_names_for({job.business_id for job in jobs})
+    operator_names: dict[tuple[Any, Any], str | None] = {}
+
+    out: dict[str, list[dict[str, Any]]] = {}
+    for thread in threads:
+        job = by_id[str(thread.job_id)]
         side = authz.actor_side_for_thread(actor, job, thread)
         if side not in (EntryActorRole.BUSINESS, EntryActorRole.OPERATOR):
             continue
-        latest = thread.entries.order_by("-seq").first()
+        latest = latest_by_thread.get(thread.id)
         if latest is None:
             continue
         if side == EntryActorRole.BUSINESS:
-            counterparty = _operator_display_name(thread)
+            party = (thread.operator_id, thread.group_id)
+            if party not in operator_names:
+                operator_names[party] = _operator_display_name(thread)
+            counterparty = operator_names[party]
         else:
-            from fikisha.business import services as business_services
-
-            counterparty = business_services.display_name_for(job.business_id)
-        out.append(
+            counterparty = business_names.get(str(job.business_id))
+        out.setdefault(str(job.id), []).append(
             {
                 "thread_id": str(thread.id),
                 "viewer_side": side,

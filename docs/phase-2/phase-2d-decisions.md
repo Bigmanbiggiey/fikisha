@@ -656,10 +656,32 @@ must not show notes the notes endpoint refuses. (2) An offer entry posted by
 staff (the negotiation `ADMIN` side) carries `from_fikisha` and is worded
 "Fikisha offered …", never credited to the counterparty. (3) The frontend's
 messages queries are keyed by user id, since sign-out does not clear the
-query cache. **Open:** the per-request cost (about 9–13 queries per job,
-measured on dev data) is fine for today's accounts but reaches thousands of
-queries near `MAX_JOBS`; batching or a smaller scan is for the founder to
-choose.
+query cache.
+
+**Request cost: batched (founder choice 2026-09-29).** The first build cost
+about 9–13 queries per job (63–78 on the seeded accounts, thousands near
+`MAX_JOBS`). The founder chose batching over scanning fewer jobs, so what
+people see is unchanged:
+- each source is one read across all the jobs:
+  `negotiation.services.inbox_threads_for_jobs` (threads, then each thread's
+  latest entry in one `DISTINCT ON` query), `jobs.ops.notes_for_jobs` and
+  `incidents.services.inbox_items_for_jobs`. They replace the per-job
+  functions of the first build.
+- `jobs.job_authz.recent_jobs_visible_to` loads the jobs with the agreement,
+  the assignment and its driver, and the negotiation threads that the party
+  checks read. `job_authz.operator_is_party` now walks
+  `job.negotiation_threads.all()`, which uses those prefetched threads (the
+  same rows as the query it replaces).
+- the party checks still run per job and per thread, unchanged. The
+  membership lookups under them (`business.authz.active_membership`,
+  `groups.authz.active_membership`, `operators.authz.owns_profile`) are
+  memoized per user and resource id, but only inside `common.authz_memo`,
+  which only this read-only request opens. Everywhere else, writes included,
+  they query every time as before.
+
+Result: a fixed 12 queries per request on the seeded accounts. A test adds
+three jobs and asserts that the count stays the same for both the business
+and the operator.
 
 ---
 

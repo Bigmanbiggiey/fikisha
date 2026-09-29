@@ -347,11 +347,12 @@ def add_statement(*, actor: Any, incident_id: Any, text: str) -> IncidentStateme
 
 
 # ─── Messages inbox (Design Phase 7 10g, ADR-2D-37) ─────────────────────
-def inbox_items_for_job(*, actor: Any, job: Any) -> list[dict[str, Any]]:
-    """The Messages inbox summary of this job's incidents and disputes for
-    ``actor``. Read-only, scoped by this module's own party check
-    (:func:`fikisha.incidents.authz.party_kind_for_job`); staff (``ADMIN``)
-    get nothing here, they work from the Ops queues. Per incident: its
+def inbox_items_for_jobs(*, actor: Any, jobs: list[Any]) -> dict[str, list[dict[str, Any]]]:
+    """The Messages inbox summary of these jobs' incidents and disputes for
+    ``actor``, keyed by job id. Read-only, scoped job by job by this module's
+    own party check (:func:`fikisha.incidents.authz.party_kind_for_job`);
+    staff (``ADMIN``) get nothing here, they work from the Ops queues. A
+    fixed number of queries whatever the number of jobs. Per incident: its
     latest activity, which is its newest statement if that is the latest
     change, otherwise the incident record itself (created, or its status
     changed). Per dispute: its resolution when there is one, otherwise the
@@ -362,14 +363,19 @@ def inbox_items_for_job(*, actor: Any, job: Any) -> list[dict[str, Any]]:
 
     from fikisha.incidents import authz
 
-    party = authz.party_kind_for_job(actor, job)
-    if party is None or party == PartyKind.ADMIN:
-        return []
+    party_job_ids = [
+        job.id
+        for job in jobs
+        if authz.party_kind_for_job(actor, job) not in (None, PartyKind.ADMIN)
+    ]
     user = _actor_user(actor)
     user_id = getattr(user, "id", None)
-    out: list[dict[str, Any]] = []
+    out: dict[str, list[dict[str, Any]]] = {}
+    if not party_job_ids:
+        return out
 
-    for incident in Incident.objects.filter(job=job).prefetch_related("statements"):
+    incidents = Incident.objects.filter(job_id__in=party_job_ids).prefetch_related("statements")
+    for incident in incidents:
         statements = list(incident.statements.all())
         last = statements[-1] if statements else None
         if last is not None and last.created_at >= incident.updated_at:
@@ -379,7 +385,7 @@ def inbox_items_for_job(*, actor: Any, job: Any) -> list[dict[str, Any]]:
             at, text = incident.updated_at, incident.description
             untouched = incident.updated_at - incident.created_at < timedelta(seconds=2)
             by_viewer = untouched and incident.reported_by_user_id == user_id
-        out.append(
+        out.setdefault(str(incident.job_id), []).append(
             {
                 "kind": "INCIDENT",
                 "id": str(incident.id),
@@ -391,9 +397,9 @@ def inbox_items_for_job(*, actor: Any, job: Any) -> list[dict[str, Any]]:
             }
         )
 
-    for dispute in Dispute.objects.filter(job=job).select_related("resolution"):
+    for dispute in Dispute.objects.filter(job_id__in=party_job_ids).select_related("resolution"):
         resolution = getattr(dispute, "resolution", None)
-        out.append(
+        out.setdefault(str(dispute.job_id), []).append(
             {
                 "kind": "DISPUTE",
                 "id": str(dispute.id),
