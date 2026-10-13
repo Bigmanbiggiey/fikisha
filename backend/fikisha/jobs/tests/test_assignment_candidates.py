@@ -57,9 +57,7 @@ def test_ineligible_vehicle_shows_a_reason_without_blocking_an_eligible_one(
     eligible_driver: Any,
     eligible_vehicle: Any,
 ) -> None:
-    job = make_confirmed_job(
-        operator=eligible_driver, required_vehicle_class_codes=["PICKUP"]
-    )
+    job = make_confirmed_job(operator=eligible_driver, required_vehicle_class_codes=["PICKUP"])
     wrong_class_vehicle = make_vehicle(
         owner_operator=eligible_driver, registration="KDA 201C", heavy=False
     )
