@@ -11,6 +11,11 @@ interface JobViewerRoleState {
    * tell "the assigned driver" apart from "an operator/group manager who
    * isn't personally driving" (`design-phase-3-wireframes.md` §7.4). */
   operatorId: string | null;
+  /** True when the OPERATOR viewer is this job's assigned driver
+   * (`job.assigned_driver_id` is an operator profile id — group drivers
+   * have one too). Picks the driver's "Current job" rendering (P3 §10.1,
+   * Design Phase 7 P-03). */
+  isAssignedDriver: boolean;
   /** Staff tier, for the Platform-Admin-only controls on the STAFF view. */
   isPlatformAdmin: boolean;
 }
@@ -28,21 +33,26 @@ interface JobViewerRoleState {
  * already requires being a party) falls back to `BUSINESS` rather than
  * rendering nothing.
  */
-export function useJobViewerRole(businessId: string | undefined): JobViewerRoleState {
+export function useJobViewerRole(
+  businessId: string | undefined,
+  assignedDriverId?: string | null,
+): JobViewerRoleState {
   const { user } = useAuth();
   const { loading, workspaces } = useWorkspaces();
   const platformAdmin = isPlatformAdmin(user);
-  if (loading) return { loading: true, role: 'BUSINESS', operatorId: null, isPlatformAdmin: platformAdmin };
+  const base = { operatorId: null, isAssignedDriver: false, isPlatformAdmin: platformAdmin };
+  if (loading) return { ...base, loading: true, role: 'BUSINESS' };
 
   const ownsThisBusiness = !!businessId && workspaces.some((w) => w.kind === 'BUSINESS' && w.id === businessId);
   const operatorWorkspace = workspaces.find((w) => w.kind === 'OPERATOR');
   const operatorId = operatorWorkspace?.id ?? null;
 
   if (!ownsThisBusiness && isStaff(user)) {
-    return { loading: false, role: 'STAFF', operatorId, isPlatformAdmin: platformAdmin };
+    return { ...base, loading: false, role: 'STAFF', operatorId };
   }
   if (!ownsThisBusiness && operatorWorkspace) {
-    return { loading: false, role: 'OPERATOR', operatorId, isPlatformAdmin: platformAdmin };
+    const isAssignedDriver = !!assignedDriverId && assignedDriverId === operatorId;
+    return { ...base, loading: false, role: 'OPERATOR', operatorId, isAssignedDriver };
   }
-  return { loading: false, role: 'BUSINESS', operatorId, isPlatformAdmin: platformAdmin };
+  return { ...base, loading: false, role: 'BUSINESS', operatorId };
 }

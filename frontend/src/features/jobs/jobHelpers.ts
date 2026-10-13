@@ -215,6 +215,18 @@ export function businessNextAction(status: JobStatus): BusinessActionKey | null 
   }
 }
 
+/** The states in which the assigned driver gets the "Current job" view
+ * (P3 §10.1, Design Phase 7 P-03). */
+export const DRIVER_VIEW_STATUSES: readonly JobStatus[] = [
+  'ASSIGNED',
+  'AT_PICKUP',
+  'PICKED_UP',
+  'IN_TRANSIT',
+  'AT_DESTINATION',
+  'DELIVERED',
+  'DISPUTED',
+];
+
 // ─── Business cancel (Design Phase 7 P-02) ───────────────────────────────
 /** The reasons a *business* may give. `ADMIN_ACTION` is staff-only. */
 export const BUSINESS_CANCEL_REASONS: CancellationReason[] = [

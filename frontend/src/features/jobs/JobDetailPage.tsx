@@ -17,9 +17,11 @@ import { StaffJobPanel } from '@/features/ops/StaffJobPanel';
 import { localizeError } from '@/services/errorMessage';
 
 import { CancelJobSheet } from './CancelJobSheet';
+import { DriverJobView } from './DriverJobView';
 import { getOneShotGeo } from './geo';
 import { jobsApi } from './jobsApi';
 import {
+  DRIVER_VIEW_STATUSES,
   HAPPY_PATH_STATUSES,
   type OperatorActionKey,
   businessNextAction,
@@ -76,7 +78,7 @@ export function JobDetailPage(): JSX.Element {
     onSuccess: invalidateJob,
   });
 
-  const viewer = useJobViewerRole(job.data?.business_id);
+  const viewer = useJobViewerRole(job.data?.business_id, job.data?.assigned_driver_id);
 
   if (job.isLoading || viewer.loading) return <PageLoader />;
   if (job.isError) {
@@ -90,47 +92,29 @@ export function JobDetailPage(): JSX.Element {
   const isOperatorViewer = viewer.role === 'OPERATOR';
   const isStaffViewer = viewer.role === 'STAFF';
   const operatorAction: OperatorActionKey | null = isOperatorViewer
-    ? operatorNextAction(data.status, data.assigned_driver_id === viewer.operatorId)
+    ? operatorNextAction(data.status, viewer.isAssignedDriver)
     : null;
   const businessAction = viewer.role === 'BUSINESS' ? businessNextAction(data.status) : null;
 
-  return (
-    <div className="mx-auto max-w-2xl space-y-5">
-      <JobStatusHeader
-        state={data.status}
-        stateLabel={t(`jobs:status.${data.status}`)}
-        line={t(
-          // NEGOTIATING's default line ("An operator has responded — review
-          // their offer.") is written from the business's point of view —
-          // wrong when the operator viewer is the one who just responded
-          // and is waiting on the business. Every other status line reads
-          // as a neutral progress description, correct for either role.
-          isOperatorViewer && data.status === 'NEGOTIATING'
-            ? 'jobs:statusLine.NEGOTIATING_OPERATOR'
-            : `jobs:statusLine.${data.status}`,
-        )}
-      />
+  const operatorActionSection = (
+    <OperatorNextActionSection
+      action={operatorAction}
+      onArrivePickup={() => arrivePickup.mutate()}
+      arrivingPickup={arrivePickup.isPending}
+      onStartTransit={() => startTransit.mutate()}
+      startingTransit={startTransit.isPending}
+      onArriveDestination={() => arriveDestination.mutate()}
+      arrivingDestination={arriveDestination.isPending}
+    />
+  );
+  const lifecycleError = (arrivePickup.isError || startTransit.isError || arriveDestination.isError) && (
+    <Alert tone="danger">
+      {localizeError((arrivePickup.error ?? startTransit.error ?? arriveDestination.error)!, t)}
+    </Alert>
+  );
 
-      {isStaffViewer ? (
-        <StaffJobPanel job={data} isPlatformAdmin={viewer.isPlatformAdmin} />
-      ) : isOperatorViewer ? (
-        <OperatorNextActionSection
-          action={operatorAction}
-          onArrivePickup={() => arrivePickup.mutate()}
-          arrivingPickup={arrivePickup.isPending}
-          onStartTransit={() => startTransit.mutate()}
-          startingTransit={startTransit.isPending}
-          onArriveDestination={() => arriveDestination.mutate()}
-          arrivingDestination={arriveDestination.isPending}
-        />
-      ) : (
-        <NextActionSection
-          action={businessAction}
-          onRetrySubmit={() => retrySubmit.mutate()}
-          retrying={retrySubmit.isPending}
-        />
-      )}
-
+  const detailCards = (
+    <>
       <Card>
         <h2 className="text-label text-fg-secondary">{t('jobs:detail.route')}</h2>
         <dl className="mt-2 space-y-1 text-body">
@@ -175,6 +159,48 @@ export function JobDetailPage(): JSX.Element {
       </Card>
 
       <JobNotesSection jobId={data.id} />
+    </>
+  );
+
+  // The assigned driver gets the §10.1 "Current job" rendering while the
+  // job is theirs to move (Design Phase 7 P-03). Everyone else, and the
+  // driver once the job is finished, sees the page below.
+  if (viewer.isAssignedDriver && DRIVER_VIEW_STATUSES.includes(data.status)) {
+    return (
+      <DriverJobView job={data} action={operatorActionSection} actionError={lifecycleError} fullDetail={detailCards} />
+    );
+  }
+
+  return (
+    <div className="mx-auto max-w-2xl space-y-5">
+      <JobStatusHeader
+        state={data.status}
+        stateLabel={t(`jobs:status.${data.status}`)}
+        line={t(
+          // NEGOTIATING's default line ("An operator has responded — review
+          // their offer.") is written from the business's point of view —
+          // wrong when the operator viewer is the one who just responded
+          // and is waiting on the business. Every other status line reads
+          // as a neutral progress description, correct for either role.
+          isOperatorViewer && data.status === 'NEGOTIATING'
+            ? 'jobs:statusLine.NEGOTIATING_OPERATOR'
+            : `jobs:statusLine.${data.status}`,
+        )}
+      />
+
+      {isStaffViewer ? (
+        <StaffJobPanel job={data} isPlatformAdmin={viewer.isPlatformAdmin} />
+      ) : isOperatorViewer ? (
+        operatorActionSection
+      ) : (
+        <NextActionSection
+          action={businessAction}
+          onRetrySubmit={() => retrySubmit.mutate()}
+          retrying={retrySubmit.isPending}
+        />
+      )}
+
+      {detailCards}
 
       {/* A DRAFT job has no operator/driver relationship yet to report
           about; every later status is left to the server's own
@@ -207,11 +233,7 @@ export function JobDetailPage(): JSX.Element {
           void qc.invalidateQueries({ queryKey: ['jobs'] });
         }}
       />
-      {(arrivePickup.isError || startTransit.isError || arriveDestination.isError) && (
-        <Alert tone="danger">
-          {localizeError((arrivePickup.error ?? startTransit.error ?? arriveDestination.error)!, t)}
-        </Alert>
-      )}
+      {lifecycleError}
     </div>
   );
 }

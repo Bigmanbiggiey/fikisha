@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from fikisha.common.authz_memo import memoized
 from fikisha.operators.models import OperatingBase, OperatorProfile
 
 
@@ -22,7 +23,10 @@ def owns_profile(actor: Any, resource: Any) -> bool:
     )
     if profile_id is None:
         return False
-    return OperatorProfile.objects.filter(id=profile_id, user_id=actor_user_id).exists()
+    return memoized(
+        ("operators.owns_profile", actor_user_id, str(profile_id)),
+        lambda: OperatorProfile.objects.filter(id=profile_id, user_id=actor_user_id).exists(),
+    )
 
 
 def has_profile(actor: Any) -> bool:

@@ -42,6 +42,8 @@ urlpatterns = [
     path("", include("fikisha.incidents.api.urls")),
     # Design Phase 6 Increment 8 — audit read (Ops console).
     path("", include("fikisha.audit.api.urls")),
+    # Design Phase 7 10g — Messages inbox.
+    path("", include("fikisha.inbox.api.urls")),
 ]
 
 if settings.DEBUG:

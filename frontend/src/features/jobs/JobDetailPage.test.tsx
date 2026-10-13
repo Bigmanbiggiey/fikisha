@@ -1,4 +1,4 @@
-import { screen, waitFor } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Route, Routes } from 'react-router-dom';
@@ -63,6 +63,10 @@ vi.mock('@/features/ops/opsApi', () => ({
   },
 }));
 vi.mock('./geo', () => ({ getOneShotGeo: () => Promise.resolve(undefined) }));
+const getVehicle = vi.fn();
+vi.mock('@/features/vehicles/vehiclesApi', () => ({
+  vehiclesApi: { get: (...a: unknown[]) => getVehicle(...a) },
+}));
 vi.mock('@/features/auth/authApi', () => ({
   authApi: { me: (...a: unknown[]) => meMock(...a), logout: vi.fn() },
 }));
@@ -119,6 +123,8 @@ describe('JobDetailPage', () => {
     revealContacts.mockReset();
     notes.mockResolvedValue({ data: [] });
     meMock.mockRejectedValue(new Error('anon'));
+    getVehicle.mockReset();
+    getVehicle.mockRejectedValue(new Error('forbidden'));
   });
 
   it('shows the status header, next action, and route for an AT_PICKUP job', async () => {
@@ -432,6 +438,162 @@ describe('JobDetailPage', () => {
       renderAtJob('01a0a4123456');
 
       expect(await screen.findByText('Nothing needed from you right now.')).toBeInTheDocument();
+      // Not the driver: the ordinary page, not the driver's Current job.
+      expect(screen.queryByText('Full job detail')).not.toBeInTheDocument();
+      expect(screen.queryByRole('link', { name: /^Call/ })).not.toBeInTheDocument();
+    });
+
+    describe('as the assigned driver (Current job, P-03)', () => {
+      function driverJob(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+        return baseJob({
+          status: 'ASSIGNED',
+          assigned_driver_id: 'op1',
+          assigned_vehicle_id: 'veh1',
+          next_allowed_statuses: ['AT_PICKUP', 'CANCELLED', 'FAILED'],
+          pickup_location: {
+            address_text: 'Depot, Kitengela',
+            lat: null,
+            lng: null,
+            contact_name: 'Mary W.',
+            contact_phone: '0712 345 678',
+          },
+          destination_location: { address_text: 'Shop 4, Kitengela', lat: '-1.47', lng: '36.96', contact_name: '', contact_phone: '' },
+          recipient_name: 'J. Mwangi',
+          recipient_phone: '+254 733 111 222',
+          ...overrides,
+        });
+      }
+
+      it('shows the driver view with a driver-voiced line, not the business wording', async () => {
+        get.mockResolvedValue(driverJob());
+        renderAtJob('01a0a4123456');
+
+        expect(await screen.findByRole('heading', { name: 'Job 123456' })).toBeInTheDocument();
+        expect(screen.getByText('Head to pickup. Tap the button below when you get there.')).toBeInTheDocument();
+        expect(screen.queryByText('A driver has been assigned and is on the way to pickup.')).not.toBeInTheDocument();
+        expect(screen.getByRole('button', { name: "I'm at pickup" })).toHaveClass('min-h-target-driver');
+        expect(screen.getByText('Full job detail')).toBeInTheDocument();
+      });
+
+      it('links both contacts by phone, sender first before pickup', async () => {
+        get.mockResolvedValue(driverJob());
+        renderAtJob('01a0a4123456');
+
+        const call = await screen.findAllByRole('link', { name: /^Call/ });
+        expect(call.map((a) => a.getAttribute('href'))).toEqual(['tel:0712345678', 'tel:+254733111222']);
+        expect(screen.getByRole('link', { name: 'Call Mary W.' })).toBeInTheDocument();
+        expect(screen.getByRole('link', { name: 'WhatsApp Mary W.' })).toHaveAttribute(
+          'href',
+          'https://wa.me/254712345678',
+        );
+        expect(screen.getByRole('link', { name: /Go to pickup/ })).toHaveAttribute(
+          'href',
+          'https://www.google.com/maps/search/?api=1&query=Depot%2C%20Kitengela',
+        );
+        expect(screen.getByRole('link', { name: /Go to drop-off/ })).toHaveAttribute(
+          'href',
+          'https://www.google.com/maps/search/?api=1&query=-1.47%2C36.96',
+        );
+      });
+
+      it('puts the receiver first once the goods are collected', async () => {
+        get.mockResolvedValue(
+          driverJob({
+            status: 'IN_TRANSIT',
+            next_allowed_statuses: ['AT_DESTINATION'],
+            timestamps: { ...(baseJob().timestamps as object), picked_up_at: '2026-09-15T11:00:00Z' },
+          }),
+        );
+        renderAtJob('01a0a4123456');
+
+        const call = await screen.findAllByRole('link', { name: /^Call/ });
+        expect(call[0]).toHaveAccessibleName('Call J. Mwangi');
+        expect(screen.getByText('Transit').closest('li')).toHaveAttribute('aria-current', 'step');
+      });
+
+      it('offers Call but no WhatsApp for a number it cannot read as Kenyan, and says when none was given', async () => {
+        get.mockResolvedValue(
+          driverJob({
+            recipient_phone: '+44 7700 900123',
+            recipient_name: 'Visitor',
+            pickup_location: { address_text: 'Depot', lat: null, lng: null, contact_name: 'Mary W.', contact_phone: '' },
+          }),
+        );
+        renderAtJob('01a0a4123456');
+
+        expect(await screen.findByRole('link', { name: 'Call Visitor' })).toHaveAttribute('href', 'tel:+447700900123');
+        expect(screen.queryByRole('link', { name: 'WhatsApp Visitor' })).not.toBeInTheDocument();
+        expect(screen.getByText(/No number given/)).toBeInTheDocument();
+        expect(screen.queryByRole('link', { name: 'Call Mary W.' })).not.toBeInTheDocument();
+      });
+
+      it('never pairs the recipient name with the drop-off contact number', async () => {
+        get.mockResolvedValue(
+          driverJob({
+            recipient_name: 'J. Mwangi',
+            recipient_phone: '',
+            destination_location: {
+              address_text: 'Shop 4',
+              lat: null,
+              lng: null,
+              contact_name: 'Shop manager',
+              contact_phone: '0722 999 888',
+            },
+          }),
+        );
+        renderAtJob('01a0a4123456');
+
+        await screen.findByRole('link', { name: 'Call Mary W.' });
+        expect(screen.queryByRole('link', { name: 'Call J. Mwangi' })).not.toBeInTheDocument();
+        expect(screen.queryByRole('link', { name: /0722|Shop manager/ })).not.toBeInTheDocument();
+        expect(screen.getAllByText(/No number given/)).toHaveLength(1);
+      });
+
+      it('shows the vehicle when it can be read, and leaves it out when refused', async () => {
+        getVehicle.mockResolvedValue({ id: 'veh1', registration: 'KDA 200B', vehicle_class: 'PICKUP' });
+        get.mockResolvedValue(driverJob());
+        const { unmount } = renderAtJob('01a0a4123456');
+        expect(await screen.findByText('KDA 200B · PICKUP')).toBeInTheDocument();
+        expect(getVehicle).toHaveBeenCalledWith('veh1');
+        unmount();
+
+        getVehicle.mockRejectedValue(new Error('forbidden'));
+        renderAtJob('01a0a4123456');
+        await screen.findByRole('heading', { name: 'Job 123456' });
+        await waitFor(() => expect(getVehicle).toHaveBeenCalledTimes(2));
+        expect(screen.queryByText('Vehicle')).not.toBeInTheDocument();
+      });
+
+      it('puts a DISPUTED job on hold with no lifecycle action', async () => {
+        get.mockResolvedValue(driverJob({ status: 'DISPUTED', next_allowed_statuses: ['CANCELLED', 'COMPLETED', 'FAILED'] }));
+        renderAtJob('01a0a4123456');
+
+        expect(await screen.findByText('This job is on hold — Fikisha is reviewing an issue.')).toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: "I'm at pickup" })).not.toBeInTheDocument();
+        expect(screen.getByRole('link', { name: '· Report an issue' })).toBeInTheDocument();
+      });
+
+      it('says "Delivery recorded" once DELIVERED', async () => {
+        get.mockResolvedValue(
+          driverJob({
+            status: 'DELIVERED',
+            next_allowed_statuses: ['COMPLETED', 'DISPUTED'],
+            timestamps: {
+              ...(baseJob().timestamps as object),
+              picked_up_at: '2026-09-15T11:00:00Z',
+              delivered_at: '2026-09-15T12:00:00Z',
+            },
+          }),
+        );
+        renderAtJob('01a0a4123456');
+
+        expect(await screen.findByText('Delivery recorded')).toBeInTheDocument();
+        // All three progress steps done; none current. (Scoped to the
+        // progress list: the full timeline in the disclosure has its own.)
+        const progress = screen.getByText('Progress').parentElement!;
+        expect(within(progress).queryByRole('listitem', { current: 'step' })).not.toBeInTheDocument();
+        expect(within(progress).getAllByTitle('done')).toHaveLength(3);
+      });
     });
   });
   it('shows Fikisha operational notes to a job party', async () => {

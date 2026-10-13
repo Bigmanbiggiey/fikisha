@@ -9,6 +9,7 @@ import { IncidentDetailPage } from '@/features/incidents/IncidentDetailPage';
 import { IncidentReportPage } from '@/features/incidents/IncidentReportPage';
 import { AssignDriverVehiclePage } from '@/features/jobs/AssignDriverVehiclePage';
 import { CreateJobPage } from '@/features/jobs/CreateJobPage';
+import { CurrentJobPage } from '@/features/jobs/CurrentJobPage';
 import { CustodyConfirmationPage } from '@/features/jobs/CustodyConfirmationPage';
 import { DeliveryProofPage } from '@/features/jobs/DeliveryProofPage';
 import { JobDetailPage } from '@/features/jobs/JobDetailPage';
@@ -19,6 +20,8 @@ import { PickupConfirmPage } from '@/features/jobs/PickupConfirmPage';
 import { PickupProofPage } from '@/features/jobs/PickupProofPage';
 import { WorkListPage } from '@/features/jobs/WorkListPage';
 import { HomeOrLanding } from '@/features/landing/HomeOrLanding';
+import { MessagesPage } from '@/features/messages/MessagesPage';
+import { MorePage } from '@/features/more/MorePage';
 import { NegotiationPage } from '@/features/negotiation/NegotiationPage';
 import { AuditLogPage } from '@/features/ops/AuditLogPage';
 import { HighValueReviewPage } from '@/features/ops/HighValueReviewPage';
@@ -67,6 +70,9 @@ export function AppRoutes(): JSX.Element {
           }
         >
           <Route path="home" element={<HomePage />} />
+          <Route path="current-job" element={<CurrentJobPage />} />
+          <Route path="more" element={<MorePage />} />
+          <Route path="messages" element={<MessagesPage />} />
           <Route path="jobs" element={<JobsListPage />} />
           <Route path="jobs/new" element={<CreateJobPage />} />
           <Route path="jobs/:jobId" element={<JobDetailPage />} />
