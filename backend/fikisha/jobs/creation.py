@@ -28,7 +28,7 @@ from fikisha.audit import services as audit
 from fikisha.jobs import job_authz
 from fikisha.jobs.constants import JobStatus, LocationSourceKind, LocationType
 from fikisha.jobs.dto import job_view
-from fikisha.jobs.errors import NotAuthorisedToAssign
+from fikisha.jobs.errors import GuardFailed, NotAuthorisedToAssign
 from fikisha.jobs.models import CargoDetails, Job, JobLocation, VehicleRequirement
 from fikisha.jobs.selectors import get_job
 from fikisha.jobs.service import TransitionContext
@@ -39,6 +39,14 @@ from fikisha.outbox.services import emit
 class NotAuthorisedToCreateJob(NotAuthorisedToAssign):
     default_code = "not_authorised_to_create_job"
     default_detail = "You may not create a job for this business."
+
+
+class BusinessSuspended(GuardFailed):
+    """A suspended business may not create new work (Increment 9 D-2,
+    ADR-2D-38). Same code the ``DRAFT -> REQUESTED`` guard uses."""
+
+    default_code = "business_suspended"
+    default_detail = "The business is suspended."
 
 
 def _actor_user(actor: Any) -> Any:
@@ -66,7 +74,7 @@ def create_draft(*, actor: Any, business_id: Any, data: dict[str, Any]) -> Job:
     / the `DRAFT -> REQUESTED` initiator check will demand again at submit
     time; this is the create-time half of the same server-side check."""
     from fikisha.business import authz as business_authz
-    from fikisha.business.models import BusinessAccount, BusinessRole
+    from fikisha.business.models import BusinessAccount, BusinessRole, BusinessStanding
 
     try:
         business = BusinessAccount.objects.get(id=business_id)
@@ -77,6 +85,8 @@ def create_draft(*, actor: Any, business_id: Any, data: dict[str, Any]) -> Job:
     )
     if not is_business_party and not job_authz.is_admin(actor):
         raise NotAuthorisedToCreateJob()
+    if business.standing == BusinessStanding.SUSPENDED:
+        raise BusinessSuspended()
 
     cargo = CargoDetails.objects.create(
         description=(data["cargo"].get("description") or "").strip(),

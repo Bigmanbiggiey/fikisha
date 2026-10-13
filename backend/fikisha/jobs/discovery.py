@@ -24,7 +24,7 @@ from fikisha.jobs import creation, guards
 from fikisha.jobs.constants import JobStatus
 from fikisha.jobs.errors import JobNoLongerAvailable
 from fikisha.jobs.selectors import get_job
-from fikisha.operators.models import OperatorProfile
+from fikisha.operators.models import OperatorProfile, OperatorStatus
 
 
 def _driver_for(actor: Any) -> OperatorProfile | None:
@@ -44,6 +44,11 @@ def open_jobs_for(actor: Any, *, value_band: str | None = None) -> Any:
 
     driver = _driver_for(actor)
     if driver is None:
+        return Job.objects.none()
+    # Suspended, restricted or offboarded operators see no new work
+    # (Increment 9 D-2, ADR-2D-38; the same set operator_eligible_for_job
+    # refuses at negotiate time).
+    if not driver.is_operational or driver.status == OperatorStatus.RESTRICTED:
         return Job.objects.none()
 
     vehicle_class_codes = list(

@@ -127,3 +127,44 @@ def apply_change(
         payload={"version": next_version, "changed_keys": sorted(patch)},
     )
     return version
+
+
+# ─── Platform Admin console reads (Design Phase 6 Increment 9, ADR-2D-38) ─
+def _flatten(node: Any, prefix: str = "") -> dict[str, Any]:
+    if isinstance(node, dict):
+        out: dict[str, Any] = {}
+        for key, value in node.items():
+            out.update(_flatten(value, f"{prefix}.{key}" if prefix else key))
+        return out
+    return {prefix: node}
+
+
+def preview_change(patch: dict[str, Any]) -> list[dict[str, Any]]:
+    """What ``apply_change(patch)`` would change, without changing anything:
+    one ``{path, before, after}`` per leaf that differs. Raises
+    ``ConfigValidationError`` exactly as ``apply_change`` would."""
+    before = current()
+    after = _deep_merge(before, patch)
+    validate(after)
+    flat_before, flat_after = _flatten(before), _flatten(after)
+    return [
+        {"path": path, "before": flat_before.get(path), "after": value}
+        for path, value in sorted(flat_after.items())
+        if flat_before.get(path, _MISSING) != value
+    ]
+
+
+def versions(limit: int = 50) -> list[dict[str, Any]]:
+    """The newest config versions, newest first, with who changed what and
+    why. The snapshot itself is left out (it's the whole config)."""
+    rows = PlatformConfigVersion.objects.select_related("changed_by").order_by("-version")[:limit]
+    return [
+        {
+            "version": v.version,
+            "changed_by_user_id": str(v.changed_by_id) if v.changed_by_id else None,
+            "changed_by_name": (v.changed_by.display_name or "") if v.changed_by else None,
+            "rationale": v.rationale,
+            "created_at": v.created_at.isoformat(),
+        }
+        for v in rows
+    ]
