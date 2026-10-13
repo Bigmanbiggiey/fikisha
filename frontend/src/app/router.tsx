@@ -24,6 +24,10 @@ import { MessagesPage } from '@/features/messages/MessagesPage';
 import { MorePage } from '@/features/more/MorePage';
 import { NegotiationPage } from '@/features/negotiation/NegotiationPage';
 import { AdminControlPage } from '@/features/admin/AdminControlPage';
+import { CommissionPage } from '@/features/admin/CommissionPage';
+import { ConfigPage } from '@/features/admin/ConfigPage';
+import { DirectoryDetailPage } from '@/features/admin/DirectoryDetailPage';
+import { DirectoryPage } from '@/features/admin/DirectoryPage';
 import { RequirePlatformAdmin } from '@/features/admin/RequirePlatformAdmin';
 import { AuditLogPage } from '@/features/ops/AuditLogPage';
 import { HighValueReviewPage } from '@/features/ops/HighValueReviewPage';
@@ -120,10 +124,16 @@ export function AppRoutes(): JSX.Element {
             path="admin"
             element={
               <RequirePlatformAdmin>
-                <AdminControlPage />
+                <Outlet />
               </RequirePlatformAdmin>
             }
-          />
+          >
+            <Route index element={<AdminControlPage />} />
+            <Route path="directory" element={<DirectoryPage />} />
+            <Route path="directory/:kind/:id" element={<DirectoryDetailPage />} />
+            <Route path="config" element={<ConfigPage />} />
+            <Route path="commission" element={<CommissionPage />} />
+          </Route>
         </Route>
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

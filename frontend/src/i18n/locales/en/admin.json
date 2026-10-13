@@ -1,0 +1,188 @@
+{
+  "state": {
+    "GOOD": "Good standing",
+    "ACTIVE": "Active",
+    "PENDING": "Pending",
+    "RESTRICTED": "Restricted",
+    "SUSPENDED": "Suspended",
+    "OFFBOARDED": "Offboarded"
+  },
+  "memberStatus": {
+    "ACTIVE": "Active",
+    "SUSPENDED": "Suspended",
+    "REMOVED": "Removed",
+    "INACTIVE": "Inactive"
+  },
+  "directory": {
+    "title": "Users & organizations",
+    "kindLabel": "Directory",
+    "kind": {
+      "businesses": "Businesses",
+      "operators": "Operators",
+      "groups": "Groups"
+    },
+    "kindOne": {
+      "businesses": "Business",
+      "operators": "Operator",
+      "groups": "Operator group"
+    },
+    "search": "Search by name",
+    "searchGo": "Search",
+    "state": "Standing or status",
+    "anyState": "Any",
+    "empty": "No accounts match.",
+    "loadMore": "Load more",
+    "members_one": "{{count}} member",
+    "members_other": "{{count}} members"
+  },
+  "detail": {
+    "back": "Back to the directory",
+    "contact": "Contact",
+    "reveal": "Show full number",
+    "revealHint": "Showing the full number is recorded in the audit log.",
+    "actions": "Account actions",
+    "userState": "Their sign-in account:",
+    "suspensionEffect": "Suspending stops new work: no new requests, offers or assignments. Jobs already under way carry on; they're listed below.",
+    "inFlightTitle": "Jobs still running",
+    "noInFlight": "No jobs running.",
+    "members": "Members",
+    "history": "Suspensions and reinstatements",
+    "noHistory": "Nothing recorded.",
+    "personOf": "the person behind {{name}}"
+  },
+  "actions": {
+    "SUSPEND": {
+      "account": "Suspend account",
+      "user": "Suspend sign-in",
+      "title": "Suspend",
+      "restate": "Suspend {{name}}.",
+      "confirm": "Suspend",
+      "done": "Suspended"
+    },
+    "REINSTATE": {
+      "account": "Reinstate account",
+      "user": "Reinstate sign-in",
+      "title": "Reinstate",
+      "restate": "Reinstate {{name}}.",
+      "confirm": "Reinstate",
+      "done": "Reinstated"
+    },
+    "OFFBOARD": {
+      "account": "Offboard account",
+      "user": "Offboard sign-in",
+      "title": "Offboard",
+      "restate": "Offboard {{name}}. This can't be undone.",
+      "confirm": "Offboard",
+      "done": "Offboarded"
+    }
+  },
+  "action": {
+    "reason": "Reason",
+    "reasonHint": "Required, at least {{count}} characters. Recorded with your name in the audit log.",
+    "duration": "Expected length in days (optional)",
+    "durationHint": "Recorded only. Nothing is reinstated automatically.",
+    "continue": "Continue",
+    "cancel": "Cancel",
+    "back": "Back",
+    "reasonLabel": "Reason:",
+    "durationLabel_one": "{{count}} day",
+    "durationLabel_other": "{{count}} days",
+    "audited": "This is recorded in the audit log, with your name and reason.",
+    "mfaNotice": "This action needs a fresh MFA check. Admin MFA isn't set up yet, so Fikisha will refuse it for now.",
+    "stepUpMissing": "Refused: this needs a fresh MFA check, and admin MFA isn't set up yet. Nothing was changed."
+  },
+  "config": {
+    "title": "Configuration",
+    "subtitle": "Live version {{version}}. Changes create a new version; nothing is ever overwritten.",
+    "editable": "Commission and timeouts",
+    "live": "Live: {{value}}",
+    "invalid": "Check the highlighted values.",
+    "preview": "Preview changes",
+    "discard": "Discard edits",
+    "diffTitle": "What would change",
+    "effect": "Commission on sample prices",
+    "col": {
+      "price": "Agreed price",
+      "before": "Now",
+      "after": "After the change"
+    },
+    "apply": "Apply…",
+    "applyTitle": "Apply configuration change",
+    "applyRestate_one": "Apply {{count}} change as version {{version}}.",
+    "applyRestate_other": "Apply {{count}} changes as version {{version}}.",
+    "applyConfirm": "Apply",
+    "readOnly": "Read-only here",
+    "readOnlyHint": "These underpin approved rules and permissions, so they can't be changed from the console.",
+    "section": {
+      "value_bands": "Value bands",
+      "high_value_threshold_kes": "High-value threshold",
+      "role_permissions": "Admin role permissions",
+      "verification_requirements": "Verification requirements"
+    },
+    "history": "Version history",
+    "versionLabel": "Version {{version}}",
+    "system": "System",
+    "unit": {
+      "hours_one": "{{count}} hour",
+      "hours_other": "{{count}} hours",
+      "days_one": "{{count}} day",
+      "days_other": "{{count}} days",
+      "minutes_one": "{{count}} minute",
+      "minutes_other": "{{count}} minutes"
+    },
+    "key": {
+      "commission": {
+        "rate": "Commission rate (%)",
+        "min_fee_kes": "Minimum commission (KSh)",
+        "cap_kes": "Commission cap (KSh)"
+      },
+      "timeouts": {
+        "request_expiry_hours": "Request expires after (hours)",
+        "offer_expiry_hours": "Offer expires after (hours)",
+        "delivery_acceptance": {
+          "standard_hours": "Delivery acceptance, Standard (hours)",
+          "high_hours": "Delivery acceptance, High value (hours)"
+        },
+        "post_completion_window": {
+          "default_hours": "Issue window after completion (hours)",
+          "high_and_latent_days": "Issue window, high value or latent risk (days)"
+        },
+        "stale_assignment_alert_minutes": "Stale assignment alert (minutes)"
+      }
+    }
+  },
+  "commission": {
+    "title": "Commission",
+    "subtitle": "Every commission record, with its adjustments. Fikisha records commission; the fare moves between the business and the operator.",
+    "statementsNotYet": "Weekly statements, M-Pesa settlement and eTIMS invoices aren't produced yet. This ledger is the record until they are.",
+    "period": "Period",
+    "periodOption": {
+      "all": "All time",
+      "7": "Last 7 days",
+      "30": "Last 30 days",
+      "90": "Last 90 days"
+    },
+    "total": {
+      "records": "Records",
+      "commission": "Commission",
+      "adjustments": "Adjustments",
+      "effective": "Effective"
+    },
+    "empty": "No commission recorded in this period.",
+    "loadMore": "Load more",
+    "col": {
+      "job": "Job",
+      "payee": "Operator or group",
+      "price": "Agreed price",
+      "commission": "Commission",
+      "adjustments": "Adjustments",
+      "effective": "Effective",
+      "date": "Recorded"
+    },
+    "rule": "{{rate}}% · config v{{version}}",
+    "adjustment": {
+      "REDUCTION": "Reduced",
+      "WAIVER": "Waived"
+    }
+  }
+}

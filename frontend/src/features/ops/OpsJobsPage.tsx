@@ -11,13 +11,12 @@ import { PageLoader } from '@/components/PageLoader';
 import { JOB_STATUSES, VALUE_BANDS, type JobStatus, type ValueBand } from '@/features/jobs/types';
 import { localizeError } from '@/services/errorMessage';
 
+import { FilterSelect } from './FilterSelect';
 import { JobReferenceJump } from './JobReferenceJump';
 import { cursorFrom, opsApi } from './opsApi';
 import type { AttentionFilter, MonitorFilters, OpsJobRow } from './types';
 
 const ATTENTION: AttentionFilter[] = ['disputed', 'failed', 'high_value_pending', 'stale'];
-const selectClass =
-  'block min-h-target w-full rounded-md border border-line-strong bg-surface-input px-3 text-body text-fg';
 
 /**
  * §18.2 Job monitoring — filters (state, band, attention/age) and the
@@ -175,35 +174,6 @@ export function OpsJobsPage(): JSX.Element {
           )}
         </>
       )}
-    </div>
-  );
-}
-
-function FilterSelect({
-  id,
-  label,
-  value,
-  onChange,
-  options,
-}: {
-  id: string;
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  options: [string, string][];
-}): JSX.Element {
-  return (
-    <div className="space-y-1">
-      <label htmlFor={id} className="block text-label text-fg-secondary">
-        {label}
-      </label>
-      <select id={id} value={value} onChange={(e) => onChange(e.target.value)} className={selectClass}>
-        {options.map(([v, text]) => (
-          <option key={v || 'any'} value={v}>
-            {text}
-          </option>
-        ))}
-      </select>
     </div>
   );
 }

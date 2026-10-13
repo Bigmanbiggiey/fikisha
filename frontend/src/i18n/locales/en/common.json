@@ -19,7 +19,10 @@
     "requestTransport": "Request transport",
     "messages": "Messages",
     "unreadBadge": "{{count}} unread",
-    "control": "Control"
+    "control": "Control",
+    "directory": "Users & orgs",
+    "config": "Configuration",
+    "commission": "Commission"
   },
   "language": {
     "label": "Language",

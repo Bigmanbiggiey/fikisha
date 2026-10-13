@@ -8,6 +8,7 @@ import i18n from 'i18next';
 import LanguageDetector from 'i18next-browser-languagedetector';
 import { initReactI18next } from 'react-i18next';
 
+import adminEn from './locales/en/admin.json';
 import authEn from './locales/en/auth.json';
 import commonEn from './locales/en/common.json';
 import errorsEn from './locales/en/errors.json';
@@ -19,6 +20,7 @@ import negotiationEn from './locales/en/negotiation.json';
 import opsEn from './locales/en/ops.json';
 import orgEn from './locales/en/org.json';
 import recipientEn from './locales/en/recipient.json';
+import adminSw from './locales/sw/admin.json';
 import authSw from './locales/sw/auth.json';
 import commonSw from './locales/sw/common.json';
 import errorsSw from './locales/sw/errors.json';
@@ -47,6 +49,7 @@ export const resources = {
     incidents: incidentsEn,
     ops: opsEn,
     messages: messagesEn,
+    admin: adminEn,
   },
   sw: {
     common: commonSw,
@@ -60,6 +63,7 @@ export const resources = {
     incidents: incidentsSw,
     ops: opsSw,
     messages: messagesSw,
+    admin: adminSw,
   },
 } as const;
 
@@ -71,7 +75,7 @@ void i18n
     fallbackLng: 'en',
     supportedLngs: SUPPORTED_LANGUAGES as unknown as string[],
     defaultNS: 'common',
-    ns: ['common', 'auth', 'errors', 'org', 'landing', 'jobs', 'negotiation', 'recipient', 'incidents', 'ops', 'messages'],
+    ns: ['common', 'auth', 'errors', 'org', 'landing', 'jobs', 'negotiation', 'recipient', 'incidents', 'ops', 'messages', 'admin'],
     interpolation: { escapeValue: false },
     detection: {
       order: ['localStorage', 'navigator', 'htmlTag'],
