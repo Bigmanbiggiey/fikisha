@@ -75,6 +75,8 @@ def candidates(*, actor: Any, job_id: Any) -> dict[str, Any]:
         raise NotAuthorisedToAssign("Only the confirmed operator may assign this job.")
 
     driver = agreement.operator
+    if driver is None:  # pragma: no cover - an OPERATOR-party agreement always has one
+        raise JobNoLongerAvailable("The confirmed job has no operator.")
     verification_reasons = guards._driver_verification_reasons(driver)
     level, trust_reasons = guards._driver_trust_reasons(driver, job)
     driver_reasons = verification_reasons + trust_reasons

@@ -112,9 +112,7 @@ def test_job_with_no_class_requirement_is_visible_to_any_registered_operator(
     make_vehicle: Callable,
 ) -> None:
     make_vehicle(owner_operator=eligible_driver, registration="KDA 302P")
-    job = _make_requested_job(
-        business=verified_business, user=user, admin_actor=admin_actor
-    )
+    job = _make_requested_job(business=verified_business, user=user, admin_actor=admin_actor)
     client = client_for(eligible_driver.user)
     r = client.get("/api/v1/jobs/opportunities")
     assert r.status_code == 200, r.content

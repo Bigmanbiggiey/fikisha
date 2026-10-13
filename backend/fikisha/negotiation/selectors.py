@@ -63,9 +63,7 @@ def _declined(entries: list[NegotiationEntry], thread_status: str) -> bool:
     """A CLOSED thread that holds a REJECT entry closed via `decline()`, not
     via a winning `accept()` (the two are mutually exclusive terminal writes
     — see module docstring)."""
-    return thread_status == ThreadStatus.CLOSED and any(
-        e.type == EntryType.REJECT for e in entries
-    )
+    return thread_status == ThreadStatus.CLOSED and any(e.type == EntryType.REJECT for e in entries)
 
 
 def _effective_status(
