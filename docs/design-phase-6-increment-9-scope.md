@@ -201,3 +201,29 @@ native apps · deploy · merging to `main` without founder approval.
 | D-4 | Commission & statements | Read-only ledger in 9; statements/settlement/eTIMS a separate increment; no manual adjustments | |
 | D-5 | Exclusions | Trust, Resume queue, Search out; System = one dead-letter tile or deferred | |
 | D-6 | Directory access | Platform Admin only, masked phones + audited reveal | |
+
+## 7. Progress and founder actions (2026-10-13)
+
+**Built already** (branch `feat/increment-9b-admin-control`, commit
+`8951c2f`, stacked on PR #5). This is the part of 9b that needs no new
+backend and none of D-1 to D-6:
+- The Platform Admin's own navigation.
+- **Control** (`/admin`): above-Standard disputes and Very High value
+  approvals, from the existing Ops queues.
+
+Verified: 257 frontend tests, typecheck, lint, build (153.6 kB gzip).
+**Not yet live-checked in a browser**: there's no backend running on this
+machine.
+
+**Blocked until the founder acts:**
+
+| # | Founder action | Unblocks |
+|---|---|---|
+| F-1 | Answer D-1 to D-6 (§6 decision sheet) | Everything below |
+| F-2 | Install Docker Desktop on this machine (Windows; WSL 2 backend), then `docker compose up` | Backend tests (Postgres), every backend change in 9a–9e, the live browser check of `8951c2f` |
+| F-3 | Review and merge PR #5, then PR #6 | A clean base. 9b is stacked on #5 |
+| F-4 | If D-1 (a): install an authenticator app (Google Authenticator, Microsoft Authenticator or similar) on your phone, for TOTP enrolment | 9a, then every gated admin action |
+| F-5 | Optional: tell Claude to apply GitHub branch protection on `main` (`gh` is now authenticated) | Closes the 2026-09-11 process-exception hardening item |
+
+**After F-1 and F-2**, the order is 9a → rest of 9b (directory) → 9c → 9d → 9e,
+as in §4. Each one stops for founder review.
