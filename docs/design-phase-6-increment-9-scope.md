@@ -1,7 +1,6 @@
 # Increment 9 — Platform Admin console: scope (DRAFT)
 
-**Status:** DRAFT, 2026-10-13. For founder review. **No code is written until
-this is approved.**
+**Status:** APPROVED 2026-10-13 (D-2 to D-6 as recommended; D-1 deferred). See §7.
 **Parent plan:** `design-phase-6-jobs-frontend-plan.md` §7, "Increment 9 —
 Platform Admin console (P3 §19)".
 **Sources:**
@@ -202,28 +201,44 @@ native apps · deploy · merging to `main` without founder approval.
 | D-5 | Exclusions | Trust, Resume queue, Search out; System = one dead-letter tile or deferred | |
 | D-6 | Directory access | Platform Admin only, masked phones + audited reveal | |
 
-## 7. Progress and founder actions (2026-10-13)
+## 7. Progress and founder actions
 
-**Built already** (branch `feat/increment-9b-admin-control`, commit
-`8951c2f`, stacked on PR #5). This is the part of 9b that needs no new
-backend and none of D-1 to D-6:
-- The Platform Admin's own navigation.
-- **Control** (`/admin`): above-Standard disputes and Very High value
-  approvals, from the existing Ops queues.
+**Decisions (2026-10-13).** The founder approved the increments and the
+recommendations for D-2 to D-6. **D-1 (admin MFA) is deferred** ("I will
+tackle D1 later").
 
-Verified: 257 frontend tests, typecheck, lint, build (153.6 kB gzip).
-**Not yet live-checked in a browser**: there's no backend running on this
-machine.
+**Built** on branch `feat/increment-9b-admin-control`, stacked on PR #5:
+`8951c2f` (navigation + Control), `3701005` (backend, ADR-2D-38) and
+`ac49a14` (frontend).
 
-**Blocked until the founder acts:**
+| Part | State |
+|---|---|
+| 9a Admin MFA + step-up | **Not built (D-1 deferred).** The step-up *gate* exists (`identity.authz.step_up`) and refuses with `step_up_required`; 9a makes it pass after a real TOTP check |
+| 9b Control + Users & organizations | **Done**: Control queues; directory with masked phones; audited reveal; detail with members, running jobs and history |
+| 9c Suspend / reinstate / offboard | **Built, gated.** Services, append-only `admin_intervention`, audit and UI are done and tested. The API refuses until 9a. Suspension now really blocks new work (gaps closed: suspended business could post jobs; offboarded operator and suspended group could negotiate) |
+| 9d Configuration | **Read + preview done; apply built, gated** (allowlist: commission + timeouts) |
+| 9e Commission ledger | **Done** (read-only; statements/settlement/eTIMS not built) |
 
-| # | Founder action | Unblocks |
-|---|---|---|
-| F-1 | Answer D-1 to D-6 (§6 decision sheet) | Everything below |
-| F-2 | Install Docker Desktop on this machine (Windows; WSL 2 backend), then `docker compose up` | Backend tests (Postgres), every backend change in 9a–9e, the live browser check of `8951c2f` |
-| F-3 | Review and merge PR #5, then PR #6 | A clean base. 9b is stacked on #5 |
-| F-4 | If D-1 (a): install an authenticator app (Google Authenticator, Microsoft Authenticator or similar) on your phone, for TOTP enrolment | 9a, then every gated admin action |
-| F-5 | Optional: tell Claude to apply GitHub branch protection on `main` (`gh` is now authenticated) | Closes the 2026-09-11 process-exception hardening item |
+**Verification (2026-10-14):**
+- Backend: 1,042 tests (53 new), 90% coverage; ruff, format and migrations
+  check clean.
+- Frontend: 265+ tests, typecheck, lint and build clean.
+- 31-check HTTP smoke test against a running server.
+- Live walkthrough in Chrome as a Platform Admin, in English and Swahili.
 
-**After F-1 and F-2**, the order is 9a → rest of 9b (directory) → 9c → 9d → 9e,
-as in §4. Each one stops for founder review.
+Postgres for this ran from a portable copy in Claude's scratch folder, not
+Docker.
+
+**What's left, and who does it:**
+
+| # | Action | Who | Unblocks |
+|---|---|---|---|
+| F-1 | Decide D-1 (admin MFA) when ready | Founder | 9a; then suspend/offboard and config apply actually work |
+| F-2 | Install Docker Desktop (for the standard `docker compose` stack + Redis) | Founder | The full-stack smoke test; Celery/Redis paths. Backend tests can already run without it |
+| F-3 | Review and merge PR #5, then PR #6, then the Increment 9 PR | Founder | A clean `main` |
+| F-4 | With D-1 (a): install an authenticator app | Founder | 9a enrolment |
+| F-5 | Optional: ask Claude to turn on branch protection for `main` | Founder | Closes the 2026-09-11 hardening item |
+| C-1 | Build 9a once D-1 is decided: TOTP enrolment, login TOTP, backup codes, `POST /auth/step-up`, and step-up on dispute resolution / high-value approval too | Claude | — |
+| C-2 | A separate Commission & Statements increment (weekly run, manual settlement, eTIMS) when the founder scopes it | Claude, after a founder brief | — |
+
+Then Increment 10d/10e/10f, per the approved order.
