@@ -132,5 +132,15 @@
   },
   "notes": {
     "title": "Taarifa kutoka Fikisha"
+  },
+  "control": {
+    "title": "Udhibiti",
+    "subtitle": "Maamuzi ambayo Msimamizi Mkuu wa Mfumo pekee anaweza kufanya. Ya zamani zaidi kwanza.",
+    "disputes": "Migogoro iliyo juu ya kiwango cha Kawaida",
+    "highValue": "Kazi za thamani ya juu sana zinazosubiri idhini",
+    "nothing": "Hakuna kinachomsubiri Msimamizi Mkuu wa Mfumo",
+    "nothingHint": "Mengine yote yako kwenye muhtasari wa Uendeshaji.",
+    "opsHint": "Kazi zinazohitaji kushughulikiwa, matukio, migogoro ya kiwango cha Kawaida na foleni ya uthibitishaji ziko kwenye muhtasari wa Uendeshaji.",
+    "openOps": "Fungua muhtasari wa Uendeshaji"
   }
 }

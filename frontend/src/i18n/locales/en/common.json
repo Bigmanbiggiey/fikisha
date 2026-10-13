@@ -18,7 +18,8 @@
     "more": "More",
     "requestTransport": "Request transport",
     "messages": "Messages",
-    "unreadBadge": "{{count}} unread"
+    "unreadBadge": "{{count}} unread",
+    "control": "Control"
   },
   "language": {
     "label": "Language",

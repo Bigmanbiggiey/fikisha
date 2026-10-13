@@ -65,7 +65,7 @@ describe('role navigation (Design Phase 7 P-04)', () => {
     ['DRIVER', ['Current job', 'Jobs', 'More']],
     ['GROUP_MANAGER', ['Home', 'Jobs', 'More']],
     ['OPERATIONS_OFFICER', ['Operations', 'Monitor', 'Verification', 'More']],
-    ['PLATFORM_ADMIN', ['Operations', 'Monitor', 'Verification', 'More']],
+    ['PLATFORM_ADMIN', ['Control', 'Monitor', 'Verification', 'More']],
   ])('the %s tab bar lists exactly its items', (role, expected) => {
     active = { role, roles: [role] };
     renderWithProviders(<RoleTabBar />);

@@ -9,9 +9,13 @@ import type { IconName } from '@/design/Icon';
  * Messages (10g) is a primary item for Business and Operator, the roles that
  * have offer threads, with an unread badge.
  *
+ * Platform Admin (Increment 9b, P3 §19): Control · Monitor · Verification
+ * primary, with the Operations overview, High-value and Audit secondary.
+ *
  * Deliberately absent until their screens exist: Group Manager "Team", Ops "Incidents / Disputes"
- * lists and "Search", Platform Admin "Control" (Increment 9), statements,
- * help and settings. Diagnostics is left out of user navigation; it stays
+ * lists and "Search", the rest of the Platform Admin console (Users &
+ * Organizations, Configuration, Commission, Trust, System; see
+ * `design-phase-6-increment-9-scope.md`), statements, help and settings. Diagnostics is left out of user navigation; it stays
  * reachable at /diagnostics.
  */
 
@@ -99,8 +103,14 @@ export const NAV: Record<NavRole, RoleNav> = {
     secondary: [groups, vehicles],
   },
   OPERATIONS_OFFICER: staff,
-  // Same as Operations until the Platform Admin console (Increment 9).
-  PLATFORM_ADMIN: staff,
+  PLATFORM_ADMIN: {
+    primary: [
+      { to: '/admin', labelKey: 'common:nav.control', icon: 'home', end: true },
+      staff.primary[1]!,
+      staff.primary[2]!,
+    ],
+    secondary: [staff.primary[0]!, ...staff.secondary],
+  },
 };
 
 /**

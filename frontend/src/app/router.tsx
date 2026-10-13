@@ -23,6 +23,8 @@ import { HomeOrLanding } from '@/features/landing/HomeOrLanding';
 import { MessagesPage } from '@/features/messages/MessagesPage';
 import { MorePage } from '@/features/more/MorePage';
 import { NegotiationPage } from '@/features/negotiation/NegotiationPage';
+import { AdminControlPage } from '@/features/admin/AdminControlPage';
+import { RequirePlatformAdmin } from '@/features/admin/RequirePlatformAdmin';
 import { AuditLogPage } from '@/features/ops/AuditLogPage';
 import { HighValueReviewPage } from '@/features/ops/HighValueReviewPage';
 import { OpsHomePage } from '@/features/ops/OpsHomePage';
@@ -113,6 +115,15 @@ export function AppRoutes(): JSX.Element {
             <Route path="high-value" element={<HighValueReviewPage />} />
             <Route path="audit" element={<AuditLogPage />} />
           </Route>
+          {/* Platform Admin console (Design Phase 6 Increment 9, P3 §19). */}
+          <Route
+            path="admin"
+            element={
+              <RequirePlatformAdmin>
+                <AdminControlPage />
+              </RequirePlatformAdmin>
+            }
+          />
         </Route>
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
