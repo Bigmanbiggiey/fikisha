@@ -48,5 +48,6 @@
   "mfa_required": "Weka msimbo wako wa uthibitishaji kwanza.",
   "mfa_not_enrolled": "Weka programu ya uthibitishaji kwanza.",
   "mfa_already_enrolled": "Akaunti hii tayari ina programu ya uthibitishaji.",
-  "mfa_not_required": "Ni akaunti za wasimamizi pekee zinazotumia programu ya uthibitishaji."
+  "mfa_not_required": "Ni akaunti za wasimamizi pekee zinazotumia programu ya uthibitishaji.",
+  "high_value_not_reversible": "Ni uamuzi wa thamani ya juu uliokataliwa pekee unaoweza kubatilishwa."
 }

@@ -235,6 +235,23 @@ in the last `STEP_UP_TTL_SECONDS`:
 
 ---
 
+## 4e. Follow-ups batch 1 (ADR-2D-40)
+
+| Method | Path | Action (authz) | Purpose |
+| --- | --- | --- | --- |
+| POST | `/jobs/<id>/high-value-decision/reverse` | `highvalue.approve` + Platform Admin + step-up | `{reason}` (at least 10 characters) → 201 `{job_id, decision: "APPROVED", reversed: true}`. 422 `high_value_not_reversible` (not rejected, or reason too short); 409 if already reversed |
+
+**Job detail, list and opportunities** add `contacts_hidden`. When it's true,
+the contact and recipient phone fields are blank: the viewer is not staff,
+not a member of the business, and not the assigned operator or driver.
+Staff also get `high_value_decision` (effective: a reversed rejection reads
+APPROVED).
+
+The recipient page's `delivery_reference` is now 6 characters, matching the
+app.
+
+---
+
 ## 5. What is deliberately absent
 
 No route exposes: a raw scheduler/lifecycle transition (sweeps run only as

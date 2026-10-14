@@ -129,7 +129,11 @@
     "showEvents": "Onyesha matukio yote",
     "hideEvents": "Ficha matukio",
     "eventNote": "Ujumbe",
-    "highValuePending": "Ukaguzi wa thamani ya juu unasubiri"
+    "highValuePending": "Ukaguzi wa thamani ya juu unasubiri",
+    "highValueRejected": "Ukaguzi wa thamani ya juu umekataliwa",
+    "reverseRejection": "Batilisha kukataliwa",
+    "reverseRestate": "Batilisha kukataliwa kwa thamani ya juu kwa kazi {{ref}}. Itahesabiwa kuwa imeidhinishwa na inaweza kugawiwa.",
+    "reverseConfirm": "Batilisha"
   },
   "notes": {
     "title": "Taarifa kutoka Fikisha"

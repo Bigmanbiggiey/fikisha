@@ -35,12 +35,12 @@ from fikisha.vehicles.services import vehicles_for_operator
 def _high_value_blocked(job: Any) -> str | None:
     if job.value_band not in HIGH_VALUE_BANDS:
         return None
-    from fikisha.jobs.models import HighValueApproval
+    from fikisha.jobs.high_value import effective_decision
 
-    approval = HighValueApproval.objects.filter(job=job).first()
-    if approval is None or approval.decision != HighValueDecision.APPROVED:
+    decision, by_platform_admin = effective_decision(job)
+    if decision != HighValueDecision.APPROVED:
         return "This job requires Fikisha's high-value review before it can be assigned."
-    if job.value_band == ValueBand.VERY_HIGH and not approval.decided_by_is_platform_admin:
+    if job.value_band == ValueBand.VERY_HIGH and not by_platform_admin:
         return "Very-high-value jobs require Platform Admin approval before assignment."
     return None
 

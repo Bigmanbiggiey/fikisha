@@ -868,6 +868,53 @@ is possible without MFA now. Every MFA path is tested, including the
 replay, lockout, expiry, roles-wait and non-admin cases, and the
 stale-versus-fresh step-up on each guarded action.
 
+## ADR-2D-40 — Follow-ups batch 1: phones until assignment, reversible high-value rejection, 6-character references — CONFIRMED (founder decisions 2026-10-14, items 7–9)
+
+**1. Contact phones are hidden until the job is assigned (closes ADR-2D-36).**
+- **Who sees the numbers** (`job_authz.may_see_contact_phones`):
+  - staff;
+  - any member of the job's business;
+  - once the job is **assigned**, the confirmed operator or group manager
+    and the assigned driver.
+- **Who doesn't:** an operator who has only negotiated, a confirmed operator
+  before assignment, and anyone browsing open work. They get blank
+  `pickup_location.contact_phone`, `destination_location.contact_phone` and
+  `recipient_phone`, plus `contacts_hidden: true`. Contact names stay
+  visible.
+- **Where:** `creation.job_detail(job, viewer=...)` applies it on job detail,
+  the job list and work opportunities. The business's own create response
+  has no viewer, so nothing is hidden.
+
+**2. A Platform Admin can reverse a high-value rejection, with a reason.**
+- A new append-only `HighValueReversal` (one per decision; model guard,
+  queryset guard and DB trigger, migrations `jobs.0009`/`0010`) points at
+  the original `HighValueApproval`, which never changes.
+- `high_value.effective_decision(job)` reads a reversed rejection as
+  APPROVED by a Platform Admin. The `HighValueApproved` guard and the
+  assignment-candidates check both use it, so a reversed job can be
+  assigned.
+- `POST /jobs/<id>/high-value-decision/reverse {reason}`:
+  - Platform Admin only;
+  - reason of at least 10 characters;
+  - fresh MFA step-up;
+  - audited as `job.highvalue.rejection_reversed`;
+  - emits `HighValueDecision` with `reversal: true`.
+- For staff, job detail now carries `high_value_decision`. The staff header
+  shows "High-value review rejected", and a Platform Admin gets "Reverse the
+  rejection" through the shared action dialog.
+
+**3. One 6-character reference everywhere.** The recipient page's
+`delivery_reference` now uses `jobs.ops.job_reference` (the last 6
+characters, as the app shows) instead of 8 hex characters.
+
+**Why it's safe.**
+- (1) only removes data from some viewers.
+- (2) adds an audited, step-up-guarded Platform Admin action and changes no
+  existing record.
+- (3) is display only.
+- Tests: `jobs/tests/test_followups_batch.py` (9) and
+  `StaffJobContext.test.tsx` (2).
+
 ## Self-caught defects fixed during implementation
 
 Every one of these was found by the implementation's own review or test

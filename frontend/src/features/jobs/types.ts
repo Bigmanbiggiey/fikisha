@@ -102,6 +102,12 @@ export interface Job extends JobTransitionResult {
   agreed_price_kes: number | null;
   assigned_driver_id: string | null;
   assigned_vehicle_id: string | null;
+  /** Contact phone numbers were blanked for this viewer (an operator not yet
+   * assigned — founder decision 2026-10-14). */
+  contacts_hidden?: boolean;
+  /** Staff only: the effective high-value decision (a reversed rejection
+   * reads as APPROVED); absent for non-staff or non-high-value jobs. */
+  high_value_decision?: 'APPROVED' | 'REJECTED' | null;
 }
 
 // ─── Create-Job request shape (JobCreateSerializer) ───────────────────────

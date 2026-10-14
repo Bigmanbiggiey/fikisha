@@ -32,11 +32,13 @@ authoritative copy; the form was only the means of collecting it.
 
 ## Proposed order of the work this creates
 
-1. **Increment 9a — Admin MFA + step-up** (decisions 1–2).
+1. **Increment 9a — Admin MFA + step-up** (decisions 1–2). **Done, PR #12.**
 2. **Small follow-ups batch:**
    - mask phones before assignment (7);
    - reversible high-value rejection (8);
    - 6-character references (9).
+
+   **Built 2026-10-14 (ADR-2D-40).**
 3. **Group driver-pool assignment** (19), scoped first.
 4. **Commission & Statements** (5), with its own plan first.
 5. **Swahili review list** (20), before the pilot launch.

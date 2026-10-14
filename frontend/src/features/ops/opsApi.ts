@@ -46,6 +46,8 @@ export const opsApi = {
   },
   highValueQueue: (cursor?: string | null) =>
     apiRequest<Paged<HighValueRow>>(withQuery('/ops/high-value', new URLSearchParams(), cursor)),
+  reverseHighValueRejection: (jobId: string, reason: string) =>
+    apiRequest<unknown>(`/jobs/${jobId}/high-value-decision/reverse`, { method: 'POST', body: { reason } }),
   decideHighValue: (jobId: string, decision: HighValueDecision, rationale: string) =>
     apiRequest<unknown>(`/jobs/${jobId}/high-value-decision`, {
       method: 'POST',

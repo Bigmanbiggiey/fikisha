@@ -315,12 +315,12 @@ def high_value_approved(job: Any, actor: Any, ctx: dict[str, Any]) -> None:
     if job.value_band not in HIGH_VALUE_BANDS:
         return
     from fikisha.jobs.constants import HighValueDecision
-    from fikisha.jobs.models import HighValueApproval
+    from fikisha.jobs.high_value import effective_decision
 
-    approval = HighValueApproval.objects.filter(job=job).first()
-    if approval is None or approval.decision != HighValueDecision.APPROVED:
+    decision, by_platform_admin = effective_decision(job)
+    if decision != HighValueDecision.APPROVED:
         raise HighValueApprovalRequired("This high-value job requires an approved review.")
-    if job.value_band == ValueBand.VERY_HIGH and not approval.decided_by_is_platform_admin:
+    if job.value_band == ValueBand.VERY_HIGH and not by_platform_admin:
         raise HighValueApprovalRequired("Very-high-value jobs require Platform Admin approval.")
 
 
