@@ -10,6 +10,23 @@ from django.core.cache import cache
 from rest_framework.test import APIClient
 
 
+def _mfa_ready(issued: Any) -> Any:
+    """Admin MFA (Increment 9a, ADR-2D-39): an admin's roles only apply on a
+    session that passed MFA. API tests act as an admin who has done so,
+    with a fresh step-up; the MFA tests build their own sessions."""
+    from django.utils import timezone
+
+    from fikisha.identity.services.mfa import is_admin_user
+
+    session = issued.session
+    if is_admin_user(session.user):
+        now = timezone.now()
+        session.mfa_verified_at = now
+        session.step_up_at = now
+        session.save(update_fields=["mfa_verified_at", "step_up_at"])
+    return issued
+
+
 @pytest.fixture(autouse=True)
 def _clear_cache() -> Iterator[None]:
     cache.clear()
@@ -61,7 +78,7 @@ def auth_client(api: APIClient, user: Any) -> APIClient:
     """An APIClient carrying a valid Bearer access token for ``user``."""
     from fikisha.identity.services import auth as auth_service
 
-    issued = auth_service.start_session(user=user, device_label="pytest")
+    issued = _mfa_ready(auth_service.start_session(user=user, device_label="pytest"))
     api.credentials(HTTP_AUTHORIZATION=f"Bearer {issued.access_token}")
     api._issued_session = issued  # type: ignore[attr-defined]
     return api
@@ -71,7 +88,7 @@ def auth_client(api: APIClient, user: Any) -> APIClient:
 def admin_client(api: APIClient, platform_admin: Any) -> APIClient:
     from fikisha.identity.services import auth as auth_service
 
-    issued = auth_service.start_session(user=platform_admin, device_label="pytest-admin")
+    issued = _mfa_ready(auth_service.start_session(user=platform_admin, device_label="pytest-admin"))
     api.credentials(HTTP_AUTHORIZATION=f"Bearer {issued.access_token}")
     return api
 
@@ -94,7 +111,7 @@ def client_for() -> Any:
 
     def _make(user: Any) -> APIClient:
         client = APIClient()
-        issued = auth_service.start_session(user=user, device_label="pytest")
+        issued = _mfa_ready(auth_service.start_session(user=user, device_label="pytest"))
         client.credentials(HTTP_AUTHORIZATION=f"Bearer {issued.access_token}")
         return client
 

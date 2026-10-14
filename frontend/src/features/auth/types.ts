@@ -6,6 +6,18 @@ export interface AuthUser {
   status: string;
   roles: string[];
   is_admin: boolean;
+  /** Admin MFA state for this session (Increment 9a). Absent on old payloads. */
+  mfa?: MfaStatus;
+}
+
+export interface MfaStatus {
+  /** true for admin accounts only */
+  required: boolean;
+  /** has a confirmed authenticator */
+  enrolled: boolean;
+  /** this session passed MFA */
+  verified: boolean;
+  step_up_fresh: boolean;
 }
 
 export interface OtpRequestResult {

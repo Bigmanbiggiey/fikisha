@@ -85,6 +85,21 @@ ADMIN_TOKEN=$(docker compose exec -T backend \
   | grep '^ACCESS_TOKEN=' | cut -d= -f2-)
 [ -n "$ADMIN_TOKEN" ] && ok "admin $ADMIN_PHONE created, token minted"
 
+say "9b. Admin MFA — the admin's roles apply only after MFA (Increment 9a)"
+CODE_MFA=$(curl -s -o /dev/null -w '%{http_code}' "$API/api/v1/admin/ping" -H "Authorization: Bearer $ADMIN_TOKEN")
+[ "$CODE_MFA" = "403" ] && ok "admin route refused before MFA" || fail "expected 403 before MFA, got $CODE_MFA"
+# the smoke admin is recreated each run: drop any authenticator from a previous run
+docker compose exec -T backend python manage.py shell -c \
+  "from fikisha.identity.models import TotpDevice; TotpDevice.objects.filter(user__phone='$ADMIN_PHONE').delete()" >/dev/null
+SECRET=$(curl -fsS -X POST "$API/api/v1/auth/mfa/enroll" -H "Authorization: Bearer $ADMIN_TOKEN" | json "['secret']")
+TOTP=$(docker compose exec -T backend python -c "import pyotp; print(pyotp.TOTP('$SECRET').now())" | tr -d '\r')
+BACKUPS=$(curl -fsS -X POST "$API/api/v1/auth/mfa/enroll/confirm" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' \
+  -d "{\"code\":\"$TOTP\"}" | json "['backup_codes'].__len__()")
+[ "$BACKUPS" = "10" ] && ok "authenticator enrolled, 10 backup codes issued"
+CODE_MFA=$(curl -s -o /dev/null -w '%{http_code}' "$API/api/v1/admin/ping" -H "Authorization: Bearer $ADMIN_TOKEN")
+[ "$CODE_MFA" = "200" ] && ok "admin route allowed after MFA" || fail "expected 200 after MFA, got $CODE_MFA"
+
 say "10. One transaction writes a DB row + an audit row + an outbox row"
 DEMO=$(curl -fsS -X POST "$API/api/v1/_demo/atomic-outbox" \
   -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' \

@@ -248,6 +248,12 @@ AUTH_CONFIG: dict[str, Any] = {
     "REFRESH_COOKIE_NAME": env.str_("AUTH_REFRESH_COOKIE_NAME", "fikisha_refresh"),
     "COOKIE_SECURE": env.bool_("AUTH_COOKIE_SECURE", False),
     "COOKIE_SAMESITE": env.str_("AUTH_COOKIE_SAMESITE", "Lax"),
+    # Admin MFA (Increment 9a, ADR-2D-39). The TOTP key is a Fernet key; empty
+    # means "derive from SECRET_KEY", which prod.py refuses.
+    "TOTP_ENCRYPTION_KEY": env.str_("TOTP_ENCRYPTION_KEY", ""),
+    "STEP_UP_TTL_SECONDS": env.int_("STEP_UP_TTL_SECONDS", 300),
+    "MFA_MAX_ATTEMPTS": env.int_("MFA_MAX_ATTEMPTS", 5),
+    "MFA_LOCK_SECONDS": env.int_("MFA_LOCK_SECONDS", 900),
 }
 
 # ─── CORS ────────────────────────────────────────────────────────────

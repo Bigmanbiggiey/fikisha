@@ -134,7 +134,7 @@ describe('directory detail', () => {
       reason: 'short but now long enough',
       duration_days: 14,
     });
-    expect(await within(dialog).findByText(/admin MFA isn't set up yet. Nothing was changed/)).toBeInTheDocument();
+    expect(await within(dialog).findByText(/needs a fresh authenticator code. Nothing was changed/)).toBeInTheDocument();
   });
 });
 
@@ -178,7 +178,7 @@ describe('Configuration', () => {
     await userEvent.click(within(dialog).getByRole('button', { name: 'Continue' }));
     await userEvent.click(within(dialog).getByRole('button', { name: 'Apply' }));
     expect(api.applyConfig).toHaveBeenCalledWith({ 'commission.rate': 0.08 }, 'Pilot test of a lower rate');
-    expect(await within(dialog).findByText(/admin MFA isn't set up yet/)).toBeInTheDocument();
+    expect(await within(dialog).findByText(/needs a fresh authenticator code/)).toBeInTheDocument();
   });
 
   it('flags a value that is not a number', async () => {

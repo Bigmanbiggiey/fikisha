@@ -33,11 +33,21 @@ class OtpVerifySerializer(serializers.Serializer):
 class MeSerializer(serializers.ModelSerializer):
     roles = serializers.SerializerMethodField()
     is_admin = serializers.SerializerMethodField()
+    mfa = serializers.SerializerMethodField()
 
     class Meta:
         model = User
-        fields = ("id", "phone", "display_name", "locale", "status", "roles", "is_admin")
+        fields = ("id", "phone", "display_name", "locale", "status", "roles", "is_admin", "mfa")
         read_only_fields = fields
+
+    def get_mfa(self, obj: User) -> dict[str, Any]:
+        """Admin MFA state for this session (ADR-2D-39): ``required`` (an
+        admin), ``enrolled`` (has a confirmed authenticator), ``verified``
+        (this session passed MFA), ``step_up_fresh``. Pass the session as
+        ``context["session"]``."""
+        from fikisha.identity.services import mfa
+
+        return mfa.status_for(obj, self.context.get("session"))
 
     def get_roles(self, obj: User) -> list[str]:
         return sorted(
@@ -88,3 +98,7 @@ class AccessTokenSerializer(serializers.Serializer):
 
     def to_representation(self, instance: Any) -> dict[str, Any]:  # pragma: no cover - schema only
         return instance
+
+
+class MfaCodeSerializer(serializers.Serializer):
+    code = serializers.CharField(max_length=32)

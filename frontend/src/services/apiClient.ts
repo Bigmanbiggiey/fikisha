@@ -39,6 +39,9 @@ export interface RequestOptions {
   body?: unknown;
   /** Attach the bearer token (default true). */
   auth?: boolean;
+  /** Ask for a fresh MFA code and retry once on `step_up_required`
+   * (default true; Increment 9a). */
+  stepUp?: boolean;
   /** Attempt one refresh-and-retry on a 401 (default true). */
   retryOnUnauthorized?: boolean;
   signal?: AbortSignal;
@@ -62,6 +65,18 @@ async function parseBody(response: Response): Promise<unknown> {
   } catch {
     return text;
   }
+}
+
+/**
+ * Step-up (Increment 9a, ADR-2D-39). Sensitive actions answer 403
+ * `step_up_required` until the admin enters a fresh authenticator code. The
+ * app registers one handler (the step-up dialog); a request that hits the
+ * error waits for it and, when the code was accepted, retries once.
+ */
+let stepUpHandler: (() => Promise<boolean>) | null = null;
+
+export function setStepUpHandler(handler: (() => Promise<boolean>) | null): void {
+  stepUpHandler = handler;
 }
 
 /**
@@ -111,6 +126,7 @@ export async function apiRequest<T = unknown>(
     body,
     auth = true,
     retryOnUnauthorized = true,
+    stepUp = true,
     signal,
     idempotencyKey,
   } = options;
@@ -149,6 +165,9 @@ export async function apiRequest<T = unknown>(
 
   if (!response.ok) {
     const problem: ProblemDetail | undefined = isProblemDetail(parsed) ? parsed : undefined;
+    if (response.status === 403 && problem?.code === 'step_up_required' && stepUp && stepUpHandler) {
+      if (await stepUpHandler()) return apiRequest<T>(path, { ...options, stepUp: false });
+    }
     throw new ApiError(problem, response.status, `Request failed (${response.status})`);
   }
 

@@ -88,8 +88,8 @@
     "durationLabel_one": "{{count}} day",
     "durationLabel_other": "{{count}} days",
     "audited": "This is recorded in the audit log, with your name and reason.",
-    "mfaNotice": "This action needs a fresh MFA check. Admin MFA isn't set up yet, so Fikisha will refuse it for now.",
-    "stepUpMissing": "Refused: this needs a fresh MFA check, and admin MFA isn't set up yet. Nothing was changed."
+    "mfaNotice": "You'll be asked for a fresh code from your authenticator app.",
+    "stepUpMissing": "Not done: it needs a fresh authenticator code. Nothing was changed."
   },
   "config": {
     "title": "Configuration",

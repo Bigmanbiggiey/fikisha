@@ -809,6 +809,65 @@ health and cross-entity search.
 - The config allowlist keeps privilege and invariant settings out of reach.
 - Nothing moves money.
 
+## ADR-2D-39 — Admin TOTP MFA and step-up — CONFIRMED (Increment 9a; founder decision 2026-10-14, D-1 (a))
+
+**Decision.** Admin MFA is built to Phase 1 `authentication-authorization.md`
+§1.2 and `security-architecture.md` item 17.
+
+**Sign-in**
+- Phone OTP first, then **forced TOTP enrolment** on an admin's first
+  sign-in, and a TOTP code (or a one-time backup code) on every later one.
+- **An admin's roles and admin flag apply only on a session that passed
+  MFA** (`AuthSession.mfa_verified_at`). Until then `authz.actors` builds an
+  ordinary-user actor, so every admin policy refuses.
+- Internal callers with no session (services, tests) are unaffected.
+- `/me` reports `mfa {required, enrolled, verified, step_up_fresh}`, and the
+  app shows the MFA screen instead of anything else until `verified`.
+
+**Step-up**
+- A fresh code (`POST /auth/step-up`) sets `AuthSession.step_up_at`.
+  `Actor.is_step_up_fresh` is true for `STEP_UP_TTL_SECONDS` (default 300).
+  Passing MFA at sign-in also counts as a fresh step-up.
+- **Guarded actions:**
+  - account suspend / reinstate / offboard and config apply (in their
+    services, as ADR-2D-38 wired them);
+  - **dispute resolution** and **high-value decisions** (at their API views,
+    so existing service tests stay valid);
+  - **staff viewing HIGH-PII evidence**, recorded in the
+    `evidence_access_log` reason as "(step-up)". A person viewing their own
+    document needs no step-up (Phase 1 permission matrix).
+- **In the app:** `StepUpProvider` registers one handler with the API
+  client. A request refused with `step_up_required` opens the code dialog
+  and, once the code is accepted, retries once. Concurrent refusals share one
+  dialog.
+
+**Storage and hardening**
+- The secret is Fernet-encrypted (`cryptography`), keyed by
+  `TOTP_ENCRYPTION_KEY`. Dev and test derive the key from `SECRET_KEY`;
+  **production refuses to start without its own key.**
+- Ten one-time backup codes are stored as password hashes, shown once, and
+  burn on use.
+- TOTP accepts one 30-second step either side of now, and the last accepted
+  step is remembered, so **a code can't be replayed**.
+- **Five wrong codes lock MFA for that user for 15 minutes**
+  (`MFA_MAX_ATTEMPTS`, `MFA_LOCK_SECONDS`; counter in the cache).
+- Enrolment, verification and step-up are audited; failures are logged (an
+  audit row would roll back with the failed transaction).
+
+**New dependencies:** `pyotp` 2.9.0 (RFC 6238), `cryptography` ~43.0.3
+(Fernet), and `qrcode-generator` 1.4.4 on the frontend. The QR code is
+rendered locally as an image, so the secret never leaves the app.
+
+**Not in this increment:**
+- Resetting another admin's lost authenticator. Today it's a manual DB
+  operation; a Platform Admin "reset MFA" action is a follow-up.
+- Shorter step-up windows per action.
+
+**Why it's safe.** It only narrows access: nothing an admin could do before
+is possible without MFA now. Every MFA path is tested, including the
+replay, lockout, expiry, roles-wait and non-admin cases, and the
+stale-versus-fresh step-up on each guarded action.
+
 ## Self-caught defects fixed during implementation
 
 Every one of these was found by the implementation's own review or test

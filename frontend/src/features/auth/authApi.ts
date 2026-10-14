@@ -26,4 +26,19 @@ export const authApi = {
   logout(): Promise<null> {
     return apiRequest<null>('/auth/logout', { method: 'POST' });
   },
+
+  // ─── Admin MFA (Increment 9a) ────────────────────────────────────────
+  mfaEnroll(): Promise<{ secret: string; otpauth_uri: string }> {
+    return apiRequest('/auth/mfa/enroll', { method: 'POST' });
+  },
+  mfaEnrollConfirm(code: string): Promise<{ backup_codes: string[] }> {
+    return apiRequest('/auth/mfa/enroll/confirm', { method: 'POST', body: { code } });
+  },
+  mfaVerify(code: string): Promise<{ method: string; backup_codes_left: number }> {
+    return apiRequest('/auth/mfa/verify', { method: 'POST', body: { code } });
+  },
+  stepUp(code: string): Promise<{ method: string; fresh_for_seconds: number }> {
+    // never itself trigger the step-up prompt
+    return apiRequest('/auth/step-up', { method: 'POST', body: { code }, stepUp: false });
+  },
 };

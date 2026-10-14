@@ -16,6 +16,7 @@ from fikisha.common.api import OrgApiView, paginated
 from fikisha.common.idempotency import idempotent
 from fikisha.evidence import services as evidence_services
 from fikisha.identity.authz.actors import actor_from_request
+from fikisha.identity.authz.step_up import require_step_up, require_step_up_for_staff_pii
 from fikisha.incidents import services
 from fikisha.incidents.api.serializers import (
     AddStatementSerializer,
@@ -175,11 +176,12 @@ class IncidentEvidenceContentView(OrgApiView):
         self.get_authz_resource()  # runs the authz check
         ev = self._evidence
         actor = actor_from_request(request)
+        stepped_up = require_step_up_for_staff_pii(actor, ev.evidence_object.pii_class)
         payload, content_type = evidence_services.open_stream(
             ev.evidence_object,
             actor_user=request.user,
             actor_role=str(getattr(actor, "audit_role", "")),
-            reason=f"incident {ev.incident_id} review",
+            reason=f"incident {ev.incident_id} review" + (" (step-up)" if stepped_up else ""),
         )
         response = HttpResponse(payload, content_type=content_type)
         response["Content-Disposition"] = 'inline; filename="evidence"'
@@ -329,6 +331,8 @@ class DisputeResolveView(OrgApiView):
     def post(self, request: Request, dispute_id: str) -> Response:
         serializer = ResolveDisputeSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+        # binding resolution needs a fresh MFA step-up (Phase 1 §1.2, ADR-2D-39)
+        require_step_up(self.actor(request))
         resolution, view = services.resolve_dispute(
             actor=self.actor(request),
             dispute_id=dispute_id,

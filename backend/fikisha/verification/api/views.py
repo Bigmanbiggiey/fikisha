@@ -21,6 +21,7 @@ from rest_framework.response import Response
 from fikisha.common.api import OrgApiView, paginated
 from fikisha.common.exceptions import AuthorizationError
 from fikisha.identity.authz.actors import actor_from_request
+from fikisha.identity.authz.step_up import require_step_up_for_staff_pii
 from fikisha.operators.models import OperatingBase, OperatorProfile
 from fikisha.vehicles.models import Vehicle
 from fikisha.verification import authz, services
@@ -284,11 +285,12 @@ class EvidenceContentView(OrgApiView):
         actor = actor_from_request(request)
         from fikisha.evidence import services as evidence_services
 
+        stepped_up = require_step_up_for_staff_pii(actor, ev.evidence_object.pii_class)
         payload, content_type = evidence_services.open_stream(
             ev.evidence_object,
             actor_user=request.user,
             actor_role=str(getattr(actor, "audit_role", "")),
-            reason=f"verification {ev.record.domain} review",
+            reason=f"verification {ev.record.domain} review" + (" (step-up)" if stepped_up else ""),
         )
         response = HttpResponse(payload, content_type=content_type)
         response["Content-Disposition"] = f'inline; filename="{ev.kind.lower()}"'

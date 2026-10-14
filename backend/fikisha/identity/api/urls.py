@@ -12,6 +12,13 @@ urlpatterns = [
     path("auth/otp/verify", views.OtpVerifyView.as_view(), name="otp-verify"),
     path("auth/refresh", views.RefreshView.as_view(), name="refresh"),
     path("auth/logout", views.LogoutView.as_view(), name="logout"),
+    # Admin MFA (Increment 9a, ADR-2D-39)
+    path("auth/mfa/enroll", views.MfaEnrollView.as_view(), name="mfa-enroll"),
+    path(
+        "auth/mfa/enroll/confirm", views.MfaEnrollConfirmView.as_view(), name="mfa-enroll-confirm"
+    ),
+    path("auth/mfa/verify", views.MfaVerifyView.as_view(), name="mfa-verify"),
+    path("auth/step-up", views.StepUpView.as_view(), name="step-up"),
     # ─── Profile / sessions ─────────────────────────────────────────
     path("me", views.MeView.as_view(), name="me"),
     path("me/sessions", views.SessionListView.as_view(), name="session-list"),
