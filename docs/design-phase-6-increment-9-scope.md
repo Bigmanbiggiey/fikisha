@@ -207,9 +207,9 @@ native apps · deploy · merging to `main` without founder approval.
 recommendations for D-2 to D-6. **D-1 (admin MFA) is deferred** ("I will
 tackle D1 later").
 
-**Built** on branch `feat/increment-9b-admin-control`, stacked on PR #5:
-`8951c2f` (navigation + Control), `3701005` (backend, ADR-2D-38) and
-`ac49a14` (frontend).
+**Built** on branch `feat/increment-9b-admin-control`:
+`9e7cd73` (navigation + Control), `87e4499` (backend, ADR-2D-38) and
+`efac89a` (frontend), rebased onto `main` after PRs #5 and #6 merged.
 
 | Part | State |
 |---|---|
@@ -235,7 +235,7 @@ Docker.
 |---|---|---|---|
 | F-1 | Decide D-1 (admin MFA) when ready | Founder | 9a; then suspend/offboard and config apply actually work |
 | F-2 | Install Docker Desktop (for the standard `docker compose` stack + Redis) | Founder | The full-stack smoke test; Celery/Redis paths. Backend tests can already run without it |
-| F-3 | Review and merge PR #5, then PR #6, then the Increment 9 PR | Founder | A clean `main` |
+| F-3 | Review and merge the Increment 9 PR (PRs #5 and #6 are merged) | Founder | A clean `main` |
 | F-4 | With D-1 (a): install an authenticator app | Founder | 9a enrolment |
 | F-5 | Optional: ask Claude to turn on branch protection for `main` | Founder | Closes the 2026-09-11 hardening item |
 | C-1 | Build 9a once D-1 is decided: TOTP enrolment, login TOTP, backup codes, `POST /auth/step-up`, and step-up on dispute resolution / high-value approval too | Claude | — |
