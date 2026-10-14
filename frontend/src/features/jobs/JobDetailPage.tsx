@@ -13,6 +13,7 @@ import { NextActionCard } from '@/components/NextActionCard';
 import { PageLoader } from '@/components/PageLoader';
 import { disputesApi } from '@/features/incidents/incidentsApi';
 import { JobNotesSection } from '@/features/ops/JobNotesSection';
+import { StaffJobContext } from '@/features/ops/StaffJobContext';
 import { StaffJobPanel } from '@/features/ops/StaffJobPanel';
 import { localizeError } from '@/services/errorMessage';
 import { formatStamp } from '@/services/datetime';
@@ -27,6 +28,7 @@ import {
   type OperatorActionKey,
   businessNextAction,
   happyPathIndex,
+  jobReference,
   operatorNextAction,
 } from './jobHelpers';
 import { formatKes } from './money';
@@ -174,8 +176,14 @@ export function JobDetailPage(): JSX.Element {
   return (
     <div className="mx-auto max-w-2xl space-y-5">
       <JobStatusHeader
+        reference={jobReference(data.id)}
         state={data.status}
         stateLabel={t(`jobs:status.${data.status}`)}
+        route={{
+          from: data.pickup_location?.address_text ?? '',
+          to: data.destination_location?.address_text ?? '',
+        }}
+        extra={isStaffViewer ? <StaffJobContext job={data} /> : undefined}
         line={t(
           // NEGOTIATING's default line ("An operator has responded — review
           // their offer.") is written from the business's point of view —
@@ -195,6 +203,7 @@ export function JobDetailPage(): JSX.Element {
       ) : (
         <NextActionSection
           action={businessAction}
+          status={data.status}
           onRetrySubmit={() => retrySubmit.mutate()}
           retrying={retrySubmit.isPending}
         />
@@ -240,10 +249,12 @@ export function JobDetailPage(): JSX.Element {
 
 function NextActionSection({
   action,
+  status,
   onRetrySubmit,
   retrying,
 }: {
   action: ReturnType<typeof businessNextAction>;
+  status: JobStatus;
   onRetrySubmit: () => void;
   retrying: boolean;
 }): JSX.Element {
@@ -257,7 +268,12 @@ function NextActionSection({
     retry: false,
   });
 
-  if (!action) return <NextActionCard emptyLabel={t('jobs:detail.nothingNeeded')} />;
+  if (!action) {
+    // DELIVERED completes on its own (P-09): say so rather than "nothing needed".
+    return (
+      <NextActionCard emptyLabel={t(status === 'DELIVERED' ? 'jobs:detail.autoCompleteNote' : 'jobs:detail.nothingNeeded')} />
+    );
+  }
 
   if (action === 'continueRequest') {
     return (
@@ -271,11 +287,6 @@ function NextActionSection({
     return (
       <NextActionCard action={{ label: t('jobs:action.confirmPickup'), onClick: () => navigate(`/jobs/${jobId}/confirm-pickup`) }} />
     );
-  }
-  if (action === 'confirmCompletion') {
-    // No manual "confirm completion" endpoint exists — DELIVERED -> COMPLETED
-    // only happens automatically (see jobHelpers.ts businessNextAction doc).
-    return <NextActionCard emptyLabel={t('jobs:detail.autoCompleteNote')} />;
   }
   if (action === 'reviewOffers') {
     return (

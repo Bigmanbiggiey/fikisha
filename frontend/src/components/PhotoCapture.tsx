@@ -55,7 +55,6 @@ export function PhotoCapture({ value, onChange, label, retakeLabel, addedLabel }
           </p>
           <Button
             variant="secondary"
-            size="compact"
             onClick={() => {
               onChange(null);
               if (inputRef.current) inputRef.current.value = '';

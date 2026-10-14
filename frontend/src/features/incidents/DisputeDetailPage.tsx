@@ -8,6 +8,8 @@ import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { ErrorState } from '@/components/ErrorState';
 import { PageLoader } from '@/components/PageLoader';
+import { Select } from '@/components/Select';
+import { Textarea } from '@/components/Textarea';
 import { useAuth } from '@/features/auth/useAuth';
 import { jobReference } from '@/features/jobs/jobHelpers';
 import { jobsApi } from '@/features/jobs/jobsApi';
@@ -172,48 +174,45 @@ export function DisputeDetailPage(): JSX.Element {
 
           <label className="block space-y-1">
             <span className="text-label text-fg-secondary">{t('dispute.resolve.outcome')}</span>
-            <select
+            <Select
               value={outcomeCode}
               onChange={(e) => setOutcomeCode(e.target.value as ResolutionOutcome)}
-              className="min-h-target w-full rounded-md border border-line-strong bg-surface-input px-3 text-body text-fg"
             >
               {RESOLUTION_OUTCOMES.map((o) => (
                 <option key={o} value={o}>
                   {t(`dispute.resolve.outcomes.${o}`)}
                 </option>
               ))}
-            </select>
+            </Select>
           </label>
 
           <label className="block space-y-1">
             <span className="text-label text-fg-secondary">{t('dispute.resolve.routedStatus')}</span>
-            <select
+            <Select
               value={routedStatus}
               onChange={(e) => setRoutedStatus(e.target.value as RoutableJobStatus)}
-              className="min-h-target w-full rounded-md border border-line-strong bg-surface-input px-3 text-body text-fg"
             >
               {ROUTABLE_JOB_STATUSES.map((s) => (
                 <option key={s} value={s}>
                   {t(`jobs:status.${s}`)}
                 </option>
               ))}
-            </select>
+            </Select>
           </label>
 
           {isPlatformAdmin && (
             <label className="block space-y-1">
               <span className="text-label text-fg-secondary">{t('dispute.resolve.commissionTreatment')}</span>
-              <select
+              <Select
                 value={commissionTreatment}
                 onChange={(e) => setCommissionTreatment(e.target.value as CommissionTreatment)}
-                className="min-h-target w-full rounded-md border border-line-strong bg-surface-input px-3 text-body text-fg"
               >
                 {COMMISSION_TREATMENTS.map((c) => (
                   <option key={c} value={c}>
                     {t(`dispute.resolve.commissionTreatments.${c}`)}
                   </option>
                 ))}
-              </select>
+              </Select>
             </label>
           )}
 
@@ -225,17 +224,15 @@ export function DisputeDetailPage(): JSX.Element {
                 value={reducedAmount}
                 onChange={(e) => setReducedAmount(e.target.value)}
                 placeholder={formatKes(0)}
-                className="min-h-target w-full rounded-md border border-line-strong bg-surface-input px-3 text-body text-fg"
               />
             </label>
           )}
 
-          <textarea
+          <Textarea
             aria-label={t('dispute.resolve.rationale')}
             placeholder={t('dispute.resolve.rationale')}
             value={rationale}
             onChange={(e) => setRationale(e.target.value)}
-            className="min-h-[80px] w-full rounded-md border border-line-strong bg-surface-input px-3 py-2 text-body text-fg"
           />
 
           <Button
@@ -255,11 +252,10 @@ export function DisputeDetailPage(): JSX.Element {
           <h2 className="text-label text-fg-secondary">
             {t('dispute.resume.title', { status: t(`jobs:status.${d.pre_dispute_status}`) })}
           </h2>
-          <textarea
+          <Textarea
             aria-label={t('dispute.resume.reason')}
             placeholder={t('dispute.resume.reason')}
             disabled
-            className="min-h-[60px] w-full rounded-md border border-line-strong bg-surface-sunken px-3 py-2 text-body text-fg-disabled"
           />
           <Button disabled fullWidth>
             {t('dispute.resume.action', { status: t(`jobs:status.${d.pre_dispute_status}`) })}

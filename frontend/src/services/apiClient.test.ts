@@ -93,4 +93,47 @@ describe('apiRequest', () => {
     const withoutKey = new Headers(fetchMock.mock.calls[1]![1]!.headers as HeadersInit);
     expect(withoutKey.has('Idempotency-Key')).toBe(false);
   });
+
+  it('shares one refresh between requests that 401 at the same time (P-15)', async () => {
+    // The backend rotates the refresh cookie and revokes the session if a
+    // spent one is reused, so two parallel refreshes would sign the user out.
+    setAccessToken('expired');
+    let refreshes = 0;
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+      const url = String(input);
+      if (url.endsWith('/auth/refresh')) {
+        refreshes += 1;
+        await new Promise((r) => setTimeout(r, 10));
+        return jsonResponse({ access_token: 'fresh' });
+      }
+      const auth = new Headers(init?.headers as HeadersInit).get('Authorization');
+      return auth === 'Bearer fresh' ? jsonResponse({ url }) : jsonResponse({}, { status: 401 });
+    });
+
+    const results = await Promise.all([apiRequest('/a'), apiRequest('/b'), apiRequest('/c')]);
+
+    expect(refreshes).toBe(1);
+    expect(results).toHaveLength(3);
+  });
+
+  it('retries with the new token, without refreshing, when another request already refreshed', async () => {
+    setAccessToken('old');
+    let refreshes = 0;
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+      if (String(input).endsWith('/auth/refresh')) {
+        refreshes += 1;
+        return jsonResponse({ access_token: 'unused' });
+      }
+      const auth = new Headers(init?.headers as HeadersInit).get('Authorization');
+      if (auth === 'Bearer old') {
+        // the token changes while this request is in flight
+        setAccessToken('new');
+        return jsonResponse({}, { status: 401 });
+      }
+      return jsonResponse({ ok: auth });
+    });
+
+    await expect(apiRequest('/x')).resolves.toEqual({ ok: 'Bearer new' });
+    expect(refreshes).toBe(0);
+  });
 });

@@ -5,7 +5,7 @@ import type { EntryStatus, EntryType, NegotiationEntry } from './types';
 
 /** `design-phase-3-wireframes.md` §8.1's per-card status word — computed
  * from the entry's already-server-derived `effective_status` plus its
- * `type` (an EXPIRED/SUPERSEDED ACCEPT reads as "Declined"/"Countered" too,
+ * `type` (an EXPIRED/SUPERSEDED ACCEPT reads as "Declined"/"Replaced by a newer offer" too,
  * but the wireframe only names the offer-card states explicitly; accept/
  * reject entries get their own fixed words below since they're terminal by
  * construction). */
@@ -16,7 +16,7 @@ export function entryStatusLabel(entry: Pick<NegotiationEntry, 'type' | 'effecti
       case 'EXPIRED':
         return 'declined';
       case 'SUPERSEDED':
-        return 'countered';
+        return 'replaced';
       default:
         return 'accepted';
     }
@@ -28,7 +28,8 @@ export function entryStatusLabel(entry: Pick<NegotiationEntry, 'type' | 'effecti
       return 'expired';
     case 'SUPERSEDED':
     default:
-      return 'countered';
+      // P-11: an offer a newer one replaced, not an expired one
+      return 'replaced';
   }
 }
 
@@ -37,7 +38,7 @@ const TONE_BY_LABEL: Record<string, BadgeTone> = {
   accepted: 'success',
   declined: 'danger',
   expired: 'neutral',
-  countered: 'neutral',
+  replaced: 'neutral',
 };
 
 const ICON_BY_LABEL: Record<string, IconName> = {
@@ -45,7 +46,7 @@ const ICON_BY_LABEL: Record<string, IconName> = {
   accepted: 'check',
   declined: 'close',
   expired: 'pause',
-  countered: 'sync',
+  replaced: 'sync',
 };
 
 export function entryStatusTone(label: string): BadgeTone {

@@ -72,6 +72,7 @@ export function PickupConfirmPage(): JSX.Element {
 
   return (
     <div className="mx-auto max-w-lg space-y-4">
+      <h1 className="text-h1 text-fg">{t('jobs:pickupConfirm.confirmPickup')}</h1>
       <Card>
         <p className="text-body text-fg">
           {t('jobs:pickupConfirm.whatYoureConfirming', {
@@ -106,13 +107,12 @@ export function PickupConfirmPage(): JSX.Element {
             <div className="flex gap-2">
               <Button
                 variant="secondary"
-                size="compact"
                 onClick={() => setConfirming(false)}
                 disabled={confirm.isPending}
               >
                 {t('jobs:create.back')}
               </Button>
-              <Button size="compact" loading={confirm.isPending} onClick={() => confirm.mutate()}>
+              <Button loading={confirm.isPending} onClick={() => confirm.mutate()}>
                 {t('jobs:pickupConfirm.yesConfirm')}
               </Button>
             </div>

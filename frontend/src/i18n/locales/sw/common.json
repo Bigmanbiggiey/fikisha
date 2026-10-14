@@ -97,5 +97,8 @@
   "timeline": {
     "pendingSync": "imerekodiwa kwenye simu hii · inasawazisha",
     "disputed": "Kuna mgogoro — hatua za kawaida zimesimamishwa."
+  },
+  "job": {
+    "title": "Kazi {{ref}}"
   }
 }

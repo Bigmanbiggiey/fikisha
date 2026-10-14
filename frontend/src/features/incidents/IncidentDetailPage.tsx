@@ -8,6 +8,7 @@ import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { ErrorState } from '@/components/ErrorState';
 import { PageLoader } from '@/components/PageLoader';
+import { Textarea } from '@/components/Textarea';
 import { useAuth } from '@/features/auth/useAuth';
 import { jobReference } from '@/features/jobs/jobHelpers';
 import { localizeError } from '@/services/errorMessage';
@@ -141,7 +142,7 @@ export function IncidentDetailPage(): JSX.Element {
           <ul className="space-y-2">
             {inc.evidence.map((e) => (
               <li key={e.id}>
-                <Button variant="secondary" size="compact" onClick={() => void downloadEvidence(e.id)}>
+                <Button variant="secondary" onClick={() => void downloadEvidence(e.id)}>
                   {e.caption || t('detail.evidenceItem')}
                 </Button>
               </li>
@@ -165,16 +166,14 @@ export function IncidentDetailPage(): JSX.Element {
             ))}
           </ul>
         )}
-        <textarea
+        <Textarea
           aria-label={t('detail.addStatement')}
           placeholder={t('detail.addStatement')}
           value={statementText}
           onChange={(e) => setStatementText(e.target.value)}
-          className="min-h-[60px] w-full rounded-md border border-line-strong bg-surface-input px-3 py-2 text-body text-fg"
         />
         <Button
           variant="secondary"
-          size="compact"
           disabled={!statementText.trim()}
           loading={addStatement.isPending}
           onClick={() => addStatement.mutate()}
@@ -198,7 +197,6 @@ export function IncidentDetailPage(): JSX.Element {
             {canAct && (
               <Button
                 variant="secondary"
-                size="compact"
                 loading={startReview.isPending}
                 onClick={() => startReview.mutate()}
               >
@@ -208,7 +206,6 @@ export function IncidentDetailPage(): JSX.Element {
             {canAct && (
               <Button
                 variant="secondary"
-                size="compact"
                 loading={startAmicable.isPending}
                 onClick={() => startAmicable.mutate()}
               >
@@ -218,7 +215,6 @@ export function IncidentDetailPage(): JSX.Element {
             {canAct && !linkedDispute && (
               <Button
                 variant="secondary"
-                size="compact"
                 loading={openDispute.isPending}
                 onClick={() => openDispute.mutate()}
               >
@@ -231,16 +227,14 @@ export function IncidentDetailPage(): JSX.Element {
               Ops Officer viewer (§17.2's explicit requirement). */}
           {isPlatformAdmin && canAct && (
             <div className="space-y-2 border-t border-line pt-3">
-              <textarea
+              <Textarea
                 aria-label={t('detail.escalateReason')}
                 placeholder={t('detail.escalateReason')}
                 value={escalateReason}
                 onChange={(e) => setEscalateReason(e.target.value)}
-                className="min-h-[60px] w-full rounded-md border border-line-strong bg-surface-input px-3 py-2 text-body text-fg"
               />
               <Button
                 variant="destructive"
-                size="compact"
                 disabled={!escalateReason.trim()}
                 loading={escalate.isPending}
                 onClick={() => escalate.mutate()}

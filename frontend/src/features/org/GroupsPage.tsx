@@ -12,6 +12,7 @@ import { Field } from '@/components/Field';
 import { Input } from '@/components/Input';
 import { PageLoader } from '@/components/PageLoader';
 import { StatusBadge } from '@/components/StatusBadge';
+import { Select } from '@/components/Select';
 import { localizeError } from '@/services/errorMessage';
 
 import { orgApi } from './orgApi';
@@ -58,8 +59,9 @@ export function GroupsPage(): JSX.Element {
               )}
             </Field>
           </div>
-          <select
-            className="min-h-target rounded-md border border-line-strong bg-surface-input px-2 text-body-sm text-fg"
+          <Select
+            inline
+            aria-label={t('org:groups.groupType')}
             value={type}
             onChange={(e) => setType(e.target.value)}
           >
@@ -68,7 +70,7 @@ export function GroupsPage(): JSX.Element {
                 {ty}
               </option>
             ))}
-          </select>
+          </Select>
           <Button type="submit" loading={create.isPending} disabled={!name.trim()}>
             {t('org:common.create')}
           </Button>

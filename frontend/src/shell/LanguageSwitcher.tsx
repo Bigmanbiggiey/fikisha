@@ -1,5 +1,7 @@
 import { useTranslation } from 'react-i18next';
 
+import { Select } from '@/components/Select';
+
 import { SUPPORTED_LANGUAGES, type SupportedLanguage } from '@/i18n';
 
 export function LanguageSwitcher(): JSX.Element {
@@ -9,18 +11,18 @@ export function LanguageSwitcher(): JSX.Element {
   return (
     <label className="flex items-center gap-2 text-body-sm">
       <span className="sr-only">{t('language.label')}</span>
-      <select
+      <Select
         aria-label={t('language.label')}
         value={current}
         onChange={(e) => void i18n.changeLanguage(e.target.value)}
-        className="min-h-target rounded-md border border-line-strong bg-surface-input px-2 text-body-sm text-fg"
+        inline
       >
         {SUPPORTED_LANGUAGES.map((lng) => (
           <option key={lng} value={lng}>
             {t(`language.${lng}`)}
           </option>
         ))}
-      </select>
+      </Select>
     </label>
   );
 }

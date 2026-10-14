@@ -195,7 +195,8 @@ export function CreateJobPage(): JSX.Element {
   return (
     <div className="mx-auto max-w-xl space-y-5">
       <div>
-        <p className="text-label text-fg-secondary">
+        <h1 className="text-h1 text-fg">{t('jobs:create.title')}</h1>
+        <p className="mt-1 text-label text-fg-secondary">
           {isReview ? t('jobs:create.reviewTitle') : t('jobs:create.stepOf', { n: step + 1, total: TOTAL_STEPS })}
         </p>
         {!isReview && (

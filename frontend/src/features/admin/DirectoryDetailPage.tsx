@@ -113,7 +113,7 @@ export function DirectoryDetailPage(): JSX.Element {
         ) : (
           <div className="flex flex-wrap items-center gap-3">
             <span className="fk-numeric text-body text-fg">{d.phone ?? '—'}</span>
-            <Button variant="secondary" size="compact" loading={reveal.isPending} onClick={() => reveal.mutate()}>
+            <Button variant="secondary" loading={reveal.isPending} onClick={() => reveal.mutate()}>
               {t('admin:detail.reveal')}
             </Button>
           </div>
@@ -129,7 +129,6 @@ export function DirectoryDetailPage(): JSX.Element {
             <Button
               key={`account-${action}`}
               variant={action === 'REINSTATE' ? 'secondary' : 'destructive'}
-              size="compact"
               onClick={() => open(accountType, d.id, action)}
             >
               {t(`admin:actions.${action}.account`)}
@@ -140,7 +139,6 @@ export function DirectoryDetailPage(): JSX.Element {
               <Button
                 key={`user-${action}`}
                 variant={action === 'REINSTATE' ? 'secondary' : 'destructive'}
-                size="compact"
                 onClick={() => open('USER', userId, action)}
               >
                 {t(`admin:actions.${action}.user`)}

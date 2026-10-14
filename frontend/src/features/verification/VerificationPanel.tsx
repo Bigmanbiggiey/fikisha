@@ -8,6 +8,7 @@ import { Card } from '@/components/Card';
 import { PageLoader } from '@/components/PageLoader';
 import { StatusBadge } from '@/components/StatusBadge';
 import { VerificationPill } from '@/components/VerificationPill';
+import { Select } from '@/components/Select';
 import type { VerificationState } from '@/design/tokens';
 import { localizeError } from '@/services/errorMessage';
 
@@ -73,7 +74,6 @@ export function VerificationPanel({
                 <VerificationPill state={r.state as VerificationState} hideDomain />
                 <Button
                   variant="ghost"
-                  size="compact"
                   onClick={() => setOpenDomain(openDomain === r.domain ? null : r.domain)}
                 >
                   {t('org:verification.submitEvidence')}
@@ -92,8 +92,8 @@ export function VerificationPanel({
                   <span className="mb-1 block font-medium text-fg-secondary">
                     {t('org:verification.evidenceKind')}
                   </span>
-                  <select
-                    className="min-h-target rounded-md border border-line-strong bg-surface-input px-2 text-body-sm text-fg"
+                  <Select
+                    inline
                     value={kind}
                     onChange={(e) => setKind(e.target.value)}
                   >
@@ -102,7 +102,7 @@ export function VerificationPanel({
                         {k}
                       </option>
                     ))}
-                  </select>
+                  </Select>
                 </label>
                 <label className="flex-1 text-caption">
                   <span className="mb-1 block font-medium text-fg-secondary">

@@ -8,6 +8,7 @@ import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { PhotoCapture } from '@/components/PhotoCapture';
 import { RecipientHeader } from '@/components/RecipientHeader';
+import { Textarea } from '@/components/Textarea';
 import { RECIPIENT_ISSUE_CATEGORIES, type RecipientIssueCategory } from '@/features/jobs/types';
 import { recipientApi } from '@/features/jobs/recipientApi';
 import { localizeError } from '@/services/errorMessage';
@@ -97,23 +98,21 @@ export function RecipientReportIssuePage(): JSX.Element {
 
         {category === 'OTHER' && (
           <Card>
-            <textarea
+            <Textarea
               aria-label={t('reportIssue.otherLabel')}
               placeholder={t('reportIssue.otherLabel')}
               value={otherLabel}
               onChange={(e) => setOtherLabel(e.target.value)}
-              className="min-h-[80px] w-full rounded-md border border-line-strong bg-surface-input px-3 py-2 text-body text-fg"
             />
           </Card>
         )}
 
         <Card>
-          <textarea
+          <Textarea
             aria-label={t('reportIssue.description')}
             placeholder={t('reportIssue.description')}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            className="min-h-[80px] w-full rounded-md border border-line-strong bg-surface-input px-3 py-2 text-body text-fg"
           />
         </Card>
 

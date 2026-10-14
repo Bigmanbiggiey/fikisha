@@ -7,11 +7,11 @@ describe('entryStatusLabel', () => {
     expect(entryStatusLabel({ type: 'ACCEPT', effective_status: 'ACTIVE' })).toBe('accepted');
   });
 
-  it('regression: a SUPERSEDED ACCEPT reads as countered, not accepted', () => {
+  it('regression: a SUPERSEDED ACCEPT reads as replaced, not accepted', () => {
     // The business accepted an offer, then the operator countered before
     // reciprocating — selectors.annotate_entries() marks the now-voided
     // ACCEPT entry SUPERSEDED. It must not still show "Accepted".
-    expect(entryStatusLabel({ type: 'ACCEPT', effective_status: 'SUPERSEDED' })).toBe('countered');
+    expect(entryStatusLabel({ type: 'ACCEPT', effective_status: 'SUPERSEDED' })).toBe('replaced');
   });
 
   it('an EXPIRED ACCEPT reads as declined', () => {
@@ -25,6 +25,6 @@ describe('entryStatusLabel', () => {
   it('labels PROPOSE/COUNTER entries by effective_status', () => {
     expect(entryStatusLabel({ type: 'PROPOSE', effective_status: 'ACTIVE' })).toBe('current');
     expect(entryStatusLabel({ type: 'COUNTER', effective_status: 'EXPIRED' })).toBe('expired');
-    expect(entryStatusLabel({ type: 'COUNTER', effective_status: 'SUPERSEDED' })).toBe('countered');
+    expect(entryStatusLabel({ type: 'COUNTER', effective_status: 'SUPERSEDED' })).toBe('replaced');
   });
 });

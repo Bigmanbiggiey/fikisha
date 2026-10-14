@@ -11,6 +11,7 @@ import { Field } from '@/components/Field';
 import { Input } from '@/components/Input';
 import { PageLoader } from '@/components/PageLoader';
 import { StatusBadge } from '@/components/StatusBadge';
+import { Select } from '@/components/Select';
 import { localizeError } from '@/services/errorMessage';
 
 import { orgApi } from './orgApi';
@@ -148,7 +149,6 @@ export function BusinessDetailPage(): JSX.Element {
                 {isOwner && m.status === 'ACTIVE' && (
                   <Button
                     variant="destructive"
-                    size="compact"
                     onClick={() =>
                       orgApi
                         .removeMember(businessId, m.id)
@@ -185,8 +185,9 @@ export function BusinessDetailPage(): JSX.Element {
                 )}
               </Field>
             </div>
-            <select
-              className="min-h-target rounded-md border border-line-strong bg-surface-input px-2 text-body-sm text-fg"
+            <Select
+              inline
+              aria-label={t('org:common.role')}
               value={memberRole}
               onChange={(e) => setMemberRole(e.target.value)}
             >
@@ -195,7 +196,7 @@ export function BusinessDetailPage(): JSX.Element {
                   {r}
                 </option>
               ))}
-            </select>
+            </Select>
             <Button type="submit" loading={addMember.isPending}>
               {t('org:common.add')}
             </Button>
@@ -227,7 +228,6 @@ export function BusinessDetailPage(): JSX.Element {
                 {canManageLocations && (
                   <Button
                     variant="destructive"
-                    size="compact"
                     onClick={() =>
                       orgApi
                         .removeLocation(businessId, l.id)
@@ -262,8 +262,9 @@ export function BusinessDetailPage(): JSX.Element {
                 )}
               </Field>
             </div>
-            <select
-              className="min-h-target rounded-md border border-line-strong bg-surface-input px-2 text-body-sm text-fg"
+            <Select
+              inline
+              aria-label={t('org:business.locationType')}
               value={locType}
               onChange={(e) => setLocType(e.target.value)}
             >
@@ -272,7 +273,7 @@ export function BusinessDetailPage(): JSX.Element {
                   {ty}
                 </option>
               ))}
-            </select>
+            </Select>
             <Button type="submit" loading={addLocation.isPending}>
               {t('org:common.add')}
             </Button>

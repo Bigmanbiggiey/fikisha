@@ -85,8 +85,8 @@ export function DriverJobView({
   return (
     <div className="mx-auto max-w-[640px] space-y-4">
       <div className="space-y-2">
-        <h1 className="fk-numeric text-h2 text-fg">{t('jobs:driver.jobRef', { ref: jobReference(job.id) })}</h1>
         <JobStatusHeader
+          reference={jobReference(job.id)}
           state={job.status}
           stateLabel={t(`jobs:status.${job.status}`)}
           line={t(`jobs:statusLine.${job.status}_DRIVER`)}

@@ -13,6 +13,7 @@ import { Input } from '@/components/Input';
 import { PageLoader } from '@/components/PageLoader';
 import { StatusBadge } from '@/components/StatusBadge';
 import { vehicleStatusBadge } from '@/components/vehicleStatus';
+import { Select } from '@/components/Select';
 import { orgApi } from '@/features/org/orgApi';
 import { localizeError } from '@/services/errorMessage';
 
@@ -79,8 +80,7 @@ export function VehiclesPage(): JSX.Element {
         >
           <label className="text-body-sm">
             <span className="mb-1 block font-medium text-fg-secondary">{t('org:vehicles.class')}</span>
-            <select
-              className="min-h-target w-full rounded-md border border-line-strong bg-surface-input px-2 text-body-sm text-fg"
+            <Select
               value={vehicleClass}
               onChange={(e) => setVehicleClass(e.target.value)}
             >
@@ -89,7 +89,7 @@ export function VehiclesPage(): JSX.Element {
                   {c}
                 </option>
               ))}
-            </select>
+            </Select>
           </label>
           <Field label={t('org:vehicles.registration')}>
             {({ id }) => (
@@ -114,8 +114,7 @@ export function VehiclesPage(): JSX.Element {
           </Field>
           <label className="text-body-sm">
             <span className="mb-1 block font-medium text-fg-secondary">{t('org:vehicles.unit')}</span>
-            <select
-              className="min-h-target w-full rounded-md border border-line-strong bg-surface-input px-2 text-body-sm text-fg"
+            <Select
               value={unit}
               onChange={(e) => setUnit(e.target.value)}
             >
@@ -124,15 +123,14 @@ export function VehiclesPage(): JSX.Element {
                   {u}
                 </option>
               ))}
-            </select>
+            </Select>
           </label>
           {manageableGroups.length > 0 && (
             <label className="text-body-sm md:col-span-2">
               <span className="mb-1 block font-medium text-fg-secondary">
                 {t('org:vehicles.toGroup')}
               </span>
-              <select
-                className="min-h-target w-full rounded-md border border-line-strong bg-surface-input px-2 text-body-sm text-fg"
+              <Select
                 value={groupId}
                 onChange={(e) => setGroupId(e.target.value)}
               >
@@ -142,7 +140,7 @@ export function VehiclesPage(): JSX.Element {
                     {g.name}
                   </option>
                 ))}
-              </select>
+              </Select>
             </label>
           )}
           <div className="md:col-span-2">

@@ -64,7 +64,26 @@ async function parseBody(response: Response): Promise<unknown> {
   }
 }
 
-async function refreshSession(): Promise<boolean> {
+/**
+ * Single-flight refresh (Design Phase 7 P-15). The backend rotates the
+ * refresh cookie on every use and treats a reused (already spent) cookie as
+ * theft, revoking the whole session. Two requests that 401 at the same time
+ * (several queries after the access token expires, or React StrictMode's
+ * double start-up in dev) must therefore share one refresh, not each send
+ * the same cookie.
+ */
+let refreshInFlight: Promise<boolean> | null = null;
+
+function refreshSession(): Promise<boolean> {
+  if (!refreshInFlight) {
+    refreshInFlight = doRefresh().finally(() => {
+      refreshInFlight = null;
+    });
+  }
+  return refreshInFlight;
+}
+
+async function doRefresh(): Promise<boolean> {
   try {
     const response = await fetch(`${env.apiBaseUrl}/auth/refresh`, {
       method: 'POST',
@@ -99,7 +118,8 @@ export async function apiRequest<T = unknown>(
 
   const headers: Record<string, string> = { Accept: 'application/json' };
   if (body !== undefined && !isForm) headers['Content-Type'] = 'application/json';
-  if (auth && accessToken) headers.Authorization = `Bearer ${accessToken}`;
+  const tokenSent = auth ? accessToken : null;
+  if (tokenSent) headers.Authorization = `Bearer ${tokenSent}`;
   if (idempotencyKey) headers['Idempotency-Key'] = idempotencyKey;
 
   let response: Response;
@@ -116,7 +136,9 @@ export async function apiRequest<T = unknown>(
   }
 
   if (response.status === 401 && auth && retryOnUnauthorized) {
-    const refreshed = await refreshSession();
+    // Another request refreshed while this one was in flight: just retry
+    // with the new token rather than spending the cookie again.
+    const refreshed = (accessToken !== null && accessToken !== tokenSent) || (await refreshSession());
     if (refreshed) {
       return apiRequest<T>(path, { ...options, retryOnUnauthorized: false });
     }
