@@ -56,7 +56,7 @@ export function VerificationRecordPage(): JSX.Element {
   if (record.isLoading) return <PageLoader />;
   if (record.isError || !record.data) {
     return (
-      <ErrorState message={localizeError(record.error, t)} onRetry={() => void record.refetch()} />
+      <ErrorState message={localizeError(record.error, t)} error={record.error} onRetry={() => void record.refetch()} />
     );
   }
   const r = record.data;

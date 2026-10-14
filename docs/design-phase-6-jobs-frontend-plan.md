@@ -565,7 +565,15 @@ Configuration, read-mostly with a propose-change flow (§19.3) · Commission &
 statements, admin read (§19.4, no wallet/balance/pay control anywhere) ·
 Users & organizations (§19.5).
 
-### Increment 10 — Cross-cutting verification pass
+### Increment 10 — Cross-cutting verification pass — DONE, 2026-10-14
+
+Built as the Design Phase 7 proposals (`design-phase-7-increment-10-plan.md`,
+sub-increments 10a–10g, PRs #4, #5, #8, #9 and the 10f close-out). The
+close-out re-capture covered 43 screens × 3 widths × 2 languages, plus the
+P3 §22 exception states. Results: no horizontal overflow, 0 axe
+violations, no server errors. Two new findings were fixed: offline looked
+empty (F-19), and "Try again" was offered where it can't help (F-20). See
+`design-phase-7-ui-ux-findings.md` §6.
 
 > **Re-scoped 2026-09-23 (founder, Design Phase 7 brief D-2):** the *audit*
 > half of this increment is now **Design Phase 7 — UI/UX Pass**

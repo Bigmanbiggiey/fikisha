@@ -26,3 +26,9 @@ export function localizeError(error: unknown, t: TFunction): string {
   }
   return t('errors:generic');
 }
+
+/** Would trying the same request again help? Not for "you may not see this"
+ * (403), "it doesn't exist" (404) or "it's gone" (410) (Increment 10f). */
+export function isRetryable(error: unknown): boolean {
+  return !(error instanceof ApiError && [403, 404, 410].includes(error.status));
+}

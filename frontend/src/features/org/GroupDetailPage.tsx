@@ -52,7 +52,7 @@ export function GroupDetailPage(): JSX.Element {
   if (group.isLoading) return <PageLoader />;
   if (group.isError || !group.data) {
     return (
-      <ErrorState message={localizeError(group.error, t)} onRetry={() => void group.refetch()} />
+      <ErrorState message={localizeError(group.error, t)} error={group.error} onRetry={() => void group.refetch()} />
     );
   }
 

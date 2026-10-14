@@ -77,7 +77,7 @@ export function DirectoryDetailPage(): JSX.Element {
 
   if (detail.isLoading) return <PageLoader />;
   if (detail.isError || !detail.data) {
-    return <ErrorState message={localizeError(detail.error, t)} onRetry={() => void detail.refetch()} />;
+    return <ErrorState message={localizeError(detail.error, t)} error={detail.error} onRetry={() => void detail.refetch()} />;
   }
   const d: DirectoryDetail = detail.data;
   const accountType = KIND_TO_ACCOUNT[kind];

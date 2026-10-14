@@ -111,7 +111,7 @@ export function DirectoryPage(): JSX.Element {
       {list.isLoading ? (
         <PageLoader />
       ) : list.isError ? (
-        <ErrorState message={localizeError(list.error, t)} onRetry={() => void list.refetch()} />
+        <ErrorState message={localizeError(list.error, t)} error={list.error} onRetry={() => void list.refetch()} />
       ) : rows.length === 0 ? (
         <EmptyState title={t('admin:directory.empty')} />
       ) : (

@@ -37,7 +37,7 @@ export function CurrentJobPage(): JSX.Element {
 
   if (loading || jobs.isLoading) return <PageLoader />;
   if (jobs.isError) {
-    return <ErrorState message={localizeError(jobs.error, t)} onRetry={() => void jobs.refetch()} />;
+    return <ErrorState message={localizeError(jobs.error, t)} error={jobs.error} onRetry={() => void jobs.refetch()} />;
   }
 
   const operatorId = workspaces.find((w) => w.kind === 'OPERATOR')?.id ?? null;

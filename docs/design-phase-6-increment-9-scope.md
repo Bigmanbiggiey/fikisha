@@ -59,6 +59,8 @@ Each has a recommendation. **Nothing here is decided until you say so.**
 
 ### D-1 — Admin MFA and step-up (blocking)
 
+**Founder decision (2026-10-14): (a) build it, next** — see `founder-decisions-2026-10-14.md`.
+
 Phase 1 requires mandatory TOTP for admins and a **fresh TOTP step-up** for
 config change, suspension, dispute resolution, high-value approval and HIGH-PII
 views (`authentication-authorization.md` §1.2; D-ADM-1 "MFA mandatory"). None

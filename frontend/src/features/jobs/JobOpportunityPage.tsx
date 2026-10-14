@@ -85,7 +85,7 @@ export function JobOpportunityPage(): JSX.Element {
   if (opportunity.isLoading) return <PageLoader />;
   if (opportunity.isError) {
     return (
-      <ErrorState message={localizeError(opportunity.error, t)} onRetry={() => void opportunity.refetch()} />
+      <ErrorState message={localizeError(opportunity.error, t)} error={opportunity.error} onRetry={() => void opportunity.refetch()} />
     );
   }
   const data = opportunity.data!;

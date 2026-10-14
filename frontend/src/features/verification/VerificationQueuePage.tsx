@@ -27,7 +27,7 @@ export function VerificationQueuePage(): JSX.Element {
       {queue.isLoading ? (
         <PageLoader />
       ) : queue.isError ? (
-        <ErrorState message={localizeError(queue.error, t)} onRetry={() => void queue.refetch()} />
+        <ErrorState message={localizeError(queue.error, t)} error={queue.error} onRetry={() => void queue.refetch()} />
       ) : queue.data && queue.data.data.length > 0 ? (
         <ul className="space-y-2">
           {queue.data.data.map((r) => (

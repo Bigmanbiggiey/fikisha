@@ -97,7 +97,7 @@ export function DisputeDetailPage(): JSX.Element {
   }
   if (dispute.isError || !dispute.data) {
     return (
-      <ErrorState message={localizeError(dispute.error, t)} onRetry={() => void dispute.refetch()} />
+      <ErrorState message={localizeError(dispute.error, t)} error={dispute.error} onRetry={() => void dispute.refetch()} />
     );
   }
   const d = dispute.data;
