@@ -77,4 +77,11 @@ describe('LoginPage', () => {
 
     expect(await screen.findByText(/that code is not correct/i)).toBeInTheDocument();
   });
+
+  it('lets a person choose Kiswahili before signing in (P-05)', async () => {
+    renderWithProviders(<LoginPage />, { route: '/login' });
+    const language = await screen.findByRole('combobox', { name: 'Language' });
+    await userEvent.selectOptions(language, 'sw');
+    expect(await screen.findByRole('button', { name: 'Tuma msimbo' })).toBeInTheDocument();
+  });
 });

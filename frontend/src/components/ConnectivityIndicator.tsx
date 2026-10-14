@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next';
+
 import { Icon } from '@/design/Icon';
 import { CONNECTIVITY_VISUAL, type ConnectivityState } from '@/design/tokens';
 import { cn } from './cn';
@@ -26,6 +28,7 @@ export function ConnectivityIndicator({
   label?: string;
   className?: string;
 }): JSX.Element {
+  const { t } = useTranslation('common');
   const v = CONNECTIVITY_VISUAL[state];
   return (
     <span
@@ -35,7 +38,7 @@ export function ConnectivityIndicator({
     >
       <Icon name={v.icon} size={14} className={state === 'syncing' ? 'motion-safe:animate-spin' : undefined} />
       <span>
-        {label ?? v.labelEn}
+        {label ?? t(`connectivity.${state}`)}
         {state === 'sync_issue' && typeof count === 'number' ? ` (${count})` : ''}
       </span>
     </span>

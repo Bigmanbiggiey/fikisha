@@ -8,6 +8,7 @@ import { Card } from '@/components/Card';
 import { Field } from '@/components/Field';
 import { Input } from '@/components/Input';
 import { localizeError } from '@/services/errorMessage';
+import { LanguageSwitcher } from '@/shell/LanguageSwitcher';
 
 import { authApi } from './authApi';
 import { useAuth } from './useAuth';
@@ -67,6 +68,10 @@ export function LoginPage(): JSX.Element {
 
   return (
     <div className="mx-auto flex min-h-[70vh] max-w-md flex-col justify-center px-4">
+      {/* P3 §24.3: language is choosable before signing in (P-05). */}
+      <div className="mb-3 flex justify-end">
+        <LanguageSwitcher />
+      </div>
       <Card>
         <h1 className="text-h1 text-fg">{t('auth:login.title')}</h1>
         <p className="mt-1 text-body-sm text-fg-muted">{t('auth:login.subtitle')}</p>

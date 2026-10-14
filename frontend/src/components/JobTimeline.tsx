@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { Icon } from '@/design/Icon';
 import { cn } from './cn';
@@ -36,6 +37,7 @@ export function JobTimeline({
   endCapText?: ReactNode;
   className?: string;
 }): JSX.Element {
+  const { t } = useTranslation('common');
   return (
     <div className={className}>
       {endCap === 'disputed' && (
@@ -44,7 +46,7 @@ export function JobTimeline({
           className="mb-3 flex items-center gap-2 rounded-md border border-status-warning-border bg-status-warning-bg px-3 py-2 text-body-sm text-status-warning-fg"
         >
           <Icon name="pause" size={16} />
-          {endCapText ?? 'Under dispute — normal steps are paused.'}
+          {endCapText ?? t('timeline.disputed')}
         </p>
       )}
       <ol className="space-y-3">
@@ -81,7 +83,7 @@ export function JobTimeline({
               )}
               {s.note && <p className="mt-0.5 text-body-sm text-fg-secondary">{s.note}</p>}
               {s.node === 'pending-sync' && (
-                <p className="mt-0.5 text-caption text-fg-muted">recorded on this phone · syncing</p>
+                <p className="mt-0.5 text-caption text-fg-muted">{t('timeline.pendingSync')}</p>
               )}
             </div>
           </li>

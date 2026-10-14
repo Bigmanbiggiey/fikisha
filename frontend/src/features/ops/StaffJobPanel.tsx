@@ -12,6 +12,7 @@ import { jobReference } from '@/features/jobs/jobHelpers';
 import { jobsApi } from '@/features/jobs/jobsApi';
 import type { Job } from '@/features/jobs/types';
 import { localizeError } from '@/services/errorMessage';
+import { formatDateTime } from '@/services/datetime';
 
 import { notesQueryKey, opsApi } from './opsApi';
 import type { ContactParty, RevealedContacts } from './types';
@@ -196,7 +197,7 @@ export function StaffJobPanel({ job, isPlatformAdmin }: { job: Job; isPlatformAd
                 )}
                 <span className="text-fg-muted">
                   {' '}
-                  · {e.actor_role || '—'} · {new Date(e.server_time).toLocaleString()}
+                  · {e.actor_role || '—'} · {formatDateTime(e.server_time)}
                 </span>
                 {e.note && <p className="mt-1 whitespace-pre-line text-fg">{e.note}</p>}
               </li>

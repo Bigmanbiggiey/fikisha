@@ -11,6 +11,7 @@ import { useOnline } from '@/design/useOnline';
 import { opsApi } from '@/features/ops/opsApi';
 import { Queue, QueueRow } from '@/features/ops/Queue';
 import { localizeError } from '@/services/errorMessage';
+import { formatDateTime } from '@/services/datetime';
 
 function ageOrder<T extends { created_at: string }>(rows: T[]): T[] {
   return [...rows].sort((a, b) => a.created_at.localeCompare(b.created_at));
@@ -77,7 +78,7 @@ export function AdminControlPage(): JSX.Element {
                 key={row.id}
                 to={`/disputes/${row.id}`}
                 title={`${row.job_reference} · ${t(`ops:band.${row.value_band}`)}`}
-                meta={`${t(`incidents:detail.status.${row.status}`)} · ${new Date(row.created_at).toLocaleString()}`}
+                meta={`${t(`incidents:detail.status.${row.status}`)} · ${formatDateTime(row.created_at)}`}
               />
             ))}
           </Queue>

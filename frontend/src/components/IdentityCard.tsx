@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next';
+
 import { Icon } from '@/design/Icon';
 import { TrustFacts } from './TrustFacts';
 import { cn } from './cn';
@@ -28,6 +30,7 @@ export function IdentityCard({
   minimal?: boolean;
   className?: string;
 }): JSX.Element {
+  const { t } = useTranslation('common');
   return (
     <div className={cn('space-y-1', className)}>
       <p className="text-h3 text-fg">{name}</p>
@@ -37,7 +40,7 @@ export function IdentityCard({
         identityVerified && (
           <p className="inline-flex items-center gap-1 text-body-sm text-status-success-fg">
             <Icon name="check" size={14} />
-            Operator identity verified
+            {t('identity.operatorVerified')}
           </p>
         )
       ) : (

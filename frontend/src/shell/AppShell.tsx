@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Outlet, useLocation } from 'react-router-dom';
 
 import { cn } from '@/components/cn';
@@ -18,6 +19,7 @@ import { TopBar } from './TopBar';
  * foundation" footer is gone (F-16).
  */
 export function AppShell(): JSX.Element {
+  const { t } = useTranslation('common');
   const { pathname } = useLocation();
   const { status } = useAuth();
   const signedIn = status === 'authenticated';
@@ -30,7 +32,7 @@ export function AppShell(): JSX.Element {
           href="#main"
           className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-toast focus:rounded-md focus:bg-surface-card focus:px-3 focus:py-2 focus:text-label focus:text-action-primary focus:shadow-e2"
         >
-          Skip to content
+          {t('shell.skipToContent')}
         </a>
         <TopBar />
         <div className="mx-auto flex w-full max-w-6xl flex-1 gap-6 px-4">

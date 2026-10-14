@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useId, useRef, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
+import { useTranslation } from 'react-i18next';
 
 import { Icon } from '@/design/Icon';
 import { cn } from './cn';
@@ -37,6 +38,7 @@ export function Modal({
   const ref = useRef<HTMLDivElement>(null);
   const restoreRef = useRef<HTMLElement | null>(null);
   const titleId = useId();
+  const { t } = useTranslation('common');
 
   // The latest `onClose`/`dismissible`, read through a ref so the focus
   // effect below runs only when `open` changes. Callers pass an inline
@@ -131,7 +133,7 @@ export function Modal({
             <button
               type="button"
               onClick={onClose}
-              aria-label="Close"
+              aria-label={t('actions.close')}
               className="min-h-target min-w-target -mr-2 -mt-2 inline-flex items-center justify-center text-fg-secondary"
             >
               <Icon name="close" size={20} />

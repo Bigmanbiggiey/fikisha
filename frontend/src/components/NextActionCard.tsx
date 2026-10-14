@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { Button, type ButtonProps } from './Button';
 import { cn } from './cn';
@@ -10,7 +11,7 @@ import { cn } from './cn';
  */
 export function NextActionCard({
   action,
-  emptyLabel = 'Nothing needed from you right now.',
+  emptyLabel,
   driver = false,
   note,
   className,
@@ -25,6 +26,7 @@ export function NextActionCard({
   note?: ReactNode;
   className?: string;
 }): JSX.Element {
+  const { t } = useTranslation('common');
   return (
     <div
       className={cn(
@@ -48,7 +50,7 @@ export function NextActionCard({
           );
         })()
       ) : (
-        <p className="text-body text-fg-secondary">{emptyLabel}</p>
+        <p className="text-body text-fg-secondary">{emptyLabel ?? t('nextAction.nothing')}</p>
       )}
       {note && <p className="mt-2 text-body-sm text-fg-muted">{note}</p>}
     </div>

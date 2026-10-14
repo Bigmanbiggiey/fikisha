@@ -11,6 +11,7 @@ import { JobStatusChip } from '@/components/JobStatusChip';
 import { PageLoader } from '@/components/PageLoader';
 import type { JobState } from '@/design/tokens';
 import { localizeError } from '@/services/errorMessage';
+import { formatDateTime } from '@/services/datetime';
 
 import { AccountStateBadge } from './AccountStateBadge';
 import { AdminActionDialog } from './AdminActionDialog';
@@ -199,7 +200,7 @@ export function DirectoryDetailPage(): JSX.Element {
                 </span>
                 <span className="block text-fg-secondary">{h.reason}</span>
                 <span className="block text-fg-muted">
-                  {[h.admin_name, new Date(h.created_at).toLocaleString(), h.duration_days ? t('admin:action.durationLabel', { count: h.duration_days }) : null]
+                  {[h.admin_name, formatDateTime(h.created_at), h.duration_days ? t('admin:action.durationLabel', { count: h.duration_days }) : null]
                     .filter(Boolean)
                     .join(' · ')}
                 </span>

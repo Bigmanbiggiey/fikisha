@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 
 import { useAuth } from '@/features/auth/useAuth';
 import { orgApi } from '@/features/org/orgApi';
@@ -24,6 +25,7 @@ interface WorkspacesState {
  * present that (Q3, `design-phase-6-jobs-frontend-plan.md` §9).
  */
 export function useWorkspaces(): WorkspacesState {
+  const { t } = useTranslation('common');
   const { status, user } = useAuth();
   const enabled = status === 'authenticated' && !!user;
 
@@ -93,12 +95,12 @@ export function useWorkspaces(): WorkspacesState {
     }
   }
   if (user.roles.includes('OPERATIONS_OFFICER')) {
-    workspaces.push({ kind: 'OPERATIONS_OFFICER', id: null, label: 'Operations' });
+    workspaces.push({ kind: 'OPERATIONS_OFFICER', id: null, label: t('common:role.OPERATIONS_OFFICER') });
   }
   // By role only — `is_admin` is true for Ops Officers too (any active
   // AdminProfile), so it must not grant a Platform Admin workspace.
   if (user.roles.includes('PLATFORM_ADMIN')) {
-    workspaces.push({ kind: 'PLATFORM_ADMIN', id: null, label: 'Platform Admin' });
+    workspaces.push({ kind: 'PLATFORM_ADMIN', id: null, label: t('common:role.PLATFORM_ADMIN') });
   }
 
   return { loading: false, workspaces };

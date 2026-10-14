@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 
 import { Card } from '@/components/Card';
+import { formatDateTime } from '@/services/datetime';
 
 import { notesQueryKey, opsApi } from './opsApi';
 
@@ -31,7 +32,7 @@ export function JobNotesSection({ jobId }: { jobId: string }): JSX.Element | nul
           <li key={note.id} className="border-l-2 border-line-strong pl-3">
             <p className="whitespace-pre-line text-body text-fg">{note.text}</p>
             <p className="mt-1 text-body-sm text-fg-muted">
-              {note.author_label} · {new Date(note.created_at).toLocaleString()}
+              {note.author_label} · {formatDateTime(note.created_at)}
             </p>
           </li>
         ))}

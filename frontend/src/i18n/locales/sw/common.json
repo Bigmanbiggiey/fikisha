@@ -32,7 +32,9 @@
   "actions": {
     "retry": "Jaribu tena",
     "loading": "Inapakia…",
-    "continue": "Endelea"
+    "continue": "Endelea",
+    "close": "Funga",
+    "reload": "Pakia upya"
   },
   "home": {
     "welcome": "Karibu, {{name}}",
@@ -66,5 +68,34 @@
   },
   "roleSwitch": {
     "title": "Unafanya kazi kama"
+  },
+  "form": {
+    "required": "Inahitajika"
+  },
+  "shell": {
+    "skipToContent": "Ruka hadi maudhui"
+  },
+  "errorBoundary": {
+    "title": "Hitilafu imetokea",
+    "body": "Tafadhali pakia upya ukurasa."
+  },
+  "nextAction": {
+    "nothing": "Hakuna kinachohitajika kutoka kwako sasa hivi."
+  },
+  "status": {
+    "asOf": "kufikia {{time}}"
+  },
+  "connectivity": {
+    "online": "Mtandaoni",
+    "offline": "Nje ya mtandao",
+    "syncing": "Inasawazisha…",
+    "sync_issue": "Matatizo ya usawazishaji"
+  },
+  "identity": {
+    "operatorVerified": "Utambulisho wa msafirishaji umethibitishwa"
+  },
+  "timeline": {
+    "pendingSync": "imerekodiwa kwenye simu hii · inasawazisha",
+    "disputed": "Kuna mgogoro — hatua za kawaida zimesimamishwa."
   }
 }

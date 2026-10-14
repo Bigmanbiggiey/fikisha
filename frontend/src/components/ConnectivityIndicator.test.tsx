@@ -1,6 +1,9 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
+// The shared components translate their own words (P-05).
+import '@/i18n';
+
 import { ConnectivityIndicator } from './ConnectivityIndicator';
 
 describe('ConnectivityIndicator', () => {
@@ -12,7 +15,7 @@ describe('ConnectivityIndicator', () => {
 
   it('shows a word (not colour-only) for each state', () => {
     const { rerender } = render(<ConnectivityIndicator state="online" />);
-    expect(screen.getByText('Synced')).toBeInTheDocument();
+    expect(screen.getByText('Online')).toBeInTheDocument();
     rerender(<ConnectivityIndicator state="offline" />);
     expect(screen.getByText('Offline')).toBeInTheDocument();
     rerender(<ConnectivityIndicator state="syncing" />);

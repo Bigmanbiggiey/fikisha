@@ -11,6 +11,7 @@ import { PageLoader } from '@/components/PageLoader';
 import { formatKes } from '@/features/jobs/money';
 import { FilterSelect } from '@/features/ops/FilterSelect';
 import { localizeError } from '@/services/errorMessage';
+import { formatDate } from '@/services/datetime';
 
 import { adminApi, cursorFrom } from './adminApi';
 import type { LedgerRow } from './types';
@@ -142,7 +143,7 @@ export function CommissionPage(): JSX.Element {
                             ))}
                       </td>
                       <td className="fk-numeric px-3 py-2 font-semibold">{formatKes(row.effective_kes)}</td>
-                      <td className="px-3 py-2 text-fg-muted">{new Date(row.created_at).toLocaleDateString()}</td>
+                      <td className="px-3 py-2 text-fg-muted">{formatDate(row.created_at)}</td>
                     </tr>
                   ))}
                 </tbody>

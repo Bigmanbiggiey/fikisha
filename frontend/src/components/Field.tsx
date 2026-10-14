@@ -1,4 +1,5 @@
 import { useId, type ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 
 interface FieldProps {
   label: string;
@@ -26,9 +27,10 @@ export function Field({
   hint,
   error,
   required = false,
-  requiredText = 'Required',
+  requiredText,
   children,
 }: FieldProps): JSX.Element {
+  const { t } = useTranslation('common');
   const id = useId();
   const describedById = `${id}-desc`;
   const invalid = Boolean(error);
@@ -37,7 +39,7 @@ export function Field({
     <div className="space-y-1">
       <label htmlFor={id} className="block text-label text-fg-secondary">
         {label}
-        {required && <span className="ml-1 font-normal text-fg-muted">({requiredText})</span>}
+        {required && <span className="ml-1 font-normal text-fg-muted">({requiredText ?? t('form.required')})</span>}
       </label>
       {children({
         id,

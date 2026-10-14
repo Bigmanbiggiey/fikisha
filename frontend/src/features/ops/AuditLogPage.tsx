@@ -9,6 +9,7 @@ import { ErrorState } from '@/components/ErrorState';
 import { Input } from '@/components/Input';
 import { PageLoader } from '@/components/PageLoader';
 import { localizeError } from '@/services/errorMessage';
+import { formatDateTime } from '@/services/datetime';
 
 import { cursorFrom, opsApi } from './opsApi';
 import type { AuditFilters } from './types';
@@ -117,7 +118,7 @@ export function AuditLogPage(): JSX.Element {
               <tbody>
                 {rows.map((row) => (
                   <tr key={row.seq} className="border-b border-line align-top">
-                    <td className="py-2 pr-3 text-fg-muted">{new Date(row.server_time).toLocaleString()}</td>
+                    <td className="py-2 pr-3 text-fg-muted">{formatDateTime(row.server_time)}</td>
                     <td className="py-2 pr-3 text-fg">
                       {row.actor_role}
                       {row.actor_user_id && (

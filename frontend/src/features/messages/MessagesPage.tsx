@@ -10,10 +10,10 @@ import { PageLoader } from '@/components/PageLoader';
 import { cn } from '@/components/cn';
 import { useAuth } from '@/features/auth/useAuth';
 import { localizeError } from '@/services/errorMessage';
+import { formatRelative } from '@/services/datetime';
 
 import { messageLines } from './messageText';
 import { messagesApi, messagesQueryKey } from './messagesApi';
-import { relativeAge } from './relativeAge';
 import type { MessageItem, MessageKind } from './types';
 
 const FILTERS: Record<string, MessageKind[] | null> = {
@@ -115,7 +115,7 @@ export function MessagesPage(): JSX.Element {
                     <span className="flex items-baseline justify-between gap-3">
                       <span className={cn('text-body text-fg', item.unread && 'font-semibold')}>{title}</span>
                       <span className="shrink-0 text-caption text-fg-muted">
-                        {relativeAge(item.at, i18n.resolvedLanguage ?? 'en')}
+                        {formatRelative(item.at, i18n.resolvedLanguage)}
                       </span>
                     </span>
                     <span className="mt-0.5 block text-body-sm text-fg-secondary">{body}</span>

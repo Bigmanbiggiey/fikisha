@@ -6,8 +6,10 @@ import { Alert } from '@/components/Alert';
 import { Card } from '@/components/Card';
 import { EmptyState } from '@/components/EmptyState';
 import { PageLoader } from '@/components/PageLoader';
+import type { BadgeTone } from '@/components/StatusBadge';
 import { useOnline } from '@/design/useOnline';
 import { verificationApi } from '@/features/verification/verificationApi';
+import { formatRelative } from '@/services/datetime';
 
 import { JobReferenceJump } from './JobReferenceJump';
 import { opsApi } from './opsApi';
@@ -15,6 +17,10 @@ import { Queue, QueueRow } from './Queue';
 import type { AttentionFilter, OpsJobRow } from './types';
 
 const ATTENTION: AttentionFilter[] = ['disputed', 'stale', 'failed'];
+/** Most urgent first (F-15): a dispute freezes a job, a failed job needs a
+ * decision, a stale one only needs a look. */
+const URGENCY: AttentionFilter[] = ['disputed', 'failed', 'stale'];
+const REASON_TONE: Record<string, BadgeTone> = { disputed: 'danger', failed: 'warning', stale: 'neutral' };
 
 function ageOrder<T extends { created_at: string }>(rows: T[]): T[] {
   return [...rows].sort((a, b) => a.created_at.localeCompare(b.created_at));
@@ -46,9 +52,21 @@ export function OpsHomePage(): JSX.Element {
     attention.some((q) => q.isLoading) || highValue.isLoading || incidents.isLoading || disputes.isLoading;
   if (loading) return <PageLoader />;
 
-  const jobMap = new Map<string, OpsJobRow>();
-  for (const q of attention) for (const row of q.data?.data ?? []) jobMap.set(row.id, row);
-  const jobs = ageOrder([...jobMap.values()]);
+  // Each job once, under its most urgent reason; then most urgent first, and
+  // within a reason the longest-waiting (oldest last change) first.
+  const jobMap = new Map<string, { row: OpsJobRow; reason: AttentionFilter }>();
+  attention.forEach((q, i) => {
+    const reason = ATTENTION[i]!;
+    for (const row of q.data?.data ?? []) {
+      const seen = jobMap.get(row.id);
+      if (!seen || URGENCY.indexOf(reason) < URGENCY.indexOf(seen.reason)) jobMap.set(row.id, { row, reason });
+    }
+  });
+  const jobs = [...jobMap.values()].sort(
+    (a, b) =>
+      URGENCY.indexOf(a.reason) - URGENCY.indexOf(b.reason) ||
+      a.row.last_changed_at.localeCompare(b.row.last_changed_at),
+  );
   const jobsMore = attention.some((q) => q.data?.page.next_cursor);
 
   const hv = ageOrder(highValue.data?.data ?? []);
@@ -80,12 +98,13 @@ export function OpsHomePage(): JSX.Element {
             more={jobsMore}
             viewAll="/ops/jobs"
           >
-            {jobs.slice(0, 8).map((job) => (
+            {jobs.slice(0, 8).map(({ row: job, reason }) => (
               <QueueRow
                 key={job.id}
                 to={`/jobs/${job.id}`}
                 title={`${job.reference} · ${t(`jobs:status.${job.status}`)}`}
-                meta={`${job.business_name} · ${new Date(job.last_changed_at).toLocaleString()}`}
+                meta={`${job.business_name} · ${formatRelative(job.last_changed_at)}`}
+                reason={{ label: t(`ops:monitor.attentionOption.${reason}`), tone: REASON_TONE[reason] ?? 'neutral' }}
               />
             ))}
           </Queue>
@@ -113,7 +132,7 @@ export function OpsHomePage(): JSX.Element {
                 key={row.id}
                 to={`/incidents/${row.id}`}
                 title={`${row.job_reference} · ${t(`incidents:report.type.${row.type}`)}`}
-                meta={`${t(`incidents:detail.status.${row.status}`)} · ${new Date(row.created_at).toLocaleString()}`}
+                meta={`${t(`incidents:detail.status.${row.status}`)} · ${formatRelative(row.created_at)}`}
               />
             ))}
           </Queue>
@@ -124,7 +143,7 @@ export function OpsHomePage(): JSX.Element {
                 key={row.id}
                 to={`/disputes/${row.id}`}
                 title={`${row.job_reference} · ${t(`ops:band.${row.value_band}`)}`}
-                meta={`${t(`incidents:detail.status.${row.status}`)} · ${new Date(row.created_at).toLocaleString()}`}
+                meta={`${t(`incidents:detail.status.${row.status}`)} · ${formatRelative(row.created_at)}`}
                 badge={row.needs_platform_admin ? t('ops:overview.needsPlatformAdmin') : undefined}
               />
             ))}
