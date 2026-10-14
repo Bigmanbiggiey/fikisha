@@ -12,4 +12,6 @@ structlog~=24.4.0
 gunicorn~=23.0.0
 whitenoise~=6.8.0
 argon2-cffi~=23.1.0           # hashing for OTP codes, refresh tokens, recipient link tokens (later)
+pyotp==2.9.0                  # admin TOTP MFA (RFC 6238), Increment 9a
+cryptography~=43.0.3          # encrypts the stored admin TOTP secret (Fernet), Increment 9a
 drf-spectacular~=0.28.0       # OpenAPI schema (foundation only)

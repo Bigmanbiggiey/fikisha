@@ -10,6 +10,7 @@ from __future__ import annotations
 from typing import Any, ClassVar
 
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
+from django.contrib.postgres.fields import ArrayField
 from django.db import models
 from django.utils import timezone
 
@@ -146,6 +147,12 @@ class AuthSession(models.Model):
     last_seen_at = models.DateTimeField(auto_now_add=True)
     expires_at = models.DateTimeField()
     revoked_at = models.DateTimeField(null=True, blank=True)
+    #: Admin MFA (Increment 9a, ADR-2D-39): when this session passed a TOTP
+    #: or backup-code check. Until it has, an admin's roles don't apply.
+    mfa_verified_at = models.DateTimeField(null=True, blank=True)
+    #: The last fresh step-up on this session; sensitive actions need it to
+    #: be recent (``AUTH_CONFIG["STEP_UP_TTL_SECONDS"]``).
+    step_up_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         db_table = "identity_auth_session"
@@ -226,18 +233,20 @@ class RoleAssignment(models.Model):
 
 
 class TotpDevice(models.Model):
-    """Foundation stub for admin TOTP MFA.
-
-    Phase 2A creates the table + the ``confirmed_at`` gate the authorization
-    engine reads. Actual TOTP secret generation / code verification is a
-    Phase 2B item (see docs/phase-2/phase-2a-decisions.md ADR-2A-07).
-    """
+    """An admin's authenticator (Phase 1 ``authentication-authorization.md``
+    §1.2; built in Increment 9a, ADR-2D-39). The secret is stored encrypted
+    (Fernet); backup codes only as hashes. An admin's roles apply only on a
+    session that passed MFA, which needs a confirmed device."""
 
     id = models.UUIDField(primary_key=True, default=uuid7, editable=False)
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="totp_device")
     secret_encrypted = models.BinaryField(null=True, blank=True)
     confirmed_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    #: one-time backup codes, hashed (Django password hashers)
+    backup_codes_hash = ArrayField(models.CharField(max_length=256), default=list, blank=True)
+    #: the last 30-second TOTP time step accepted; a code can't be replayed
+    last_used_step = models.BigIntegerField(null=True, blank=True)
 
     class Meta:
         db_table = "identity_totp_device"

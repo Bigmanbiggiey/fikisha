@@ -23,6 +23,7 @@ from fikisha.common.exceptions import AuthorizationError
 from fikisha.identity.api.serializers import (
     MeSerializer,
     MeUpdateSerializer,
+    MfaCodeSerializer,
     OtpRequestSerializer,
     OtpVerifySerializer,
     SessionSerializer,
@@ -30,6 +31,7 @@ from fikisha.identity.api.serializers import (
 from fikisha.identity.authz.permissions import ActionPermission
 from fikisha.identity.models import AuthSession, User
 from fikisha.identity.services import auth as auth_service
+from fikisha.identity.services import mfa as mfa_service
 from fikisha.identity.services import otp as otp_service
 from fikisha.outbox.services import emit
 from fikisha.platform_config import services as config
@@ -109,7 +111,7 @@ class OtpVerifyView(APIView):
             {
                 "access_token": issued.access_token,
                 "access_expires_in": issued.access_expires_in,
-                "user": MeSerializer(user).data,
+                "user": MeSerializer(user, context={"session": issued.session}).data,
             }
         )
         _set_refresh_cookie(response, issued.refresh_token, issued.refresh_expires_at)
@@ -149,7 +151,7 @@ class MeView(APIView):
 
     @extend_schema(responses=MeSerializer)
     def get(self, request: Request) -> Response:
-        return Response(MeSerializer(request.user).data)
+        return Response(MeSerializer(request.user, context={"session": _session(request)}).data)
 
     @extend_schema(request=MeUpdateSerializer, responses=MeSerializer)
     def patch(self, request: Request) -> Response:
@@ -167,7 +169,7 @@ class MeView(APIView):
                 before=before,
                 after=serializer.data,
             )
-        return Response(MeSerializer(user).data)
+        return Response(MeSerializer(user, context={"session": _session(request)}).data)
 
 
 class SessionListView(APIView):
@@ -274,4 +276,73 @@ class DemoAtomicOutboxView(APIView):
         return Response(
             {"audit_seq": entry.seq, "outbox_event_id": event.id, "note": note},
             status=status.HTTP_201_CREATED,
+        )
+
+
+# ─── Admin MFA (Increment 9a, ADR-2D-39) ────────────────────────────────
+def _session(request: Request) -> AuthSession | None:
+    session = getattr(request, "auth", None)
+    return session if isinstance(session, AuthSession) else None
+
+
+class MfaEnrollView(APIView):
+    """``POST /auth/mfa/enroll`` → ``{secret, otpauth_uri}``: a new secret
+    for an admin with no confirmed authenticator. Shown once."""
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request: Request) -> Response:
+        from fikisha.identity.authz.actors import actor_from_request
+
+        enrolment = mfa_service.begin_enrolment(actor=actor_from_request(request))
+        return Response({"secret": enrolment.secret, "otpauth_uri": enrolment.otpauth_uri})
+
+
+class MfaEnrollConfirmView(APIView):
+    """``POST /auth/mfa/enroll/confirm {code}`` → ``{backup_codes}``: the
+    first code confirms the authenticator; the session becomes MFA-verified.
+    The backup codes are shown once."""
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request: Request) -> Response:
+        from fikisha.identity.authz.actors import actor_from_request
+
+        s = MfaCodeSerializer(data=request.data)
+        s.is_valid(raise_exception=True)
+        codes = mfa_service.confirm_enrolment(
+            actor=actor_from_request(request), code=s.validated_data["code"]
+        )
+        return Response({"backup_codes": codes})
+
+
+class MfaVerifyView(APIView):
+    """``POST /auth/mfa/verify {code}``: the MFA half of an admin sign-in
+    (a TOTP code or a one-time backup code)."""
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request: Request) -> Response:
+        from fikisha.identity.authz.actors import actor_from_request
+
+        s = MfaCodeSerializer(data=request.data)
+        s.is_valid(raise_exception=True)
+        return Response(
+            mfa_service.verify(actor=actor_from_request(request), code=s.validated_data["code"])
+        )
+
+
+class StepUpView(APIView):
+    """``POST /auth/step-up {code}``: a fresh code before a sensitive action;
+    stays fresh for ``STEP_UP_TTL_SECONDS``."""
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request: Request) -> Response:
+        from fikisha.identity.authz.actors import actor_from_request
+
+        s = MfaCodeSerializer(data=request.data)
+        s.is_valid(raise_exception=True)
+        return Response(
+            mfa_service.step_up(actor=actor_from_request(request), code=s.validated_data["code"])
         )
