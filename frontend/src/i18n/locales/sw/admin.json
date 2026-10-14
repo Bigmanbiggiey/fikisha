@@ -1,0 +1,188 @@
+{
+  "state": {
+    "GOOD": "Hali nzuri",
+    "ACTIVE": "Hai",
+    "PENDING": "Inasubiri",
+    "RESTRICTED": "Imezuiliwa kiasi",
+    "SUSPENDED": "Imesimamishwa",
+    "OFFBOARDED": "Imeondolewa"
+  },
+  "memberStatus": {
+    "ACTIVE": "Hai",
+    "SUSPENDED": "Imesimamishwa",
+    "REMOVED": "Imeondolewa",
+    "INACTIVE": "Haitumiki"
+  },
+  "directory": {
+    "title": "Watumiaji na mashirika",
+    "kindLabel": "Orodha",
+    "kind": {
+      "businesses": "Biashara",
+      "operators": "Wasafirishaji",
+      "groups": "Vikundi"
+    },
+    "kindOne": {
+      "businesses": "Biashara",
+      "operators": "Msafirishaji",
+      "groups": "Kikundi cha wasafirishaji"
+    },
+    "search": "Tafuta kwa jina",
+    "searchGo": "Tafuta",
+    "state": "Hali",
+    "anyState": "Yoyote",
+    "empty": "Hakuna akaunti zinazolingana.",
+    "loadMore": "Pakia zaidi",
+    "members_one": "Mwanachama {{count}}",
+    "members_other": "Wanachama {{count}}"
+  },
+  "detail": {
+    "back": "Rudi kwenye orodha",
+    "contact": "Mawasiliano",
+    "reveal": "Onyesha namba kamili",
+    "revealHint": "Kuonyesha namba kamili kunarekodiwa kwenye kumbukumbu za ukaguzi.",
+    "actions": "Hatua za akaunti",
+    "userState": "Akaunti yao ya kuingia:",
+    "suspensionEffect": "Kusimamisha kunazuia kazi mpya: hakuna maombi, ofa wala ugawaji mpya. Kazi zinazoendelea zinaendelea; zimeorodheshwa hapa chini.",
+    "inFlightTitle": "Kazi zinazoendelea",
+    "noInFlight": "Hakuna kazi zinazoendelea.",
+    "members": "Wanachama",
+    "history": "Kusimamishwa na kurejeshwa",
+    "noHistory": "Hakuna kilichorekodiwa.",
+    "personOf": "mtu aliye nyuma ya {{name}}"
+  },
+  "actions": {
+    "SUSPEND": {
+      "account": "Simamisha akaunti",
+      "user": "Simamisha kuingia",
+      "title": "Simamisha",
+      "restate": "Simamisha {{name}}.",
+      "confirm": "Simamisha",
+      "done": "Imesimamishwa"
+    },
+    "REINSTATE": {
+      "account": "Rejesha akaunti",
+      "user": "Rejesha kuingia",
+      "title": "Rejesha",
+      "restate": "Rejesha {{name}}.",
+      "confirm": "Rejesha",
+      "done": "Imerejeshwa"
+    },
+    "OFFBOARD": {
+      "account": "Ondoa akaunti",
+      "user": "Ondoa kuingia",
+      "title": "Ondoa",
+      "restate": "Ondoa {{name}}. Hili haliwezi kutenduliwa.",
+      "confirm": "Ondoa",
+      "done": "Imeondolewa"
+    }
+  },
+  "action": {
+    "reason": "Sababu",
+    "reasonHint": "Inahitajika, angalau herufi {{count}}. Inarekodiwa pamoja na jina lako kwenye kumbukumbu za ukaguzi.",
+    "duration": "Muda unaotarajiwa kwa siku (si lazima)",
+    "durationHint": "Inarekodiwa tu. Hakuna kinachorejeshwa kiotomatiki.",
+    "continue": "Endelea",
+    "cancel": "Ghairi",
+    "back": "Rudi",
+    "reasonLabel": "Sababu:",
+    "durationLabel_one": "Siku {{count}}",
+    "durationLabel_other": "Siku {{count}}",
+    "audited": "Hili linarekodiwa kwenye kumbukumbu za ukaguzi, pamoja na jina lako na sababu.",
+    "mfaNotice": "Hatua hii inahitaji uthibitisho mpya wa MFA. MFA ya wasimamizi bado haijawekwa, kwa hiyo Fikisha itakataa kwa sasa.",
+    "stepUpMissing": "Imekataliwa: hili linahitaji uthibitisho mpya wa MFA, na MFA ya wasimamizi bado haijawekwa. Hakuna kilichobadilishwa."
+  },
+  "config": {
+    "title": "Mipangilio",
+    "subtitle": "Toleo hai {{version}}. Mabadiliko huunda toleo jipya; hakuna kinachofutwa.",
+    "editable": "Kamisheni na muda",
+    "live": "Hai: {{value}}",
+    "invalid": "Kagua thamani zilizowekwa alama.",
+    "preview": "Hakiki mabadiliko",
+    "discard": "Tupa mabadiliko",
+    "diffTitle": "Kitakachobadilika",
+    "effect": "Kamisheni kwa bei za mfano",
+    "col": {
+      "price": "Bei iliyokubaliwa",
+      "before": "Sasa",
+      "after": "Baada ya mabadiliko"
+    },
+    "apply": "Tumia…",
+    "applyTitle": "Tumia mabadiliko ya mipangilio",
+    "applyRestate_one": "Tumia badiliko {{count}} kama toleo {{version}}.",
+    "applyRestate_other": "Tumia mabadiliko {{count}} kama toleo {{version}}.",
+    "applyConfirm": "Tumia",
+    "readOnly": "Kusoma tu hapa",
+    "readOnlyHint": "Hizi zinategemeza sheria na ruhusa zilizoidhinishwa, kwa hiyo haziwezi kubadilishwa kutoka hapa.",
+    "section": {
+      "value_bands": "Viwango vya thamani",
+      "high_value_threshold_kes": "Kiwango cha thamani ya juu",
+      "role_permissions": "Ruhusa za wasimamizi",
+      "verification_requirements": "Mahitaji ya uthibitishaji"
+    },
+    "history": "Historia ya matoleo",
+    "versionLabel": "Toleo {{version}}",
+    "system": "Mfumo",
+    "unit": {
+      "hours_one": "Saa {{count}}",
+      "hours_other": "Saa {{count}}",
+      "days_one": "Siku {{count}}",
+      "days_other": "Siku {{count}}",
+      "minutes_one": "Dakika {{count}}",
+      "minutes_other": "Dakika {{count}}"
+    },
+    "key": {
+      "commission": {
+        "rate": "Kiwango cha kamisheni (%)",
+        "min_fee_kes": "Kamisheni ya chini kabisa (KSh)",
+        "cap_kes": "Kikomo cha kamisheni (KSh)"
+      },
+      "timeouts": {
+        "request_expiry_hours": "Ombi linaisha baada ya (saa)",
+        "offer_expiry_hours": "Ofa inaisha baada ya (saa)",
+        "delivery_acceptance": {
+          "standard_hours": "Kukubali uwasilishaji, Kawaida (saa)",
+          "high_hours": "Kukubali uwasilishaji, Thamani ya juu (saa)"
+        },
+        "post_completion_window": {
+          "default_hours": "Muda wa kuripoti tatizo baada ya kukamilika (saa)",
+          "high_and_latent_days": "Muda wa kuripoti, thamani ya juu au hatari iliyofichika (siku)"
+        },
+        "stale_assignment_alert_minutes": "Tahadhari ya kazi iliyokwama (dakika)"
+      }
+    }
+  },
+  "commission": {
+    "title": "Kamisheni",
+    "subtitle": "Kila rekodi ya kamisheni, pamoja na marekebisho yake. Fikisha inarekodi kamisheni; nauli inapita kati ya biashara na msafirishaji.",
+    "statementsNotYet": "Taarifa za kila wiki, malipo ya M-Pesa na ankara za eTIMS bado hazitolewi. Daftari hili ndilo rekodi hadi zitakapoanza.",
+    "period": "Kipindi",
+    "periodOption": {
+      "all": "Wakati wote",
+      "7": "Siku 7 zilizopita",
+      "30": "Siku 30 zilizopita",
+      "90": "Siku 90 zilizopita"
+    },
+    "total": {
+      "records": "Rekodi",
+      "commission": "Kamisheni",
+      "adjustments": "Marekebisho",
+      "effective": "Halisi"
+    },
+    "empty": "Hakuna kamisheni iliyorekodiwa katika kipindi hiki.",
+    "loadMore": "Pakia zaidi",
+    "col": {
+      "job": "Kazi",
+      "payee": "Msafirishaji au kikundi",
+      "price": "Bei iliyokubaliwa",
+      "commission": "Kamisheni",
+      "adjustments": "Marekebisho",
+      "effective": "Halisi",
+      "date": "Imerekodiwa"
+    },
+    "rule": "{{rate}}% · mipangilio toleo {{version}}",
+    "adjustment": {
+      "REDUCTION": "Imepunguzwa",
+      "WAIVER": "Imesamehewa"
+    }
+  }
+}

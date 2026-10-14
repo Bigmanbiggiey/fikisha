@@ -18,7 +18,11 @@
     "more": "Zaidi",
     "requestTransport": "Omba usafiri",
     "messages": "Ujumbe",
-    "unreadBadge": "{{count}} havijasomwa"
+    "unreadBadge": "{{count}} havijasomwa",
+    "control": "Udhibiti",
+    "directory": "Watumiaji na mashirika",
+    "config": "Mipangilio",
+    "commission": "Kamisheni"
   },
   "language": {
     "label": "Lugha",

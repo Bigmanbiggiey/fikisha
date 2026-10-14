@@ -5,6 +5,7 @@ import { Alert } from '@/components/Alert';
 import { Card } from '@/components/Card';
 import { PageLoader } from '@/components/PageLoader';
 import { StatusBadge } from '@/components/StatusBadge';
+import { AdminControlPage } from '@/features/admin/AdminControlPage';
 import { useAuth } from '@/features/auth/useAuth';
 import { BusinessHomePage } from '@/features/jobs/BusinessHomePage';
 import { OperatorHomePage } from '@/features/jobs/OperatorHomePage';
@@ -18,7 +19,8 @@ import { useWorkspaces } from '@/shell/useWorkspaces';
  * (Design Phase 7 P-04; the person picks it with the role switch, default
  * Business → Operator → Driver → Group Manager → staff). A driver's home is
  * Current job; a group manager sees the operator Home (their own operator
- * profile's work) until a group Home exists; staff land on the Ops overview.
+ * profile's work) until a group Home exists; an Operations Officer lands on the Ops overview, a Platform Admin on
+ * Control (Increment 9b).
  * Someone with no role yet sees the placeholder below.
  */
 export function HomePage(): JSX.Element {
@@ -35,8 +37,9 @@ export function HomePage(): JSX.Element {
     case 'GROUP_MANAGER':
       return workspaces.some((w) => w.kind === 'OPERATOR') ? <OperatorHomePage /> : <GenericHomePlaceholder />;
     case 'OPERATIONS_OFFICER':
-    case 'PLATFORM_ADMIN':
       return <OpsHomePage />;
+    case 'PLATFORM_ADMIN':
+      return <AdminControlPage />;
     default:
       return <GenericHomePlaceholder />;
   }

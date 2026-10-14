@@ -56,9 +56,17 @@ def required_fields_complete(job: Any, actor: Any, ctx: dict[str, Any]) -> None:
 
 
 def business_verified_with_location(job: Any, actor: Any, ctx: dict[str, Any]) -> None:
-    from fikisha.business.models import BusinessLocation, BusinessVerificationStatus
+    from fikisha.business.models import (
+        BusinessLocation,
+        BusinessStanding,
+        BusinessVerificationStatus,
+    )
 
     biz = job.business
+    # A suspended business may not put new work out (Increment 9 D-2,
+    # ADR-2D-38); its jobs already out carry on.
+    if biz.standing == BusinessStanding.SUSPENDED:
+        _fail("business_suspended", "The business is suspended.")
     if biz.verification_status != BusinessVerificationStatus.VERIFIED:
         _fail("business_not_verified", "The business is not verified.")
     if not BusinessLocation.objects.filter(business=biz, deactivated_at__isnull=True).exists():
@@ -77,13 +85,28 @@ def operator_eligible_for_job(job: Any, actor: Any, ctx: dict[str, Any]) -> None
     identity comes from the negotiation service via ``ctx``; when absent (pure
     engine test) the guard is a no-op — full eligibility is re-checked at
     ``CONFIRMED → ASSIGNED`` against the *assigned driver*."""
+    group_id = ctx.get("group_id")
+    if group_id:
+        # A suspended group may not take on new work (Increment 9 D-2,
+        # ADR-2D-38); assignment already refuses it (driver_assignment_allowed).
+        from fikisha.groups.models import GroupStanding, OperatorGroup
+
+        standing = (
+            OperatorGroup.objects.filter(id=group_id).values_list("standing", flat=True).first()
+        )
+        if standing == GroupStanding.SUSPENDED:
+            raise DriverNotEligible("The group is suspended.")
     op = ctx.get("operator_profile")
     if op is None:
         return
     from fikisha.operators.models import OperatorStatus
 
-    if getattr(op, "status", None) in {OperatorStatus.SUSPENDED, OperatorStatus.RESTRICTED}:
-        raise DriverNotEligible("Operator is suspended or restricted.")
+    if getattr(op, "status", None) in {
+        OperatorStatus.SUSPENDED,
+        OperatorStatus.RESTRICTED,
+        OperatorStatus.OFFBOARDED,
+    }:
+        raise DriverNotEligible("Operator is suspended, restricted or offboarded.")
 
 
 def no_racing_confirm(job: Any, actor: Any, ctx: dict[str, Any]) -> None:

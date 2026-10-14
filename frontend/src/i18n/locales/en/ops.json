@@ -132,5 +132,15 @@
   },
   "notes": {
     "title": "Updates from Fikisha"
+  },
+  "control": {
+    "title": "Control",
+    "subtitle": "Decisions only a Platform Administrator can make. Oldest first.",
+    "disputes": "Disputes above the Standard band",
+    "highValue": "Very High value jobs awaiting approval",
+    "nothing": "Nothing is waiting for a Platform Administrator",
+    "nothingHint": "Everything else is on the Operations overview.",
+    "opsHint": "Jobs needing attention, incidents, Standard-band disputes and the verification queue are on the Operations overview.",
+    "openOps": "Open the Operations overview"
   }
 }

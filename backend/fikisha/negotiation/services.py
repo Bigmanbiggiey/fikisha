@@ -197,6 +197,7 @@ def _to_negotiating(job: Any, actor: Any, thread: NegotiationThread, side: str) 
             data={
                 "initiator_tokens": [_SIDE_TOKEN[side]],
                 "operator_profile": _operator_profile_for(thread),
+                "group_id": str(thread.group_id) if thread.group_id else None,
             }
         ),
     )

@@ -185,6 +185,29 @@ Each item: `conversation_key`, `kind` (`OFFER` / `FIKISHA_UPDATE` /
 the counterparty); `count` (FIKISHA_UPDATE); `status`, `incident_type`
 (INCIDENT / DISPUTE).
 
+## 4c. Platform Admin console (Design Phase 6 Increment 9, ADR-2D-38)
+
+**Platform Admin only.** Every action below is a config-driven permission
+that only `PLATFORM_ADMIN` (`"*"`) holds today; anyone else gets 403.
+
+**Step-up.** Endpoints marked *step-up* also need a fresh MFA step-up. Admin
+MFA doesn't exist yet (D-1), so they currently always return 403
+`step_up_required`. Input errors are reported before the step-up check.
+
+| Method | Path | Action (authz) | Purpose |
+| --- | --- | --- | --- |
+| GET | `/admin/directory/<businesses\|operators\|groups>?q=&state=&cursor=` | `admin.directory.read` | `{data, page}`, newest first; phones masked. An unknown kind is 404; an unknown `state` is 422 `invalid_filter` |
+| GET | `/admin/directory/<kind>/<id>` | `admin.directory.read` | The row plus members, `in_flight_jobs`, `interventions`, `user_interventions` (and `user_id`/`user_status` for an operator, `owner_user_id`/`owner_user_status` for a business) |
+| POST | `/admin/directory/<kind>/<id>/contact` | `admin.directory.contact_reveal` | `{name, phone}`, the full number. Audited as `admin.directory.contact_revealed`, without the number |
+| POST | `/admin/interventions` | `admin.account.intervene` (*step-up*) | `{account_type: USER\|OPERATOR\|BUSINESS\|GROUP, account_id, action: SUSPEND\|REINSTATE\|OFFBOARD, reason, duration_days?}` → 201 `{id, before_state, after_state}`. 422 `invalid_intervention` (reason < 10 characters, bad duration, unknown type/action); 409 `intervention_not_allowed` (wrong state, offboarding a business/group, acting on yourself) |
+| GET | `/admin/config` | `admin.config.read` | `{version, config, editable_paths, versions}` |
+| POST | `/admin/config/preview` | `admin.config.read` | `{changes: {"<dotted path>": number}}` → `{version, changes: [{path, before, after}], commission_samples}`. Changes nothing. 422 `config_key_not_editable` / `invalid_config_change` |
+| POST | `/admin/config` | `admin.config.change` (*step-up*) | `{changes, rationale}` → 201 `{version, changes}` via `platform_config.services.apply_change` |
+| GET | `/admin/commission?since=&until=&operator_id=&group_id=&cursor=` | `admin.commission.read` | `{data, page, totals, statements_available: false}`. Each row: job, payee, agreed price, rate/min/cap, commission, adjustments, effective, config version |
+
+**Also new:** `business_suspended` (422). It comes from job creation and from
+the DRAFT → REQUESTED guard when the business is suspended.
+
 ---
 
 ## 5. What is deliberately absent

@@ -329,3 +329,33 @@ def _operator_contact(job: Job) -> dict[str, str] | None:
         name = groups_services.display_name_for(agreement.group_id)
         return {"name": name or "", "phone": ""} if name else None
     return None
+
+
+# ─── Platform Admin directory (Increment 9, ADR-2D-38) ───────────────────
+def in_flight_jobs_for(
+    *, business_id: Any = None, operator_id: Any = None, group_id: Any = None
+) -> list[dict[str, Any]]:
+    """The account's jobs that are not yet in a terminal state, newest
+    first, for the directory detail: what a suspension leaves running (D-2:
+    suspension blocks new work only). An operator's jobs are the ones it
+    agreed to or drives."""
+    from django.db.models import Q
+
+    from fikisha.jobs.constants import TERMINAL_STATES
+
+    qs = Job.objects.exclude(status__in=TERMINAL_STATES)
+    if business_id is not None:
+        qs = qs.filter(business_id=business_id)
+    elif operator_id is not None:
+        qs = qs.filter(
+            Q(agreement__operator_id=operator_id)
+            | Q(assignment__assigned_driver_profile_id=operator_id)
+        )
+    elif group_id is not None:
+        qs = qs.filter(agreement__group_id=group_id)
+    else:
+        return []
+    return [
+        {"id": str(job.id), "reference": job_reference(job.id), "status": job.status}
+        for job in qs.order_by("-created_at")[:50]
+    ]

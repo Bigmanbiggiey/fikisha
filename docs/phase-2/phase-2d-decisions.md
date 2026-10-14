@@ -685,6 +685,130 @@ and the operator.
 
 ---
 
+## ADR-2D-38 — Platform Admin console: directory, interventions, config and commission ledger behind a step-up gate that refuses until admin MFA exists — CONFIRMED (Design Phase 6 Increment 9; founder approval 2026-10-13, D-1 deferred)
+
+**Decision.** A new module, `fikisha.admin_console`, serves the Platform
+Admin console (P3 §19) under `/admin/*`. The founder approved the Increment 9
+scope (`docs/design-phase-6-increment-9-scope.md`) with its recommendations
+for D-2 to D-6, and deferred D-1 (admin MFA). It reads and changes other
+modules only through new public surfaces in each module (module boundary
+rule):
+- `business.admin_directory`, `operators.admin_directory` and
+  `groups.admin_directory`: queryset, row, detail, contact, and `set_state`;
+- `identity.services.admin_accounts`: `status_of` and `set_state`;
+- `platform_config.services`: `preview_change` and `versions`;
+- `jobs.admin_ledger`: the commission ledger read;
+- `jobs.ops.in_flight_jobs_for`: an account's jobs that are still running.
+
+**The step-up gate.** Phase 1 (`authentication-authorization.md` §1.2)
+requires a fresh TOTP step-up for config change and for
+suspension/offboarding. Admin TOTP doesn't exist yet, and the founder
+deferred it (D-1). So `identity.authz.step_up.require_step_up` checks
+`Actor.is_step_up_fresh`, which is always `False` today, and refuses with 403
+`step_up_required`. Interventions and config changes are built and tested
+behind it (tests use a stepped-up actor), but no request can run them until
+9a lands. Nothing else needs changing when it does. This keeps the approved
+security architecture intact: deferring MFA defers the actions, it doesn't
+remove the check.
+
+**Permissions** (config-driven, `admin_console/policies.py`):
+- `admin.directory.read`, `admin.directory.contact_reveal`,
+  `admin.account.intervene`;
+- `admin.config.read`, `admin.config.change`;
+- `admin.commission.read`.
+
+Only the Platform Admin (`"*"`) holds them (D-6). Granting one to the
+Operations Officer later is a config change; the step-up still applies.
+
+**Directory (§19.5, D-6).** Businesses, operators and groups, newest first,
+filtered by name and by standing or status. Phones are masked
+(`+2547•••••678`). The full number is a separate POST that writes an audit row
+without the number, the same as Increment 8's contact reveal. The detail page
+shows members, the account's in-flight jobs, and the intervention history of
+the account and of its person.
+
+**Interventions (§19.2, FR-ADM-4, D-2).** `AdminIntervention` (table
+`admin_intervention`, append-only at all three layers, migrations
+`admin_console.0001`/`0002`) is the account-level half of Phase 1's
+`admin_intervention` table: account type and id, action, admin, reason,
+duration (recorded only), and the state before and after. Rules:
+- **Suspend:** user ACTIVE; operator PENDING, ACTIVE or RESTRICTED; business
+  or group GOOD or RESTRICTED.
+- **Reinstate:** restores the state the latest suspension recorded, falling
+  back to ACTIVE or GOOD.
+- **Offboard:** users and operators only, and terminal. Businesses and groups
+  have no offboarded state.
+- **Input:** the reason is at least 10 characters; a duration is 1 to 365
+  days and only on a suspension.
+- **Never:** RESTRICTED is never set; an admin can't act on their own user
+  account.
+- **Each one writes:** the state change, the intervention row and an audit
+  entry (`admin.account.<action>`, with the reason) in one transaction.
+
+**Deviation from Phase 1's table:**
+- `REINSTATE` is added to the action enum; Phase 1 listed only
+  SUSPEND/RESTRICT/OFFBOARD and had no way to record undoing one.
+- Job-level interventions are not copied in, because `job_event` and
+  `high_value_approval` already record them.
+
+Why it's safe: it only adds history; nothing is lost.
+
+**Suspension blocks new work (D-2), enforcement gaps closed.** The scope
+doc said the existing guards already enforced this. Checking the code showed
+they didn't fully:
+- a suspended business could still create and publish jobs;
+- an offboarded operator was not refused at negotiation;
+- a suspended group could still negotiate (only assignment refused it).
+
+Now:
+- `jobs.creation.create_draft` raises `business_suspended`;
+- the `BusinessVerifiedWithLocation` guard on DRAFT → REQUESTED fails with
+  `business_suspended`;
+- `OperatorEligibleForJob` refuses SUSPENDED, RESTRICTED and OFFBOARDED
+  operators and a suspended group (negotiation now passes `group_id` on the
+  NEGOTIATING transition too);
+- work discovery returns nothing to a suspended, restricted or offboarded
+  operator.
+
+A suspended or offboarded user can't use a session; that was already
+enforced in `identity.services.auth`. In-flight jobs carry on. Instead of
+D-2's "Ops note", the directory lists them: notes are visible to the job's
+parties (ADR-2D-34), so a note would tell a business that its operator was
+suspended.
+
+**Configuration (§19.3, D-3).** `GET /admin/config` returns the live config,
+its version, the version history and the editable keys.
+`POST /admin/config/preview` returns the leaf-by-leaf diff and the commission
+on four sample prices before and after; it changes nothing.
+`POST /admin/config` applies through the existing `apply_change`, which
+versions, validates, audits and emits. It needs a reason of at least 10
+characters and a step-up.
+
+Editable keys: `commission.rate`, `commission.min_fee_kes`,
+`commission.cap_kes` and the seven `timeouts.*` values. Anything else is
+refused with `config_key_not_editable`, including value bands, the high-value
+threshold, `role_permissions`, vehicle classes and verification requirements.
+Values must be numbers; everything but the rate must be a whole number of at
+least 0. A change identical to the live values is refused.
+
+**Commission (§19.4, D-4).** `GET /admin/commission` lists every
+`commission_record` with its adjustments and the effective amount, filtered by
+time or payee, plus `totals` over the whole filtered ledger and
+`statements_available: false`. It is read-only, with no manual adjustments.
+Weekly statements, settlement and eTIMS are a separate increment.
+
+**Left out (D-5).** Trust & Reputation, the resume-request queue, System
+health and cross-entity search.
+
+**Why it's safe.**
+- Every endpoint is Platform-Admin-only server-side. IDOR/BOLA tests refuse
+  an Ops Officer, an ordinary user and an anonymous caller on every endpoint.
+- The two powerful writes can't run until step-up exists.
+- Every write is audited in its own transaction, and the intervention record
+  is append-only at three layers.
+- The config allowlist keeps privilege and invariant settings out of reach.
+- Nothing moves money.
+
 ## Self-caught defects fixed during implementation
 
 Every one of these was found by the implementation's own review or test

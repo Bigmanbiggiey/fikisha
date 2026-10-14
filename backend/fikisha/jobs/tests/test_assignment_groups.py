@@ -176,8 +176,12 @@ def test_suspended_group_cannot_be_assigned(
 ) -> None:
     from fikisha.groups.models import GroupStanding
 
-    s = group_setup(standing=GroupStanding.SUSPENDED)
+    # Suspended after the agreement: a group that is already suspended can't
+    # reach one (OperatorEligibleForJob refuses it, Increment 9 ADR-2D-38).
+    s = group_setup()
     job = make_confirmed_job(group=s["group"])
+    s["group"].standing = GroupStanding.SUSPENDED
+    s["group"].save(update_fields=["standing"])
     with pytest.raises(DriverNotEligible):
         assign_job(
             actor=actor_of(s["manager"].user),
