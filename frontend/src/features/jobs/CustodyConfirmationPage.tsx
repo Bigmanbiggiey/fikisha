@@ -48,7 +48,7 @@ export function CustodyConfirmationPage(): JSX.Element {
 
   if (job.isLoading) return <PageLoader />;
   if (job.isError) {
-    return <ErrorState message={localizeError(job.error, t)} onRetry={() => void job.refetch()} />;
+    return <ErrorState message={localizeError(job.error, t)} error={job.error} onRetry={() => void job.refetch()} />;
   }
   const data = job.data!;
 

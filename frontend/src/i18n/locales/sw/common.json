@@ -34,7 +34,8 @@
     "loading": "Inapakia…",
     "continue": "Endelea",
     "close": "Funga",
-    "reload": "Pakia upya"
+    "reload": "Pakia upya",
+    "goHome": "Nenda Nyumbani"
   },
   "home": {
     "welcome": "Karibu, {{name}}",
@@ -100,5 +101,9 @@
   },
   "job": {
     "title": "Kazi {{ref}}"
+  },
+  "offline": {
+    "emptyTitle": "Uko nje ya mtandao",
+    "emptyBody": "Hii haiwezi kupakia hadi urudi mtandaoni. Kilichokwisha pakiwa bado kinaonyeshwa."
   }
 }

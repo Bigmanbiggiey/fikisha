@@ -49,6 +49,7 @@ export function DiagnosticsPage(): JSX.Element {
           <div className="mt-3">
             <ErrorState
               message={localizeError(reference.error, t)}
+              error={reference.error}
               onRetry={() => void reference.refetch()}
             />
           </div>

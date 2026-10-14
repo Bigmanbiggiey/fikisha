@@ -99,7 +99,7 @@ export function AuditLogPage(): JSX.Element {
       {entries.isLoading ? (
         <PageLoader />
       ) : entries.isError ? (
-        <ErrorState message={localizeError(entries.error, t)} onRetry={() => void entries.refetch()} />
+        <ErrorState message={localizeError(entries.error, t)} error={entries.error} onRetry={() => void entries.refetch()} />
       ) : rows.length === 0 ? (
         <EmptyState title={t('ops:audit.empty')} />
       ) : (

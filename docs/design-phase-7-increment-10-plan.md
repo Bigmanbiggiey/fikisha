@@ -1,6 +1,8 @@
 # Increment 10 — Build the approved UI/UX proposals: Implementation Plan
 
-**Status:** APPROVED 2026-09-23. The founder approved the plan and added a
+**Status:** **DONE 2026-10-14.** 10a (PR #4), 10b + 10c + 10g (PR #5),
+10d (PR #8), 10e (PR #9), 10f (the close-out PR). Results are in
+`design-phase-7-ui-ux-findings.md` §6. APPROVED 2026-09-23. The founder approved the plan and added a
 **Messages inbox** (§2, sub-increment 10g; scope chosen by the founder).
 Defaults taken for the two unanswered questions: new Swahili strings are
 flagged in each PR for founder review, and 10a–10c are built before

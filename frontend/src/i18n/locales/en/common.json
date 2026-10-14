@@ -34,7 +34,8 @@
     "loading": "Loading…",
     "continue": "Continue",
     "close": "Close",
-    "reload": "Reload"
+    "reload": "Reload",
+    "goHome": "Go to Home"
   },
   "home": {
     "welcome": "Welcome, {{name}}",
@@ -100,5 +101,9 @@
   },
   "job": {
     "title": "Job {{ref}}"
+  },
+  "offline": {
+    "emptyTitle": "You're offline",
+    "emptyBody": "This can't load until you're back online. Anything already loaded is still shown."
   }
 }

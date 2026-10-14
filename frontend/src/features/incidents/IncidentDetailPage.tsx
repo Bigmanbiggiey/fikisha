@@ -105,7 +105,7 @@ export function IncidentDetailPage(): JSX.Element {
   if (incident.isLoading) return <PageLoader />;
   if (incident.isError || !incident.data) {
     return (
-      <ErrorState message={localizeError(incident.error, t)} onRetry={() => void incident.refetch()} />
+      <ErrorState message={localizeError(incident.error, t)} error={incident.error} onRetry={() => void incident.refetch()} />
     );
   }
   const inc = incident.data;

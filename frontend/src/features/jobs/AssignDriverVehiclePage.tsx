@@ -78,11 +78,11 @@ export function AssignDriverVehiclePage(): JSX.Element {
 
   if (job.isLoading || candidates.isLoading) return <PageLoader />;
   if (job.isError) {
-    return <ErrorState message={localizeError(job.error, t)} onRetry={() => void job.refetch()} />;
+    return <ErrorState message={localizeError(job.error, t)} error={job.error} onRetry={() => void job.refetch()} />;
   }
   if (candidates.isError) {
     return (
-      <ErrorState message={localizeError(candidates.error, t)} onRetry={() => void candidates.refetch()} />
+      <ErrorState message={localizeError(candidates.error, t)} error={candidates.error} onRetry={() => void candidates.refetch()} />
     );
   }
   const data = job.data!;

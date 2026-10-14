@@ -340,24 +340,24 @@ proposed fix.
 Mark each **Approve / Reject / Defer**. "Mockup" means it is proposed for
 the ≤ 8 before/after mockups (brief D-4).
 
-| Proposal | Fixes | Mockup? | Decision |
-| --- | --- | --- | --- |
-| P-01 Single-column phone layouts (move `sm:` to `md:`/`lg:`) + guard | F-01 | ✅ Jobs list @360 | **Approved** |
-| P-02 Business cancel sheet: reason + late-cancel consequence | F-02 | ✅ | **Approved** |
-| P-03 Driver "Current Job" per P3 §10.1, driver-voiced lines, step contact | F-03 | ✅ | **Approved** |
-| P-04 Role nav shell: bottom tabs (mobile) and sidebar (desktop) | F-04, F-16 | ✅ Business + Driver | **Approved** |
-| P-05 Translation-driven shared components + switcher on login | F-05 | — | **Approved** |
-| P-06 "Online / Offline" instead of "Synced" | F-06 | — | **Approved** |
-| P-07 Target-size rule: no compact buttons outside dense tables | F-07 | — | **Approved** |
-| P-08 Job header with reference and heading; staff adds band and high-value status | F-08 | ✅ | **Approved** |
-| P-09 "Delivered — completes automatically" status instead of an action | F-09 | — | **Approved** |
-| P-10 Recipient code entry with a visible label and helper text | F-10 | ✅ | **Approved** |
-| P-11 Offer-history copy: "Replaced by a newer offer" | F-11 | — | **Approved** |
-| P-12 Driver proof-method rows (56px, explained, default) | F-12 | ✅ | **Approved** |
-| P-13 `Textarea` and `Select` primitives; fix the axe errors | F-13 | — | **Approved** |
-| P-14 Date/time helper (language + EAT + relative age) | F-14, F-15 | ✅ Ops queue row | **Approved** |
-| P-15 Load-time API call clean-up | F-17 | — | **Approved** |
-| P-16 Copy polish ("·" in links) | F-18 | — | **Approved** |
+| Proposal | Fixes | Mockup? | Decision | Resolution |
+| --- | --- | --- | --- | --- |
+| P-01 Single-column phone layouts (move `sm:` to `md:`/`lg:`) + guard | F-01 | ✅ Jobs list @360 | **Approved** | Done, 10a (PR #4) |
+| P-02 Business cancel sheet: reason + late-cancel consequence | F-02 | ✅ | **Approved** | Done, 10a (PR #4) |
+| P-03 Driver "Current Job" per P3 §10.1, driver-voiced lines, step contact | F-03 | ✅ | **Approved** | Done, 10b (PR #5) |
+| P-04 Role nav shell: bottom tabs (mobile) and sidebar (desktop) | F-04, F-16 | ✅ Business + Driver | **Approved** | Done, 10c (PR #5) |
+| P-05 Translation-driven shared components + switcher on login | F-05 | — | **Approved** | Done, 10d (PR #8) |
+| P-06 "Online / Offline" instead of "Synced" | F-06 | — | **Approved** | Done, 10d (PR #8) |
+| P-07 Target-size rule: no compact buttons outside dense tables | F-07 | — | **Approved** | Done, 10e (PR #9) |
+| P-08 Job header with reference and heading; staff adds band and high-value status | F-08 | ✅ | **Approved** | Done, 10e (PR #9) |
+| P-09 "Delivered — completes automatically" status instead of an action | F-09 | — | **Approved** | Done, 10e (PR #9) |
+| P-10 Recipient code entry with a visible label and helper text | F-10 | ✅ | **Approved** | Done, 10a (PR #4) |
+| P-11 Offer-history copy: "Replaced by a newer offer" | F-11 | — | **Approved** | Done, 10e (PR #9) |
+| P-12 Driver proof-method rows (56px, explained, default) | F-12 | ✅ | **Approved** | Done, 10b (PR #5) |
+| P-13 `Textarea` and `Select` primitives; fix the axe errors | F-13 | — | **Approved** | Done, 10e (PR #9) |
+| P-14 Date/time helper (language + EAT + relative age) | F-14, F-15 | ✅ Ops queue row | **Approved** | Done, 10d (PR #8) |
+| P-15 Load-time API call clean-up | F-17 | — | **Approved** | Done, 10e (PR #9) |
+| P-16 Copy polish ("·" in links) | F-18 | — | **Approved** | Done, 10e (PR #9) |
 
 **Proposed mockup set (8):** P-01, P-02, P-03, P-04, P-08, P-10, P-12, P-14.
 The founder can swap any of them.
@@ -368,3 +368,71 @@ name and phone**, for communication. This settles F-03's data question for
 the assigned driver only. The separate ADR-2D-36 open item (phones visible to
 operators who are only negotiating, *before* assignment) is unaffected and
 stays open.
+
+---
+
+## 6. Resolution and close-out (Increment 10f, 2026-10-14)
+
+**All 16 approved proposals are built and merged** (Resolution column in
+§5). The founder's Messages inbox addition (10g) shipped in PR #5.
+
+**Re-capture.** A headless Playwright script, outside the repo as D-6
+requires, ran against a freshly seeded local stack. The seed covers one
+account per role and a job in every lifecycle state (DRAFT … DISPUTED),
+plus a high-value job, an incident and dispute, and live and expired
+recipient links.
+- **Coverage:** 43 screens across business, operator/driver, Operations
+  Officer, Platform Admin and public, at 360 / 768 / 1280 px × EN / SW
+  (268 images).
+- **Horizontal overflow:** none, at any width.
+- **axe-core** (WCAG 2.0/2.1/2.2 A + AA, at 1280/en and 360/sw): **0
+  violations.** The original pass found `select-name` and `definition-list`
+  errors.
+- **Server errors:** none.
+- **Failed API calls:** only the deliberate exception cases.
+- **Browser console errors:** only "failed to load resource" lines for
+  expected answers (a signed-out `/me` or refresh 401, or the
+  `/operators/me` 404 for people without an operator profile).
+- **Exception states (P3 §22), the gap the original pass left:**
+
+| State | How it was reached | Result |
+| --- | --- | --- |
+| Offline, on a loaded screen | browser set offline on Job Detail | Cached job stays readable; top bar says "Offline" |
+| Offline, opening a screen not yet loaded | offline, then open Messages | **F-19 found and fixed:** said "No messages yet" (and the badge said 2 unread). Now "You're offline — this can't load until you're back online" |
+| Error | jobs API blocked, nothing cached | "Cannot reach Fikisha. Check your connection and try again." + Try again |
+| Not found | a job id that doesn't exist | **F-20 found and fixed:** offered "Try again", which can't succeed. Now "Go to Home" |
+| Unauthorised | another business opens this business's job | "You do not have permission to do that." + Go to Home (F-20) |
+| Expired recipient link | link past its expiry | "This link has expired. Ask the sender or driver for a new one." |
+| Unknown recipient link | made-up token | "This link isn't valid." |
+| Increment 8 staff cancel modal | Ops Officer, open | Reason required, band rule, audited |
+| Increment 8 contact reveal | Ops Officer, revealed | Parties listed, "recorded in the audit log" |
+| Increment 8 high-value modal | Ops Officer, open | Decision + reason, rejection warned as permanent |
+
+**New findings (both fixed in 10f, frontend only):**
+- **F-19 · Offline looks like "empty" — Major.**
+  - **Cause:** a query started while offline is *paused*, not failed, so
+    pages fell through to their empty state.
+  - **Fix:** `EmptyState` says "You're offline" while offline, which covers
+    every list.
+  - **Why this fix:** a global network-mode change was rejected, because it
+    would hide cached data behind an error when revisiting a screen offline.
+- **F-20 · "Try again" where a retry can't help — Minor.**
+  - **Fix:** `ErrorState` takes the error. For a 403 / 404 / 410 it offers
+    "Go to Home" instead.
+  - All 37 call sites pass it.
+
+**Not reached:** the "stale / conflict" state (a 409 from two people editing
+at once). It needs a concurrent edit, and the `If-Match` work it depends on
+is still separate (Design Phase 6 Q4).
+
+**Still open (unchanged, not Increment 10's to decide):**
+- phones visible to operators who are only negotiating (ADR-2D-36);
+- a high-value rejection can't be reversed;
+- references use 6 characters in the app and 8 on the recipient page;
+- `RESUME_PRIOR` (O-P1);
+- ratings;
+- a native-speaker review of the new Swahili strings.
+
+Evidence: the exception-state screenshots are in
+`docs/design-phase-7/screens-10f/`; the full 268-image set stayed in the
+scratch capture folder.
