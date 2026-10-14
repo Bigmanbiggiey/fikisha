@@ -128,7 +128,8 @@
     "events": "Kumbukumbu za matukio",
     "showEvents": "Onyesha matukio yote",
     "hideEvents": "Ficha matukio",
-    "eventNote": "Ujumbe"
+    "eventNote": "Ujumbe",
+    "highValuePending": "Ukaguzi wa thamani ya juu unasubiri"
   },
   "notes": {
     "title": "Taarifa kutoka Fikisha"

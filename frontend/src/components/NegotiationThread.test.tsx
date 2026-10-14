@@ -33,7 +33,7 @@ const labels = {
   youLabel: 'You',
   adminLabel: 'Platform Admin',
   operatorFallbackLabel: 'Operator',
-  statusLabelFor: (key: string) => ({ current: 'Current', countered: 'Countered' })[key] ?? key,
+  statusLabelFor: (key: string) => ({ current: 'Current', replaced: 'Replaced by a newer offer' })[key] ?? key,
   timeFor: () => '13:14',
 };
 
@@ -45,7 +45,7 @@ describe('NegotiationThread', () => {
     const items = screen.getAllByRole('listitem');
     expect(items).toHaveLength(2);
     expect(items[0]).toHaveTextContent('You');
-    expect(items[0]).toHaveTextContent('Countered');
+    expect(items[0]).toHaveTextContent('Replaced by a newer offer');
     expect(items[1]).toHaveTextContent('Athi Movers');
     expect(items[1]).toHaveTextContent('Current');
     expect(items[1]).toHaveTextContent('Fuel is high today.');

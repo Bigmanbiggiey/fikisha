@@ -30,7 +30,6 @@ export type BusinessActionKey =
   | 'continueRequest'
   | 'reviewOffers'
   | 'confirmPickup'
-  | 'confirmCompletion'
   | 'viewSummary'
   | 'viewDispute';
 
@@ -49,10 +48,12 @@ export type BusinessActionKey =
  *   the two always-valid pickup proofs at `AT_PICKUP`, so this surfaces it
  *   whenever the job is `AT_PICKUP` — functionally correct, more proactive
  *   than the ideal request-gated UX.
- * - **`confirmCompletion`**: the wireframe names this as a Business action
- *   at `DELIVERED`, but there is no such endpoint — `DELIVERED -> COMPLETED`
- *   only ever happens automatically (`jobs.tasks.autocomplete_delivered`,
- *   ADR-2D-29). The UI renders this as informational, not a real button.
+ * - **`DELIVERED` has no action** (Design Phase 7 P-09): the wireframe
+ *   names "confirm completion" here, but there is no such endpoint —
+ *   `DELIVERED -> COMPLETED` only ever happens automatically
+ *   (`jobs.tasks.autocomplete_delivered`, ADR-2D-29). It is a status the
+ *   business watches ("Delivered — completes automatically"), not
+ *   something it must do, so it isn't under "Needs your action".
  * - **`viewDispute`** (→ dispute detail) points at a screen that doesn't
  *   exist yet (Increment 7) — rendered as an informational state with a
  *   "coming in a later update" note, not a dead link. `reviewOffers` (→
@@ -65,7 +66,7 @@ export type BusinessActionKey =
  * action, so both are excluded here even though `businessNextAction`
  * returns non-null for them. */
 export function needsBusinessAttention(status: JobStatus): boolean {
-  return status === 'NEGOTIATING' || status === 'AT_PICKUP' || status === 'DELIVERED' || status === 'DISPUTED';
+  return status === 'NEGOTIATING' || status === 'AT_PICKUP' || status === 'DISPUTED';
 }
 
 /** The happy-path order the timeline renders (`design-phase-3-wireframes.md`
@@ -203,8 +204,6 @@ export function businessNextAction(status: JobStatus): BusinessActionKey | null 
       return 'reviewOffers';
     case 'AT_PICKUP':
       return 'confirmPickup';
-    case 'DELIVERED':
-      return 'confirmCompletion';
     case 'CANCELLED':
     case 'FAILED':
       return 'viewSummary';

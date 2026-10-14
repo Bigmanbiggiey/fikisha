@@ -5,13 +5,12 @@ import { Alert } from '@/components/Alert';
 import { Button } from '@/components/Button';
 import { Input } from '@/components/Input';
 import { Modal } from '@/components/Modal';
+import { Textarea } from '@/components/Textarea';
 import { ApiError } from '@/services/problem';
 import { localizeError } from '@/services/errorMessage';
 
 export const REASON_MIN_LENGTH = 10;
 
-const textareaClass =
-  'min-h-[96px] w-full rounded-md border border-line-strong bg-surface-input px-3 py-2 text-body text-fg';
 
 /**
  * The Platform-Admin-only action shell (P3 §19.2), shared by every gated
@@ -103,13 +102,12 @@ export function AdminActionDialog({
             <label htmlFor="admin-action-reason" className="block text-label text-fg-secondary">
               {t('admin:action.reason')}
             </label>
-            <textarea
+            <Textarea
               id="admin-action-reason"
               aria-describedby="admin-action-reason-hint"
               value={reason}
               maxLength={2000}
               onChange={(e) => setReason(e.target.value)}
-              className={textareaClass}
             />
             <p id="admin-action-reason-hint" className="text-body-sm text-fg-muted">
               {t('admin:action.reasonHint', { count: REASON_MIN_LENGTH })}

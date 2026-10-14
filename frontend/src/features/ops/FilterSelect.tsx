@@ -1,8 +1,7 @@
-/** A labelled `<select>` for list filters (Ops monitor, Platform Admin
- * directory). */
-export const selectClass =
-  'block min-h-target w-full rounded-md border border-line-strong bg-surface-input px-3 text-body text-fg';
+import { Select } from '@/components/Select';
 
+/** A labelled `<Select>` for list filters (Ops monitor, Platform Admin
+ * directory). */
 export function FilterSelect({
   id,
   label,
@@ -21,13 +20,13 @@ export function FilterSelect({
       <label htmlFor={id} className="block text-label text-fg-secondary">
         {label}
       </label>
-      <select id={id} value={value} onChange={(e) => onChange(e.target.value)} className={selectClass}>
+      <Select id={id} value={value} onChange={(e) => onChange(e.target.value)}>
         {options.map(([v, text]) => (
           <option key={v || 'any'} value={v}>
             {text}
           </option>
         ))}
-      </select>
+      </Select>
     </div>
   );
 }

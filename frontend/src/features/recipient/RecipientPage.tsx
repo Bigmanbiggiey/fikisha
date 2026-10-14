@@ -125,7 +125,7 @@ export function RecipientPage(): JSX.Element {
         )}
 
         <div className="flex items-center justify-between">
-          <Button variant="secondary" size="compact" onClick={() => void view.refetch()} loading={view.isFetching}>
+          <Button variant="secondary" onClick={() => void view.refetch()} loading={view.isFetching}>
             {t('shell.checkStatus')}
           </Button>
         </div>

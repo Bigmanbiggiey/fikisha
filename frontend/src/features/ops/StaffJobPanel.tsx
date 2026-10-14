@@ -7,6 +7,7 @@ import { Alert } from '@/components/Alert';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { Modal } from '@/components/Modal';
+import { Textarea } from '@/components/Textarea';
 import { disputesApi } from '@/features/incidents/incidentsApi';
 import { jobReference } from '@/features/jobs/jobHelpers';
 import { jobsApi } from '@/features/jobs/jobsApi';
@@ -17,8 +18,6 @@ import { formatDateTime } from '@/services/datetime';
 import { notesQueryKey, opsApi } from './opsApi';
 import type { ContactParty, RevealedContacts } from './types';
 
-export const textareaClass =
-  'min-h-[72px] w-full rounded-md border border-line-strong bg-surface-input px-3 py-2 text-body text-fg';
 
 const CONTACT_ORDER: ContactParty[] = ['business', 'pickup', 'destination', 'recipient', 'operator', 'driver'];
 
@@ -93,7 +92,7 @@ export function StaffJobPanel({ job, isPlatformAdmin }: { job: Job; isPlatformAd
         <label htmlFor="staff-note" className="block text-label text-fg-secondary">
           {t('ops:staff.note')}
         </label>
-        <textarea
+        <Textarea
           id="staff-note"
           aria-describedby="staff-note-hint"
           value={noteText}
@@ -102,13 +101,11 @@ export function StaffJobPanel({ job, isPlatformAdmin }: { job: Job; isPlatformAd
             setNoteText(e.target.value);
             setNoteSent(false);
           }}
-          className={textareaClass}
         />
         <p id="staff-note-hint" className="text-body-sm text-fg-muted">
           {t('ops:staff.noteHint')}
         </p>
         <Button
-          size="compact"
           variant="secondary"
           disabled={!noteText.trim()}
           loading={addNote.isPending}
@@ -133,7 +130,6 @@ export function StaffJobPanel({ job, isPlatformAdmin }: { job: Job; isPlatformAd
           <>
             <p className="text-body-sm text-fg-muted">{t('ops:staff.contactsLogged')}</p>
             <Button
-              size="compact"
               variant="secondary"
               loading={contacts.isPending}
               onClick={() => contacts.mutate()}
@@ -165,7 +161,7 @@ export function StaffJobPanel({ job, isPlatformAdmin }: { job: Job; isPlatformAd
           {cancelNeedsPlatformAdmin ? (
             <Alert tone="info">{t('ops:staff.needsPlatformAdmin')}</Alert>
           ) : (
-            <Button variant="destructive" size="compact" onClick={() => setCancelOpen(true)}>
+            <Button variant="destructive" onClick={() => setCancelOpen(true)}>
               {t('ops:staff.cancel')}
             </Button>
           )}
@@ -176,7 +172,6 @@ export function StaffJobPanel({ job, isPlatformAdmin }: { job: Job; isPlatformAd
       <section className="border-t border-line pt-4">
         <Button
           variant="tertiary"
-          size="compact"
           aria-expanded={eventsOpen}
           aria-controls="staff-event-log"
           onClick={() => setEventsOpen((v) => !v)}
@@ -231,13 +226,12 @@ export function StaffJobPanel({ job, isPlatformAdmin }: { job: Job; isPlatformAd
           <label htmlFor="staff-cancel-reason" className="block text-label text-fg-secondary">
             {t('ops:staff.cancelReason')}
           </label>
-          <textarea
+          <Textarea
             id="staff-cancel-reason"
             aria-describedby="staff-cancel-hint"
             value={cancelReason}
             maxLength={2000}
             onChange={(e) => setCancelReason(e.target.value)}
-            className={textareaClass}
           />
           <p id="staff-cancel-hint" className="text-body-sm text-fg-muted">
             {t('ops:staff.cancelHint')}

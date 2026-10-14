@@ -27,7 +27,7 @@ export function OfferCard({
   note?: string;
   /** Translated display text for the status chip. */
   statusLabel: string;
-  /** Untranslated key (`current`/`countered`/`expired`/`accepted`/`declined`)
+  /** Untranslated key (`current`/`replaced`/`expired`/`accepted`/`declined`)
    * driving the chip's tone/icon. */
   statusKey: string;
 }): JSX.Element {
@@ -44,7 +44,15 @@ export function OfferCard({
         )}
       >
         {amountLabel && (
-          <p className="fk-numeric text-body font-semibold text-fg">{amountLabel}</p>
+          // A replaced offer is history, so it reads quieter (P-11).
+          <p
+            className={cn(
+              'fk-numeric text-body',
+              statusKey === 'replaced' ? 'font-normal text-fg-muted' : 'font-semibold text-fg',
+            )}
+          >
+            {amountLabel}
+          </p>
         )}
         {note && <p className="mt-1 text-body-sm text-fg-secondary">{note}</p>}
         <div className="mt-1">

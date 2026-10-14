@@ -27,7 +27,7 @@ export function JobsListPage(): JSX.Element {
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-3">
         <h1 className="text-h1 text-fg">{t('jobs:list.title')}</h1>
-        <Button size="compact" onClick={() => navigate('/jobs/new')}>
+        <Button onClick={() => navigate('/jobs/new')}>
           {t('jobs:list.newJob')}
         </Button>
       </div>

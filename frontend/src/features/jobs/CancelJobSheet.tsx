@@ -5,14 +5,13 @@ import { useTranslation } from 'react-i18next';
 import { Alert } from '@/components/Alert';
 import { Button } from '@/components/Button';
 import { Modal } from '@/components/Modal';
+import { Textarea } from '@/components/Textarea';
 import { localizeError } from '@/services/errorMessage';
 
 import { BUSINESS_CANCEL_REASONS, cancelConsequence, jobReference } from './jobHelpers';
 import { jobsApi } from './jobsApi';
 import type { CancellationReason, JobStatus, JobTransitionResult } from './types';
 
-const textareaClass =
-  'min-h-[72px] w-full rounded-md border border-line-strong bg-surface-input px-3 py-2 text-body text-fg';
 
 /**
  * Business cancel (Design Phase 7 P-02, F-02; P3 §6.4 "Cancel (with reason;
@@ -98,12 +97,11 @@ export function CancelJobSheet({
         <label htmlFor="cancel-note" className="block text-label text-fg-secondary">
           {t('jobs:cancel.note')}
         </label>
-        <textarea
+        <Textarea
           id="cancel-note"
           value={note}
           maxLength={2000}
           onChange={(e) => setNote(e.target.value)}
-          className={textareaClass}
         />
 
         <Alert tone={consequence === 'none' ? 'info' : 'warning'}>{t(`jobs:cancel.consequence.${consequence}`)}</Alert>

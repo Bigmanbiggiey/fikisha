@@ -7,6 +7,10 @@ import { Spinner } from './Spinner';
  * Button — Design Phase 5B foundation.
  * One filled `primary` per screen (Phase 3). `driver` size (56px) for
  * driver-critical / safety-critical actions. Consumes semantic tokens only.
+ *
+ * Target sizes (P4 §475, Design Phase 7 P-07): `default` (44px) everywhere;
+ * `driver` (56px) on driver screens; `compact` (36px) only for row actions
+ * inside a dense desktop table (`lg` and up), never on a phone layout.
  */
 type Variant = 'primary' | 'secondary' | 'tertiary' | 'ghost' | 'destructive' | 'success';
 type Size = 'default' | 'driver' | 'compact';

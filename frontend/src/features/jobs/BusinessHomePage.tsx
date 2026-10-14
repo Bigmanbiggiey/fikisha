@@ -17,7 +17,8 @@ import { formatKes } from './money';
 import type { Job, JobStatus } from './types';
 
 function statusLabel(t: (key: string) => string, status: JobStatus): string {
-  return t(`jobs:status.${status}`);
+  // A delivered job finishes on its own (P-09): say so on its card.
+  return status === 'DELIVERED' ? t('jobs:home.deliveredAuto') : t(`jobs:status.${status}`);
 }
 
 export function BusinessHomePage(): JSX.Element {

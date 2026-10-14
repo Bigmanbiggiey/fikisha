@@ -372,13 +372,12 @@ function ThreadDetail({
                 <div className="flex gap-2">
                   <Button
                     variant="secondary"
-                    size="compact"
                     onClick={() => setComposerOpen(false)}
                     disabled={counter.isPending}
                   >
                     {t('jobs:create.back')}
                   </Button>
-                  <Button size="compact" loading={counter.isPending} onClick={submitCounter}>
+                  <Button loading={counter.isPending} onClick={submitCounter}>
                     {t('negotiation:composer.send')}
                   </Button>
                 </div>

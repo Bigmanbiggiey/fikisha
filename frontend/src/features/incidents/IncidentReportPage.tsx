@@ -7,6 +7,7 @@ import { Alert } from '@/components/Alert';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { PhotoCapture } from '@/components/PhotoCapture';
+import { Textarea } from '@/components/Textarea';
 import { localizeError } from '@/services/errorMessage';
 
 import { incidentsApi } from './incidentsApi';
@@ -85,23 +86,21 @@ export function IncidentReportPage(): JSX.Element {
 
       {type === 'OTHER' && (
         <Card>
-          <textarea
+          <Textarea
             aria-label={t('report.otherLabel')}
             placeholder={t('report.otherLabel')}
             value={otherLabel}
             onChange={(e) => setOtherLabel(e.target.value)}
-            className="min-h-[80px] w-full rounded-md border border-line-strong bg-surface-input px-3 py-2 text-body text-fg"
           />
         </Card>
       )}
 
       <Card>
-        <textarea
+        <Textarea
           aria-label={t('report.description')}
           placeholder={t('report.description')}
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          className="min-h-[80px] w-full rounded-md border border-line-strong bg-surface-input px-3 py-2 text-body text-fg"
         />
       </Card>
 

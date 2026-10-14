@@ -84,7 +84,7 @@ export function SignaturePad({ value, onChange, label, clearLabel }: SignaturePa
         onPointerLeave={end}
       />
       {(hasStroke || value) && (
-        <Button variant="secondary" size="compact" onClick={clear}>
+        <Button variant="secondary" onClick={clear}>
           {clearLabel}
         </Button>
       )}

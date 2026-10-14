@@ -97,5 +97,8 @@
   "timeline": {
     "pendingSync": "recorded on this phone · syncing",
     "disputed": "Under dispute — normal steps are paused."
+  },
+  "job": {
+    "title": "Job {{ref}}"
   }
 }

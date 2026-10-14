@@ -26,7 +26,7 @@ export function NegotiationThread({
   youLabel: string;
   adminLabel: string;
   operatorFallbackLabel: string;
-  /** Translate a status key (`current`/`countered`/`expired`/`accepted`/`declined`). */
+  /** Translate a status key (`current`/`replaced`/`expired`/`accepted`/`declined`). */
   statusLabelFor: (statusKey: string) => string;
   timeFor: (iso: string) => string;
 }): JSX.Element {

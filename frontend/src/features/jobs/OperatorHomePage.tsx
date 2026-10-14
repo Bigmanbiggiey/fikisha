@@ -44,7 +44,7 @@ export function OperatorHomePage(): JSX.Element {
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-3">
         <h1 className="text-h1 text-fg">{t('jobs:work.homeTitle')}</h1>
-        <Button size="compact" onClick={() => navigate('/work')}>
+        <Button onClick={() => navigate('/work')}>
           {t('jobs:work.findWork')}
         </Button>
       </div>

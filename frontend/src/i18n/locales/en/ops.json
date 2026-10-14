@@ -128,7 +128,8 @@
     "events": "Event log",
     "showEvents": "Show all events",
     "hideEvents": "Hide events",
-    "eventNote": "Note"
+    "eventNote": "Note",
+    "highValuePending": "High-value review pending"
   },
   "notes": {
     "title": "Updates from Fikisha"

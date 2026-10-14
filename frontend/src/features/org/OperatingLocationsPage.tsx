@@ -11,6 +11,7 @@ import { Field } from '@/components/Field';
 import { Input } from '@/components/Input';
 import { PageLoader } from '@/components/PageLoader';
 import { StatusBadge } from '@/components/StatusBadge';
+import { Select } from '@/components/Select';
 import { localizeError } from '@/services/errorMessage';
 
 import { orgApi } from './orgApi';
@@ -69,8 +70,8 @@ export function OperatingLocationsPage(): JSX.Element {
           <div className="flex gap-3">
             <label className="text-sm">
               <span className="mb-1 block font-medium text-fg-secondary">{t('org:locations.type')}</span>
-              <select
-                className="min-h-target rounded-md border border-line-strong bg-surface-input px-2 text-body-sm text-fg"
+              <Select
+                inline
                 value={type}
                 onChange={(e) => setType(e.target.value)}
               >
@@ -79,7 +80,7 @@ export function OperatingLocationsPage(): JSX.Element {
                     {ty}
                   </option>
                 ))}
-              </select>
+              </Select>
             </label>
             <div className="flex-1">
               <Field label={t('org:locations.landmark')}>

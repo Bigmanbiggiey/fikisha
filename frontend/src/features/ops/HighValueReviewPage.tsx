@@ -11,13 +11,13 @@ import { ErrorState } from '@/components/ErrorState';
 import { Modal } from '@/components/Modal';
 import { PageLoader } from '@/components/PageLoader';
 import { StatusBadge } from '@/components/StatusBadge';
+import { Textarea } from '@/components/Textarea';
 import { useAuth } from '@/features/auth/useAuth';
 import { isPlatformAdmin } from '@/features/auth/staff';
 import { formatKes } from '@/features/jobs/money';
 import { localizeError } from '@/services/errorMessage';
 
 import { opsApi } from './opsApi';
-import { textareaClass } from './StaffJobPanel';
 import type { HighValueDecision, HighValueRow } from './types';
 
 /**
@@ -103,12 +103,13 @@ export function HighValueReviewPage(): JSX.Element {
                     <dt className="inline text-fg-muted">{t('ops:highValue.operator')}: </dt>
                     <dd className="inline text-fg">{row.operator_name ?? '—'}</dd>
                   </div>
-                  <div className="md:col-span-2 text-fg-secondary">{row.business_name}</div>
                 </dl>
+                {/* outside the <dl>: every group in a <dl> needs a <dt> and <dd> (axe definition-list) */}
+                <p className="text-body-sm text-fg-secondary">{row.business_name}</p>
                 {row.needs_platform_admin && !platformAdmin ? (
                   <p className="text-body-sm text-fg-secondary">{t('ops:highValue.platformAdminDecides')}</p>
                 ) : (
-                  <Button size="compact" variant="secondary" onClick={() => open(row)}>
+                  <Button variant="secondary" onClick={() => open(row)}>
                     {t('ops:highValue.decide')}
                   </Button>
                 )}
@@ -159,12 +160,11 @@ export function HighValueReviewPage(): JSX.Element {
           <label htmlFor="hv-rationale" className="block text-label text-fg-secondary">
             {t('ops:highValue.rationale')}
           </label>
-          <textarea
+          <Textarea
             id="hv-rationale"
             value={rationale}
             maxLength={2000}
             onChange={(e) => setRationale(e.target.value)}
-            className={textareaClass}
           />
           {decide.isError && <Alert tone="danger">{localizeError(decide.error, t)}</Alert>}
         </div>

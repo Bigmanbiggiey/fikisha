@@ -68,7 +68,6 @@
     "continueRequest": "Continue request",
     "reviewOffers": "Review offers",
     "confirmPickup": "Confirm pickup",
-    "confirmCompletion": "Confirm completion",
     "viewSummary": "View summary",
     "viewDispute": "View dispute",
     "rateOperator": "Rate operator"
@@ -85,7 +84,8 @@
     "noBusinessTitle": "You need a business account first",
     "noBusinessBody": "Create a business to start requesting transport.",
     "noBusinessCta": "Create a business",
-    "asOf": "as of {{time}}"
+    "asOf": "as of {{time}}",
+    "deliveredAuto": "Delivered — completes automatically"
   },
   "create": {
     "stepOf": "Step {{n}} of {{total}}",
@@ -148,7 +148,8 @@
     "reviewRequest": "Review request",
     "sendRequest": "Send request",
     "edit": "Edit",
-    "draftBanner": "Draft — not sent yet"
+    "draftBanner": "Draft — not sent yet",
+    "title": "Request transport"
   },
   "list": {
     "title": "Jobs",

@@ -68,7 +68,6 @@
     "continueRequest": "Endelea na ombi",
     "reviewOffers": "Pitia ofa",
     "confirmPickup": "Thibitisha uchukuzi",
-    "confirmCompletion": "Thibitisha ukamilishaji",
     "viewSummary": "Ona muhtasari",
     "viewDispute": "Ona mgogoro",
     "rateOperator": "Kadiria opereta"
@@ -85,7 +84,8 @@
     "noBusinessTitle": "Unahitaji akaunti ya biashara kwanza",
     "noBusinessBody": "Unda biashara ili kuanza kuomba usafiri.",
     "noBusinessCta": "Unda biashara",
-    "asOf": "kama ya {{time}}"
+    "asOf": "kama ya {{time}}",
+    "deliveredAuto": "Imewasilishwa — itakamilika yenyewe"
   },
   "create": {
     "stepOf": "Hatua {{n}} kati ya {{total}}",
@@ -148,7 +148,8 @@
     "reviewRequest": "Pitia ombi",
     "sendRequest": "Tuma ombi",
     "edit": "Hariri",
-    "draftBanner": "Rasimu — bado haijatumwa"
+    "draftBanner": "Rasimu — bado haijatumwa",
+    "title": "Omba usafiri"
   },
   "list": {
     "title": "Kazi",

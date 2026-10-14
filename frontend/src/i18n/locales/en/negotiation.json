@@ -8,7 +8,7 @@
     "businessFallback": "Business",
     "entryStatus": {
       "current": "Current",
-      "countered": "Countered",
+      "replaced": "Replaced by a newer offer",
       "accepted": "Accepted",
       "declined": "Declined",
       "expired": "Expired"

@@ -8,7 +8,7 @@
     "businessFallback": "Biashara",
     "entryStatus": {
       "current": "Ya sasa",
-      "countered": "Imejibiwa kwa ofa nyingine",
+      "replaced": "Imebadilishwa na ofa mpya",
       "accepted": "Imekubaliwa",
       "declined": "Imekataliwa",
       "expired": "Muda umeisha"

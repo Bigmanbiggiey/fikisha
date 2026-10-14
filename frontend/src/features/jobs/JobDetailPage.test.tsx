@@ -294,7 +294,7 @@ describe('JobDetailPage', () => {
     const user = userEvent.setup();
     renderAtJob('01a0a4123456');
 
-    await user.click(await screen.findByText('· Report an issue'));
+    await user.click(await screen.findByText('Report an issue'));
     expect(await screen.findByText('Report issue screen')).toBeInTheDocument();
   });
 
@@ -303,7 +303,7 @@ describe('JobDetailPage', () => {
     renderAtJob('01a0a4123456');
 
     await screen.findByText('Continue request');
-    expect(screen.queryByText('· Report an issue')).not.toBeInTheDocument();
+    expect(screen.queryByText('Report an issue')).not.toBeInTheDocument();
   });
 
   describe('as the operator viewer', () => {
@@ -570,7 +570,7 @@ describe('JobDetailPage', () => {
 
         expect(await screen.findByText('This job is on hold — Fikisha is reviewing an issue.')).toBeInTheDocument();
         expect(screen.queryByRole('button', { name: "I'm at pickup" })).not.toBeInTheDocument();
-        expect(screen.getByRole('link', { name: '· Report an issue' })).toBeInTheDocument();
+        expect(screen.getByRole('link', { name: 'Report an issue' })).toBeInTheDocument();
       });
 
       it('says "Delivery recorded" once DELIVERED', async () => {
