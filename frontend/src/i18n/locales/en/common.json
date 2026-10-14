@@ -32,7 +32,9 @@
   "actions": {
     "retry": "Try again",
     "loading": "Loading…",
-    "continue": "Continue"
+    "continue": "Continue",
+    "close": "Close",
+    "reload": "Reload"
   },
   "home": {
     "welcome": "Welcome, {{name}}",
@@ -66,5 +68,34 @@
   },
   "roleSwitch": {
     "title": "Working as"
+  },
+  "form": {
+    "required": "Required"
+  },
+  "shell": {
+    "skipToContent": "Skip to content"
+  },
+  "errorBoundary": {
+    "title": "Something went wrong",
+    "body": "Please reload the page."
+  },
+  "nextAction": {
+    "nothing": "Nothing needed from you right now."
+  },
+  "status": {
+    "asOf": "as of {{time}}"
+  },
+  "connectivity": {
+    "online": "Online",
+    "offline": "Offline",
+    "syncing": "Syncing…",
+    "sync_issue": "Sync issues"
+  },
+  "identity": {
+    "operatorVerified": "Operator identity verified"
+  },
+  "timeline": {
+    "pendingSync": "recorded on this phone · syncing",
+    "disputed": "Under dispute — normal steps are paused."
   }
 }

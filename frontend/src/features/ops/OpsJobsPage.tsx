@@ -10,6 +10,7 @@ import { JobStatusChip } from '@/components/JobStatusChip';
 import { PageLoader } from '@/components/PageLoader';
 import { JOB_STATUSES, VALUE_BANDS, type JobStatus, type ValueBand } from '@/features/jobs/types';
 import { localizeError } from '@/services/errorMessage';
+import { formatDateTime } from '@/services/datetime';
 
 import { FilterSelect } from './FilterSelect';
 import { JobReferenceJump } from './JobReferenceJump';
@@ -136,7 +137,7 @@ export function OpsJobsPage(): JSX.Element {
                     <td className="py-2 pr-3 text-fg-secondary">
                       {row.pickup_area || '—'} → {row.destination_area || '—'}
                     </td>
-                    <td className="py-2 text-fg-muted">{new Date(row.last_changed_at).toLocaleString()}</td>
+                    <td className="py-2 text-fg-muted">{formatDateTime(row.last_changed_at)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -159,7 +160,7 @@ export function OpsJobsPage(): JSX.Element {
                     <span className="text-body-sm text-fg-secondary">{t(`ops:band.${row.value_band ?? 'none'}`)}</span>
                   </div>
                   <p className="text-body-sm text-fg">{row.business_name}</p>
-                  <p className="text-body-sm text-fg-muted">{new Date(row.last_changed_at).toLocaleString()}</p>
+                  <p className="text-body-sm text-fg-muted">{formatDateTime(row.last_changed_at)}</p>
                 </Card>
               </li>
             ))}

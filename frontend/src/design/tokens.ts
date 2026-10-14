@@ -245,7 +245,7 @@ export interface ConnectivityVisual {
 }
 
 export const CONNECTIVITY_VISUAL: Record<ConnectivityState, ConnectivityVisual> = {
-  online: { labelEn: 'Synced', tone: 'success', icon: 'dot' },
+  online: { labelEn: 'Online', tone: 'success', icon: 'dot' },
   syncing: { labelEn: 'Syncing…', tone: 'info', icon: 'sync' },
   offline: { labelEn: 'Offline', tone: 'warning', icon: 'dot' },
   sync_issue: { labelEn: 'Sync issues', tone: 'warning', icon: 'flag' },

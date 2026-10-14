@@ -18,6 +18,7 @@ import { jobsApi } from '@/features/jobs/jobsApi';
 import { type JobViewerRole, useJobViewerRole } from '@/features/jobs/useJobViewerRole';
 import { localizeError } from '@/services/errorMessage';
 import { ApiError } from '@/services/problem';
+import { formatStamp } from '@/services/datetime';
 
 import { negotiationApi } from './negotiationApi';
 import type { NegotiationThread } from './types';
@@ -176,8 +177,9 @@ function ThreadPicker({
   );
 }
 
-function hhmm(iso: string): string {
-  return new Date(iso).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+/** An offer entry's time: the time today, date and time before (P-14). */
+function stamp(iso: string): string {
+  return formatStamp(iso);
 }
 
 function ThreadDetail({
@@ -280,7 +282,7 @@ function ThreadDetail({
           viewerRole === 'BUSINESS' ? 'negotiation:thread.operatorFallback' : 'negotiation:thread.businessFallback',
         )}
         statusLabelFor={(key) => t(`negotiation:thread.entryStatus.${key}`)}
-        timeFor={hhmm}
+        timeFor={stamp}
       />
 
       {agreed && thread.mutual_acceptance.amount_kes != null && (

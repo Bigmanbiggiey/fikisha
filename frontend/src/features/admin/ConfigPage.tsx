@@ -10,6 +10,7 @@ import { Input } from '@/components/Input';
 import { PageLoader } from '@/components/PageLoader';
 import { formatKes } from '@/features/jobs/money';
 import { localizeError } from '@/services/errorMessage';
+import { formatDateTime } from '@/services/datetime';
 
 import { AdminActionDialog } from './AdminActionDialog';
 import { adminApi } from './adminApi';
@@ -236,7 +237,7 @@ export function ConfigPage(): JSX.Element {
               <span className="font-semibold text-fg">{t('admin:config.versionLabel', { version: v.version })}</span>
               <span className="block text-fg-secondary">{v.rationale}</span>
               <span className="block text-fg-muted">
-                {[v.changed_by_name || t('admin:config.system'), new Date(v.created_at).toLocaleString()].join(' · ')}
+                {[v.changed_by_name || t('admin:config.system'), formatDateTime(v.created_at)].join(' · ')}
               </span>
             </li>
           ))}

@@ -15,6 +15,7 @@ import { disputesApi } from '@/features/incidents/incidentsApi';
 import { JobNotesSection } from '@/features/ops/JobNotesSection';
 import { StaffJobPanel } from '@/features/ops/StaffJobPanel';
 import { localizeError } from '@/services/errorMessage';
+import { formatStamp } from '@/services/datetime';
 
 import { CancelJobSheet } from './CancelJobSheet';
 import { DriverJobView } from './DriverJobView';
@@ -32,11 +33,10 @@ import { formatKes } from './money';
 import type { Job, JobStatus } from './types';
 import { useJobViewerRole } from './useJobViewerRole';
 
-/** Formats an ISO timestamp as a local HH:MM — the same "as of HH:MM" /
- * timeline-time convention every wireframe screen uses. */
-function hhmm(iso: string | null): string | undefined {
-  if (!iso) return undefined;
-  return new Date(iso).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+/** A timeline row's time: just the time today, date and time before that
+ * (P-14), always in Kenya time. */
+function stamp(iso: string | null): string | undefined {
+  return iso ? formatStamp(iso) : undefined;
 }
 
 export function JobDetailPage(): JSX.Element {
@@ -445,7 +445,7 @@ function Timeline({ job }: { job: Job }): JSX.Element {
     id: status,
     label: t(`jobs:status.${status}`),
     node: isFrozen ? (i <= currentIndex ? 'done' : 'upcoming') : i < currentIndex ? 'done' : i === currentIndex ? 'current' : 'upcoming',
-    time: hhmm(timestampByStatus[status] ?? null),
+    time: stamp(timestampByStatus[status] ?? null),
   }));
 
   return (

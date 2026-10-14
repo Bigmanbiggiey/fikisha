@@ -13,6 +13,7 @@ import { VerificationPill } from '@/components/VerificationPill';
 import type { VerificationState } from '@/design/tokens';
 import { useAuth } from '@/features/auth/useAuth';
 import { localizeError } from '@/services/errorMessage';
+import { formatDate, formatDateTime } from '@/services/datetime';
 
 import { verificationApi } from './verificationApi';
 
@@ -84,7 +85,7 @@ export function VerificationRecordPage(): JSX.Element {
         </div>
         {r.expires_at && (
           <p className="mt-1 text-body-sm text-fg-muted">
-            {t('org:verification.expiresAt')}: {new Date(r.expires_at).toLocaleDateString()}
+            {t('org:verification.expiresAt')}: {formatDate(r.expires_at)}
           </p>
         )}
       </Card>
@@ -175,7 +176,7 @@ export function VerificationRecordPage(): JSX.Element {
                 {d.action}
                 {d.actor_role ? ` · ${d.actor_role}` : ''}
               </span>
-              <span className="text-fg-muted">{new Date(d.created_at).toLocaleString()}</span>
+              <span className="text-fg-muted">{formatDateTime(d.created_at)}</span>
             </li>
           ))}
         </ul>

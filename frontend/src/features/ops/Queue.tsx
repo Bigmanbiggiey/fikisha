@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 
 import { Card } from '@/components/Card';
-import { StatusBadge } from '@/components/StatusBadge';
+import { StatusBadge, type BadgeTone } from '@/components/StatusBadge';
 
 /** A triage queue card (P3 §18.1; reused by the Platform Admin Control
  * page, §19.1): heading, a live count, an optional "View all" link. */
@@ -44,12 +44,26 @@ export function Queue({
   );
 }
 
-export function QueueRow({ to, title, meta, badge }: { to: string; title: string; meta: string; badge?: string }): JSX.Element {
+export function QueueRow({
+  to,
+  title,
+  meta,
+  badge,
+  reason,
+}: {
+  to: string;
+  title: string;
+  meta: string;
+  badge?: string;
+  /** why the row is in the queue (F-15), e.g. "Under dispute" */
+  reason?: { label: string; tone: BadgeTone };
+}): JSX.Element {
   return (
     <li>
       <Link to={to} className="block rounded-md border border-line px-3 py-2 hover:bg-surface-sunken">
         <span className="flex flex-wrap items-center gap-2">
           <span className="fk-numeric text-body font-semibold text-fg">{title}</span>
+          {reason && <StatusBadge tone={reason.tone} label={reason.label} />}
           {badge && <StatusBadge tone="warning" icon="lock" label={badge} />}
         </span>
         <span className="block text-body-sm text-fg-muted">{meta}</span>

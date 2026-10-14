@@ -52,10 +52,10 @@ export function JobReferenceJump(): JSX.Element {
         <Input
           id="job-ref-jump"
           value={ref}
-          onChange={(e) => setRef(e.target.value)}
+          onChange={(e) => setRef(e.target.value.toUpperCase())}
           placeholder={t('ops:jump.placeholder')}
           autoComplete="off"
-          className="max-w-xs uppercase"
+          className="max-w-xs"
         />
         <Button type="submit" variant="secondary" loading={jump.isPending}>
           {t('ops:jump.go')}

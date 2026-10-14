@@ -1,6 +1,9 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
+// The shared components translate their own words (P-05).
+import '@/i18n';
+
 import { JobTimeline, type TimelineStep } from './JobTimeline';
 
 const steps: TimelineStep[] = [
