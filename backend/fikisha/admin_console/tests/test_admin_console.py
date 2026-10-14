@@ -137,38 +137,81 @@ def test_contact_reveal_is_audited_without_the_phone(
 
 
 # ─── Step-up gate (D-1 deferred: everything behind it is refused) ───────
-def test_intervention_api_needs_step_up(
+def _stale_step_up(client: Any) -> Any:
+    """Make the client's session MFA-verified but with an old step-up."""
+    from datetime import timedelta
+
+    from django.utils import timezone
+
+    from fikisha.identity.models import AuthSession
+
+    AuthSession.objects.filter(revoked_at__isnull=True, step_up_at__isnull=False).update(
+        step_up_at=timezone.now() - timedelta(hours=1)
+    )
+    return client
+
+
+SUSPEND = {"account_type": "OPERATOR", "action": "SUSPEND", "reason": "Repeated no-shows at pickup"}
+
+
+def test_intervention_api_needs_a_fresh_step_up(
     client_for: Callable, platform_admin: Any, eligible_driver: Any
 ) -> None:
-    r = client_for(platform_admin).post(
-        f"{API}/admin/interventions",
-        {
-            "account_type": "OPERATOR",
-            "account_id": str(eligible_driver.id),
-            "action": "SUSPEND",
-            "reason": "Repeated no-shows at pickup",
-        },
-        format="json",
-    )
+    body = {**SUSPEND, "account_id": str(eligible_driver.id)}
+    stale = _stale_step_up(client_for(platform_admin))
+    r = stale.post(f"{API}/admin/interventions", body, format="json")
     assert r.status_code == 403, r.content
     assert r.json()["code"] == "step_up_required"
     eligible_driver.refresh_from_db()
     assert eligible_driver.status == "ACTIVE"
     assert not AdminIntervention.objects.exists()
 
+    # with admin MFA built (9a), a fresh step-up lets it through
+    r = client_for(platform_admin).post(f"{API}/admin/interventions", body, format="json")
+    assert r.status_code == 201, r.content
+    eligible_driver.refresh_from_db()
+    assert eligible_driver.status == "SUSPENDED"
 
-def test_config_change_api_needs_step_up(client_for: Callable, platform_admin: Any) -> None:
+
+def test_config_change_api_needs_a_fresh_step_up(client_for: Callable, platform_admin: Any) -> None:
     from fikisha.platform_config import services as config_services
 
     before = config_services.current_version()
-    r = client_for(platform_admin).post(
-        f"{API}/admin/config",
-        {"changes": {"commission.rate": 0.08}, "rationale": "Pilot test of a lower rate"},
+    body = {"changes": {"commission.rate": 0.08}, "rationale": "Pilot test of a lower rate"}
+    stale = _stale_step_up(client_for(platform_admin))
+    r = stale.post(f"{API}/admin/config", body, format="json")
+    assert r.status_code == 403, r.content
+    assert r.json()["code"] == "step_up_required"
+    assert config_services.current_version() == before
+
+    r = client_for(platform_admin).post(f"{API}/admin/config", body, format="json")
+    assert r.status_code == 201, r.content
+    assert config_services.current_version() == before + 1
+
+
+def test_high_value_decision_and_dispute_resolution_need_a_fresh_step_up(
+    client_for: Callable, platform_admin: Any, make_confirmed_job: Callable, eligible_driver: Any
+) -> None:
+    job = make_confirmed_job(operator=eligible_driver, declared_value_kes=50_000_000)
+    stale = _stale_step_up(client_for(platform_admin))
+    r = stale.post(
+        f"{API}/jobs/{job.id}/high-value-decision",
+        {"decision": "APPROVED", "rationale": "Known business, insured cargo"},
         format="json",
     )
     assert r.status_code == 403, r.content
     assert r.json()["code"] == "step_up_required"
-    assert config_services.current_version() == before
+    r = stale.post(
+        f"{API}/disputes/00000000-0000-7000-8000-000000000000/resolve",
+        {
+            "outcome_code": "ADMIN_DETERMINATION",
+            "rationale": "Agreed by phone",
+            "routed_job_status": "COMPLETED",
+        },
+        format="json",
+    )
+    assert r.status_code == 403, r.content
+    assert r.json()["code"] == "step_up_required"
 
 
 def test_input_errors_come_before_the_step_up(

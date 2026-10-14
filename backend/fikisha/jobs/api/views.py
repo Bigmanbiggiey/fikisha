@@ -20,6 +20,7 @@ from fikisha.common.idempotency import idempotent
 from fikisha.common.ratelimit import RateLimiter
 from fikisha.evidence import services as evidence_services
 from fikisha.evidence.models import EvidencePurpose, PiiClass, UploaderKind
+from fikisha.identity.authz.step_up import require_step_up
 from fikisha.jobs import assignment_candidates as assignment_candidates_service
 from fikisha.jobs import commission as commission_service
 from fikisha.jobs import creation, custody, discovery, job_authz, ops
@@ -215,6 +216,8 @@ class JobHighValueDecisionView(OrgApiView):
     def post(self, request: Request, job_id: str) -> Response:
         serializer = HighValueDecisionSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+        # high-value approval needs a fresh MFA step-up (Phase 1 §1.2, ADR-2D-39)
+        require_step_up(self.actor(request))
         view = decide_high_value(
             actor=self.actor(request),
             job_id=job_id,

@@ -83,7 +83,7 @@ class MfaNotVerified(DomainError):
 
 
 def _cfg() -> dict[str, Any]:
-    return settings.AUTH_CONFIG  # type: ignore[no-any-return]
+    return settings.AUTH_CONFIG
 
 
 def is_admin_user(user: Any) -> bool:
@@ -196,7 +196,7 @@ def _admin_user(actor: Any) -> User:
     user = getattr(actor, "user", None)
     if user is None or not is_admin_user(user):
         raise MfaNotRequired()
-    return user  # type: ignore[no-any-return]
+    return user
 
 
 def _session(actor: Any) -> AuthSession:

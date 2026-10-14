@@ -27,3 +27,14 @@ class StepUpRequired(DomainError):
 def require_step_up(actor: Any) -> None:
     if not getattr(actor, "is_step_up_fresh", False):
         raise StepUpRequired()
+
+
+def require_step_up_for_staff_pii(actor: Any, pii_class: str) -> bool:
+    """Staff viewing someone's HIGH-PII document (a raw ID or licence) need a
+    fresh step-up (Phase 1 permission matrix); a person viewing their own
+    doesn't. Returns True when the step-up applied, so the access log can
+    record it."""
+    if pii_class == "HIGH" and getattr(actor, "is_admin", False):
+        require_step_up(actor)
+        return True
+    return False
