@@ -80,7 +80,7 @@ export function BusinessDetailPage(): JSX.Element {
 
   if (biz.isLoading) return <PageLoader />;
   if (biz.isError || !biz.data) {
-    return <ErrorState message={localizeError(biz.error, t)} onRetry={() => void biz.refetch()} />;
+    return <ErrorState message={localizeError(biz.error, t)} error={biz.error} onRetry={() => void biz.refetch()} />;
   }
 
   return (

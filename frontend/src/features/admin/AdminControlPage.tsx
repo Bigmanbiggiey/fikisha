@@ -45,6 +45,7 @@ export function AdminControlPage(): JSX.Element {
     return (
       <ErrorState
         message={localizeError(failed, t)}
+        error={failed}
         onRetry={() => {
           void disputes.refetch();
           void highValue.refetch();

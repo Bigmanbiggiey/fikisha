@@ -100,7 +100,7 @@ export function OperatingLocationsPage(): JSX.Element {
       {list.isLoading ? (
         <PageLoader />
       ) : list.isError ? (
-        <ErrorState message={localizeError(list.error, t)} onRetry={() => void list.refetch()} />
+        <ErrorState message={localizeError(list.error, t)} error={list.error} onRetry={() => void list.refetch()} />
       ) : list.data && list.data.data.length > 0 ? (
         <ul className="space-y-2">
           {list.data.data.map((b) => (

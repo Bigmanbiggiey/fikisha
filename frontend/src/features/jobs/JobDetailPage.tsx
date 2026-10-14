@@ -84,7 +84,7 @@ export function JobDetailPage(): JSX.Element {
 
   if (job.isLoading || viewer.loading) return <PageLoader />;
   if (job.isError) {
-    return <ErrorState message={localizeError(job.error, t)} onRetry={() => void job.refetch()} />;
+    return <ErrorState message={localizeError(job.error, t)} error={job.error} onRetry={() => void job.refetch()} />;
   }
   const data = job.data!;
 

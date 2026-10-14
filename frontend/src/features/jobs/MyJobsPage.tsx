@@ -52,7 +52,7 @@ export function MyJobsPage(): JSX.Element {
       {jobs.isLoading ? (
         <PageLoader />
       ) : jobs.isError ? (
-        <ErrorState message={localizeError(jobs.error, t)} onRetry={() => void jobs.refetch()} />
+        <ErrorState message={localizeError(jobs.error, t)} error={jobs.error} onRetry={() => void jobs.refetch()} />
       ) : (
         (() => {
           const rows = (jobs.data?.data ?? []).filter((j) => operatorSegmentFor(j.status) === segment);

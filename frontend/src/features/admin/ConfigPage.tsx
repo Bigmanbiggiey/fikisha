@@ -105,7 +105,7 @@ export function ConfigPage(): JSX.Element {
 
   if (view.isLoading) return <PageLoader />;
   if (view.isError || !view.data) {
-    return <ErrorState message={localizeError(view.error, t)} onRetry={() => void view.refetch()} />;
+    return <ErrorState message={localizeError(view.error, t)} error={view.error} onRetry={() => void view.refetch()} />;
   }
   const { config, editable_paths: paths, versions, version } = view.data;
 

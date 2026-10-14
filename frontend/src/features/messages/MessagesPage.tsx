@@ -58,7 +58,7 @@ export function MessagesPage(): JSX.Element {
 
   if (list.isLoading) return <PageLoader />;
   if (list.isError) {
-    return <ErrorState message={localizeError(list.error, t)} onRetry={() => void list.refetch()} />;
+    return <ErrorState message={localizeError(list.error, t)} error={list.error} onRetry={() => void list.refetch()} />;
   }
 
   const items = (list.data?.pages ?? []).flatMap((p) => p.data);

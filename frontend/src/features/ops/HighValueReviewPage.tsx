@@ -61,7 +61,7 @@ export function HighValueReviewPage(): JSX.Element {
 
   if (queue.isLoading) return <PageLoader />;
   if (queue.isError) {
-    return <ErrorState message={localizeError(queue.error, t)} onRetry={() => void queue.refetch()} />;
+    return <ErrorState message={localizeError(queue.error, t)} error={queue.error} onRetry={() => void queue.refetch()} />;
   }
   const rows = queue.data?.data ?? [];
 

@@ -31,7 +31,7 @@ export function OperatorHomePage(): JSX.Element {
 
   if (jobs.isLoading) return <PageLoader />;
   if (jobs.isError) {
-    return <ErrorState message={localizeError(jobs.error, t)} onRetry={() => void jobs.refetch()} />;
+    return <ErrorState message={localizeError(jobs.error, t)} error={jobs.error} onRetry={() => void jobs.refetch()} />;
   }
 
   const ACTIVE = new Set(['ASSIGNED', 'AT_PICKUP', 'PICKED_UP', 'IN_TRANSIT', 'AT_DESTINATION']);

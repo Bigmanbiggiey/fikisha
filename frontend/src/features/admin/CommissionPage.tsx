@@ -74,7 +74,7 @@ export function CommissionPage(): JSX.Element {
       {ledger.isLoading ? (
         <PageLoader />
       ) : ledger.isError ? (
-        <ErrorState message={localizeError(ledger.error, t)} onRetry={() => void ledger.refetch()} />
+        <ErrorState message={localizeError(ledger.error, t)} error={ledger.error} onRetry={() => void ledger.refetch()} />
       ) : (
         <>
           {totals && (

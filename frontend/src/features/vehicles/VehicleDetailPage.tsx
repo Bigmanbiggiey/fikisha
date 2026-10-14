@@ -33,7 +33,7 @@ export function VehicleDetailPage(): JSX.Element {
   if (vehicle.isLoading) return <PageLoader />;
   if (vehicle.isError || !vehicle.data) {
     return (
-      <ErrorState message={localizeError(vehicle.error, t)} onRetry={() => void vehicle.refetch()} />
+      <ErrorState message={localizeError(vehicle.error, t)} error={vehicle.error} onRetry={() => void vehicle.refetch()} />
     );
   }
   const v = vehicle.data;
