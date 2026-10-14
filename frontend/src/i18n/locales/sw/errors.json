@@ -37,10 +37,16 @@
   "high_value_already_decided": "Uamuzi tayari umerekodiwa kwa kazi hii.",
   "not_a_high_value_job": "Kazi hii haiko katika kiwango cha thamani ya juu, kwa hivyo hakuna ukaguzi.",
   "not_authorised_to_assign": "Huruhusiwi kufanya uamuzi huu.",
-  "step_up_required": "Hili linahitaji uthibitisho mpya wa MFA, na MFA ya wasimamizi bado haijawekwa. Hakuna kilichobadilishwa.",
+  "step_up_required": "Hili linahitaji msimbo mpya wa uthibitishaji. Hakuna kilichobadilishwa.",
   "intervention_not_allowed": "Hatua hiyo haiwezekani kwa akaunti hii katika hali yake ya sasa.",
   "invalid_intervention": "Kagua sababu na muda.",
   "config_key_not_editable": "Mpangilio huo hauwezi kubadilishwa kutoka hapa.",
   "invalid_config_change": "Thamani hizo si sahihi, au tayari ndizo thamani hai.",
-  "business_suspended": "Biashara hii imesimamishwa na haiwezi kuomba usafiri mpya."
+  "business_suspended": "Biashara hii imesimamishwa na haiwezi kuomba usafiri mpya.",
+  "mfa_invalid_code": "Msimbo huo si sahihi. Angalia programu na ujaribu tena.",
+  "mfa_locked": "Misimbo mingi isiyo sahihi. Subiri dakika chache na ujaribu tena.",
+  "mfa_required": "Weka msimbo wako wa uthibitishaji kwanza.",
+  "mfa_not_enrolled": "Weka programu ya uthibitishaji kwanza.",
+  "mfa_already_enrolled": "Akaunti hii tayari ina programu ya uthibitishaji.",
+  "mfa_not_required": "Ni akaunti za wasimamizi pekee zinazotumia programu ya uthibitishaji."
 }

@@ -88,8 +88,8 @@
     "durationLabel_one": "Siku {{count}}",
     "durationLabel_other": "Siku {{count}}",
     "audited": "Hili linarekodiwa kwenye kumbukumbu za ukaguzi, pamoja na jina lako na sababu.",
-    "mfaNotice": "Hatua hii inahitaji uthibitisho mpya wa MFA. MFA ya wasimamizi bado haijawekwa, kwa hiyo Fikisha itakataa kwa sasa.",
-    "stepUpMissing": "Imekataliwa: hili linahitaji uthibitisho mpya wa MFA, na MFA ya wasimamizi bado haijawekwa. Hakuna kilichobadilishwa."
+    "mfaNotice": "Utaombwa msimbo mpya kutoka kwa programu yako ya uthibitishaji.",
+    "stepUpMissing": "Haijafanyika: inahitaji msimbo mpya wa uthibitishaji. Hakuna kilichobadilishwa."
   },
   "config": {
     "title": "Mipangilio",

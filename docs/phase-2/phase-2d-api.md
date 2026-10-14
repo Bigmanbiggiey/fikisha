@@ -210,6 +210,31 @@ the DRAFT → REQUESTED guard when the business is suspended.
 
 ---
 
+## 4d. Admin MFA (Increment 9a, ADR-2D-39)
+
+Signed-in callers only. Everything but `/me` refuses non-admins with 403
+`mfa_not_required`.
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| POST | `/auth/mfa/enroll` | `{secret, otpauth_uri}` for an admin with no confirmed authenticator (replaces an unconfirmed one). 409 `mfa_already_enrolled` |
+| POST | `/auth/mfa/enroll/confirm` | `{code}` → `{backup_codes}` (ten, shown once). The session becomes MFA-verified. 400 `mfa_invalid_code` |
+| POST | `/auth/mfa/verify` | `{code}` (TOTP or backup code) → `{method, backup_codes_left}`. The MFA half of an admin sign-in. 409 `mfa_not_enrolled`, 429 `mfa_locked` |
+| POST | `/auth/step-up` | `{code}` → `{method, fresh_for_seconds}`. 403 `mfa_required` if the session hasn't passed MFA |
+
+`GET /me` adds `mfa: {required, enrolled, verified, step_up_fresh}`.
+
+**Until a session passes MFA, an admin's roles don't apply:** every admin
+endpoint answers 403 as for an ordinary user.
+
+**Step-up.** These actions answer 403 `step_up_required` without a step-up
+in the last `STEP_UP_TTL_SECONDS`:
+- `POST /admin/interventions` and `POST /admin/config`;
+- `POST /disputes/<id>/resolve` and `POST /jobs/<id>/high-value-decision`;
+- staff fetching HIGH-PII evidence content.
+
+---
+
 ## 5. What is deliberately absent
 
 No route exposes: a raw scheduler/lifecycle transition (sweeps run only as

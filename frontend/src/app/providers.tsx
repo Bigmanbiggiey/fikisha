@@ -4,6 +4,7 @@ import { I18nextProvider } from 'react-i18next';
 import { BrowserRouter } from 'react-router-dom';
 
 import { AuthProvider } from '@/features/auth/AuthProvider';
+import { StepUpProvider } from '@/features/auth/StepUpProvider';
 import i18n from '@/i18n';
 
 import { ErrorBoundary } from './ErrorBoundary';
@@ -17,7 +18,9 @@ export function AppProviders({ children }: { children: ReactNode }): JSX.Element
       <I18nextProvider i18n={i18n}>
         <QueryClientProvider client={queryClient}>
           <BrowserRouter>
-            <AuthProvider>{children}</AuthProvider>
+            <AuthProvider>
+              <StepUpProvider>{children}</StepUpProvider>
+            </AuthProvider>
           </BrowserRouter>
         </QueryClientProvider>
       </I18nextProvider>

@@ -37,10 +37,16 @@
   "high_value_already_decided": "A decision has already been recorded for this job.",
   "not_a_high_value_job": "This job is not in a high-value band, so no review applies.",
   "not_authorised_to_assign": "You are not allowed to make this decision.",
-  "step_up_required": "This needs a fresh MFA check, and admin MFA isn't set up yet. Nothing was changed.",
+  "step_up_required": "This needs a fresh authenticator code. Nothing was changed.",
   "intervention_not_allowed": "That action isn't possible for this account in its current state.",
   "invalid_intervention": "Check the reason and duration.",
   "config_key_not_editable": "That setting can't be changed from the console.",
   "invalid_config_change": "Those values aren't valid, or they're already the live values.",
-  "business_suspended": "This business is suspended and can't request new transport."
+  "business_suspended": "This business is suspended and can't request new transport.",
+  "mfa_invalid_code": "That code isn't right. Check the app and try again.",
+  "mfa_locked": "Too many wrong codes. Wait a few minutes and try again.",
+  "mfa_required": "Enter your authenticator code first.",
+  "mfa_not_enrolled": "Set up an authenticator first.",
+  "mfa_already_enrolled": "This account already has an authenticator.",
+  "mfa_not_required": "Only admin accounts use an authenticator."
 }
