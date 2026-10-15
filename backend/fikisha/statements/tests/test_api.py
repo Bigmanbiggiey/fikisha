@@ -174,3 +174,26 @@ def test_payment_and_reversal_over_http_need_a_fresh_step_up(
         .json()
     )
     assert [s["kind"] for s in mine["settlements"]] == ["PAYMENT", "REVERSAL"]
+
+
+def test_new_statements_are_unseen_until_the_payee_opens_them(
+    billed: dict[str, Any], client_for: Callable, platform_admin: Any
+) -> None:
+    from fikisha.statements.models import StatementSeen
+
+    operator = client_for(billed["operator"].user)
+    body = operator.get(f"{API}/statements").json()
+    assert body["unseen_count"] == 1 and body["data"][0]["seen"] is False
+
+    seen_url = f"{API}/statements/{billed['solo_statement'].id}/seen"
+    # staff opening it doesn't count; an outsider is refused
+    assert client_for(platform_admin).post(seen_url).status_code == 204
+    assert client_for(billed["manager"].user).post(seen_url).status_code == 403
+    assert not StatementSeen.objects.exists()
+
+    assert operator.post(seen_url).status_code == 204
+    assert operator.post(seen_url).status_code == 204  # idempotent
+    body = operator.get(f"{API}/statements").json()
+    assert body["unseen_count"] == 0 and body["data"][0]["seen"] is True
+    # the group's statement is still new for its manager
+    assert client_for(billed["manager"].user).get(f"{API}/statements").json()["unseen_count"] == 1

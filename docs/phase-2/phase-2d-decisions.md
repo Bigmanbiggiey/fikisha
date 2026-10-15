@@ -980,6 +980,43 @@ is updated in S-3.
   Ops read-only, the admin run, payment and reversal over HTTP with a
   stale vs fresh step-up.
 
+### ADR-2D-42 addendum — S-2 payee screens and the "seen" marker (2026-10-15)
+
+**Backend addition.** D-6 asks for an unread marker on the Statements list
+and a Home "New statement" card, which S-1 did not provide. S-2 adds:
+- `statement_seen` (migration `statements.0003`): one row per person and
+  statement, written the first time the **payee** opens it, through
+  `POST /statements/<id>/seen`. Staff opening a statement records nothing.
+- `GET /statements` now returns `seen` on each row and `unseen_count`.
+- The marker records what someone looked at, not a change to the ledger.
+  It is therefore mutable-table style and not audited, like
+  `inbox_read_marker` (ADR-2D-37).
+- Test: `test_new_statements_are_unseen_until_the_payee_opens_them`.
+
+**Screens** (`frontend/src/features/statements`):
+- **Statements** (`/statements`): in the operator and Group Manager
+  navigation (P3 §7.5). The list shows the unseen dot and the
+  paid / part-paid / overdue badge.
+- **Statement detail** (`/statements/<id>`):
+  - "Commission statement — not a tax invoice" (D-1);
+  - the summary, the jobs and any credits;
+  - payments, with reversals struck through;
+  - "How to pay": the paybill once set, otherwise "details to follow"
+    with the account reference (D-3);
+  - a printable layout: the navigation hides, the wordmark shows (P3
+    §6.5).
+- **Home** "New statement" card on the operator Home.
+- **Job Detail**: a completed job's "Earnings for this job" card, showing
+  agreed price − commission = net and linking the statement (P3 §7.4).
+  The payee's server answer decides; a group's driver gets 404 and no
+  card.
+- **Fixed on the way:** a completed job's operator action card said "will
+  be marked complete automatically" and "coming in a later update". It now
+  says "Nothing needed from you right now."
+
+**Why it's safe.** It only adds reads, plus one per-person seen marker on a
+statement the person is the payee of. The ledger tables are unchanged.
+
 ## Self-caught defects fixed during implementation
 
 Every one of these was found by the implementation's own review or test

@@ -27,11 +27,7 @@ export function segmentFor(status: JobStatus): JobSegment {
 }
 
 export type BusinessActionKey =
-  | 'continueRequest'
-  | 'reviewOffers'
-  | 'confirmPickup'
-  | 'viewSummary'
-  | 'viewDispute';
+  'continueRequest' | 'reviewOffers' | 'confirmPickup' | 'viewSummary' | 'viewDispute';
 
 /** The Business's one primary next action per state (`design-phase-3-
  * wireframes.md` §6.4's table) — states not listed here have nothing for the
@@ -154,9 +150,9 @@ export type OperatorActionKey =
  * screens instead of transitioning directly.
  *
  * Known simplifications, documented rather than silently approximated:
- * - **`viewStatement`** ("Earnings for this Job"): deferred — `commission.
- *   read` is Platform-Admin-only (ADR-2D-27) and there is no operator-
- *   facing commission-preview endpoint yet. Informational only. */
+ * - **`viewStatement`** ("Earnings for this Job"): the action card says nothing
+ *   is needed; the "Earnings for this job" card (`JobEarningsCard`, Commission
+ *   & Statements S-2) shows agreed price − commission = net. */
 export function operatorNextAction(
   status: JobStatus,
   isAssignedDriver: boolean,

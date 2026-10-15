@@ -35,14 +35,40 @@ class _StatementPagination(CursorPagination):
 
 
 class MyStatementsView(OrgApiView):
-    """``GET /statements`` — the caller's own statements as a payee."""
+    """``GET /statements`` — the caller's own statements as a payee. Each row
+    says whether they have opened it (``seen``); ``unseen_count`` drives the
+    Home "New statement" card (D-6)."""
 
     action_get = "statements.read.own"
 
     def get(self, request: Request) -> Response:
+        actor = self.actor(request)
         paginator = _StatementPagination()
-        page = paginator.paginate_queryset(services.statements_for(self.actor(request)), request)
-        return paginator.get_paginated_response(_SummaryRow(page, many=True).data)
+        page = paginator.paginate_queryset(services.statements_for(actor), request) or []
+        seen = services.seen_statement_ids(actor=actor, statement_ids=[s.id for s in page])
+        rows = _SummaryRow(page, many=True).data
+        for row in rows:
+            row["seen"] = row["id"] in seen
+        response = paginator.get_paginated_response(rows)
+        response.data["unseen_count"] = services.unseen_count(actor)
+        return response
+
+
+class StatementSeenView(OrgApiView):
+    """``POST /statements/<id>/seen`` — the payee opened it. 204; staff
+    opening a statement records nothing."""
+
+    action_post = "statements.read.one"
+
+    def resolve_target(self) -> CommissionStatement:
+        statement = CommissionStatement.objects.filter(id=self.kwargs["statement_id"]).first()
+        if statement is None:
+            raise NotFound("No such statement.")
+        return statement
+
+    def post(self, request: Request, statement_id: uuid.UUID) -> Response:
+        services.mark_seen(actor=self.actor(request), statement=self.resolve_target())
+        return Response(status=204)
 
 
 class StatementDetailView(OrgApiView):
