@@ -1,6 +1,6 @@
-# Commission & Statements: plan (DRAFT)
+# Commission & Statements: plan
 
-**Status:** DRAFT for founder review, 2026-10-15. Nothing here is built.
+**Status:** Decisions D-1 to D-8 answered 2026-10-15, all as recommended (see §7). Plan approval to start S-1 pending. Nothing here is built.
 **Founder decision:** 2026-10-14 item 5, "weekly statements + manual
 settlement recording; eTIMS later", planned before it is built
 (`founder-decisions-2026-10-14.md`). Item 6 also applies: manual commission
@@ -252,11 +252,15 @@ check in EN and SW. New Swahili strings go on the pre-launch review list
 
 | # | Decision | Recommendation | Founder answer |
 |---|---|---|---|
-| D-1 | Statements before eTIMS | (a) "not a tax invoice" label; tax-advisor confirmation before the first real statement | |
-| D-2 | When commission is billable | (a) after the dispute window closes | |
-| D-3 | Paybill details | Founder supplies the paybill number; the statement reference is the account number | |
-| D-4 | Who records a settlement | (a) Platform Admin + step-up; Ops read-only | |
-| D-5 | Correcting a recorded payment | (a) reversal row, reasoned, step-up | |
-| D-6 | Notifying the payee | (a) in-app only; event emitted for later | |
-| D-7 | Business statements | (a) left out | |
-| D-8 | Unpaid statements | (a) admin "overdue" marker only | |
+| D-1 | Statements before eTIMS | (a) "not a tax invoice" label; tax-advisor confirmation before the first real statement | **(a)**. Founder action: tax-advisor confirmation before the first statement reaches a real operator |
+| D-2 | When commission is billable | (a) after the dispute window closes | **(a)** |
+| D-3 | Paybill details | Founder supplies the paybill number; the statement reference is the account number | **Statement reference is the account number.** Paybill number not yet given: statements show "payment details to follow" until `statements.paybill_number` is set |
+| D-4 | Who records a settlement | (a) Platform Admin + step-up; Ops read-only | **(a)** |
+| D-5 | Correcting a recorded payment | (a) reversal row, reasoned, step-up | **(a)** |
+| D-6 | Notifying the payee | (a) in-app only; event emitted for later | **(a)** |
+| D-7 | Business statements | (a) left out | **(a)** |
+| D-8 | Unpaid statements | (a) admin "overdue" marker only | **(a)** |
+
+Answers were collected through the founder's private decision form
+(submitted 2026-10-15 08:45 EAT, 8 of 8 answered, no notes). This table is
+the authoritative copy.
