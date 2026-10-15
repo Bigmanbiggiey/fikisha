@@ -1,6 +1,6 @@
 # Commission & Statements: plan
 
-**Status:** Decisions D-1 to D-8 answered 2026-10-15, all as recommended (see §7). Plan approval to start S-1 pending. Nothing here is built.
+**Status:** APPROVED 2026-10-15. Decisions D-1 to D-8 answered the same day, all as recommended (see §7); paybill number to follow. S-1 in progress.
 **Founder decision:** 2026-10-14 item 5, "weekly statements + manual
 settlement recording; eTIMS later", planned before it is built
 (`founder-decisions-2026-10-14.md`). Item 6 also applies: manual commission
