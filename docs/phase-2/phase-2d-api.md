@@ -81,7 +81,7 @@ via the link token itself, not a bearer session.
 | GET | `/jobs/<job_id>` | `job.read` | Job detail (object-level `is_job_party` check) |
 | POST | `/jobs/<job_id>/submit` | `job.transition` | `DRAFT → REQUESTED` |
 | POST | `/jobs/<job_id>/cancel` | `job.transition` | `* → CANCELLED` (wherever a rule allows it) |
-| GET | `/jobs/<job_id>/assignment-candidates` | `job.assign.candidates` | Read-only driver/vehicle eligibility preview with concrete reasons; shares its predicates with the `assign` guard so the two cannot drift (Increment 4) |
+| GET | `/jobs/<job_id>/assignment-candidates` | `job.assign.candidates` | Read-only driver/vehicle eligibility preview with concrete reasons; shares its predicates with the `assign` guard so the two cannot drift (Increment 4). On a group job: the group's active members (with `group_role`) and the group's vehicles for a Group Manager or staff; only the caller in a `DRIVER_ACCEPTS` group; refused otherwise; `supports_group_assignment: true` + `assignment_mode` (ADR-2D-41) |
 | POST | `/jobs/<job_id>/assign` | `job.assign` | `CONFIRMED → ASSIGNED` — driver + vehicle eligibility, high-value gate |
 | GET | `/jobs/<job_id>/commission` | `commission.read` | Read the job's commission record — **Platform-Admin-only** (ADR-2D-27) |
 | POST | `/jobs/<job_id>/custody/arrive-pickup` | `job.proof.pickup` | `ASSIGNED → AT_PICKUP` |
