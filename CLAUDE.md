@@ -290,10 +290,10 @@ see the report's "Tiebreaker Corrective Verification" section). The Founder
 reviewed this finding on 2026-09-15 and **retroactively ratified `main`'s
 current state** rather than reverting/force-pushing over public history —
 the code itself is real, tested, and now blocker-free; the failure was
-procedural. Hardening in progress: GitHub branch protection on `main`
-(require PRs, block direct pushes) — **not yet applied** (`gh` is
-authenticated as of 2026-10-13, so it can be applied on explicit founder
-instruction); see `docs/phase-2/phase-2d-final-verification.md`
+procedural. Hardening: GitHub branch protection on `main` — **applied
+2026-10-14** (founder decision 4, `docs/founder-decisions-2026-10-14.md`):
+PRs required (0 approvals, so the founder can merge their own), admins
+included, force-pushes and deletion blocked; see `docs/phase-2/phase-2d-final-verification.md`
 for full forensic detail. Treat any future direct push/fast-forward to
 `main` outside an explicit founder instruction as the same class of
 violation, branch protection or not.
