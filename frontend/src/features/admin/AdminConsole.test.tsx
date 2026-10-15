@@ -27,13 +27,25 @@ vi.mock('@/features/auth/authApi', () => ({
   authApi: { me: (...a: unknown[]) => meMock(...a), logout: vi.fn() },
 }));
 vi.mock('./adminApi', () => ({
-  adminApi: new Proxy({}, { get: (_t, key: string) => (...a: unknown[]) => api[key as keyof typeof api](...a) }),
+  adminApi: new Proxy(
+    {},
+    {
+      get:
+        (_t, key: string) =>
+        (...a: unknown[]) =>
+          api[key as keyof typeof api](...a),
+    },
+  ),
   cursorFrom: (link: string | null) => link,
 }));
 
 const page = <T,>(data: T[]) => ({ data, page: { next_cursor: null, prev_cursor: null } });
 const stepUp = () =>
-  new ApiError({ type: 'about:blank', title: 'Forbidden', status: 403, code: 'step_up_required', detail: '' }, 403, '');
+  new ApiError(
+    { type: 'about:blank', title: 'Forbidden', status: 403, code: 'step_up_required', detail: '' },
+    403,
+    '',
+  );
 
 function detail(overrides: Record<string, unknown> = {}): Record<string, unknown> {
   return {
@@ -56,14 +68,30 @@ beforeEach(() => {
   meMock.mockReset();
   for (const fn of Object.values(api)) fn.mockReset();
   meMock.mockResolvedValue({
-    id: 'a1', phone: '+254700000009', display_name: 'Admin', locale: 'en', status: 'ACTIVE', roles: ['PLATFORM_ADMIN'], is_admin: true,
+    id: 'a1',
+    phone: '+254700000009',
+    display_name: 'Admin',
+    locale: 'en',
+    status: 'ACTIVE',
+    roles: ['PLATFORM_ADMIN'],
+    is_admin: true,
   });
 });
 
 describe('Users & organizations', () => {
   it('lists masked rows and switches directory', async () => {
     api.directory.mockResolvedValue(
-      page([{ id: 'b-1', kind: 'BUSINESS', name: 'Kitengela Traders', state: 'GOOD', phone: '+2547•••••001', member_count: 2, created_at: '' }]),
+      page([
+        {
+          id: 'b-1',
+          kind: 'BUSINESS',
+          name: 'Kitengela Traders',
+          state: 'GOOD',
+          phone: '+2547•••••001',
+          member_count: 2,
+          created_at: '',
+        },
+      ]),
     );
     renderWithProviders(<DirectoryPage />, { route: '/admin/directory' });
 
@@ -73,7 +101,9 @@ describe('Users & organizations', () => {
     expect(api.directory).toHaveBeenCalledWith('businesses', { q: '', state: '' }, null);
 
     await userEvent.click(screen.getByRole('button', { name: 'Operators' }));
-    await waitFor(() => expect(api.directory).toHaveBeenLastCalledWith('operators', { q: '', state: '' }, null));
+    await waitFor(() =>
+      expect(api.directory).toHaveBeenLastCalledWith('operators', { q: '', state: '' }, null),
+    );
   });
 });
 
@@ -97,7 +127,10 @@ describe('directory detail', () => {
     expect(screen.queryByText('+254712345678')).not.toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', { name: 'Show full number' }));
-    expect(await screen.findByRole('link', { name: '+254712345678' })).toHaveAttribute('href', 'tel:+254712345678');
+    expect(await screen.findByRole('link', { name: '+254712345678' })).toHaveAttribute(
+      'href',
+      'tel:+254712345678',
+    );
   });
 
   it('offers actions that fit the state', async () => {
@@ -134,7 +167,9 @@ describe('directory detail', () => {
       reason: 'short but now long enough',
       duration_days: 14,
     });
-    expect(await within(dialog).findByText(/needs a fresh authenticator code. Nothing was changed/)).toBeInTheDocument();
+    expect(
+      await within(dialog).findByText(/needs a fresh authenticator code. Nothing was changed/),
+    ).toBeInTheDocument();
   });
 });
 
@@ -148,7 +183,15 @@ describe('Configuration', () => {
       role_permissions: {},
     },
     editable_paths: ['commission.rate', 'commission.min_fee_kes', 'timeouts.offer_expiry_hours'],
-    versions: [{ version: 3, changed_by_user_id: null, changed_by_name: null, rationale: 'Bootstrap', created_at: '2026-10-01T08:00:00Z' }],
+    versions: [
+      {
+        version: 3,
+        changed_by_user_id: null,
+        changed_by_name: null,
+        rationale: 'Bootstrap',
+        created_at: '2026-10-01T08:00:00Z',
+      },
+    ],
   };
 
   it('previews a change in people units and sends config units', async () => {
@@ -177,7 +220,10 @@ describe('Configuration', () => {
     await userEvent.type(within(dialog).getByLabelText('Reason'), 'Pilot test of a lower rate');
     await userEvent.click(within(dialog).getByRole('button', { name: 'Continue' }));
     await userEvent.click(within(dialog).getByRole('button', { name: 'Apply' }));
-    expect(api.applyConfig).toHaveBeenCalledWith({ 'commission.rate': 0.08 }, 'Pilot test of a lower rate');
+    expect(api.applyConfig).toHaveBeenCalledWith(
+      { 'commission.rate': 0.08 },
+      'Pilot test of a lower rate',
+    );
     expect(await within(dialog).findByText(/needs a fresh authenticator code/)).toBeInTheDocument();
   });
 
@@ -193,25 +239,50 @@ describe('Configuration', () => {
 });
 
 describe('Commission', () => {
-  it('shows the ledger, totals and that statements are not produced yet', async () => {
+  it('shows the ledger, totals and a link to the weekly statements', async () => {
     api.commission.mockResolvedValue({
       ...page([
         {
-          id: 'c-1', job_id: 'job-1', job_reference: 'ABC123', business_name: 'Kitengela Traders',
+          id: 'c-1',
+          job_id: 'job-1',
+          job_reference: 'ABC123',
+          business_name: 'Kitengela Traders',
           payee: { kind: 'OPERATOR', id: 'op-1', name: 'A. Otieno' },
-          agreed_price_kes: 300000, rate: '0.1000', min_fee_kes: 4000, cap_kes: 500000,
-          commission_kes: 30000, adjustments_kes: -10000, effective_kes: 20000, config_version: 1,
-          adjustments: [{ id: 'adj-1', kind: 'REDUCTION', amount_kes: -10000, reason: 'Late', by_platform_admin: true, source_dispute_id: null, created_at: '' }],
+          agreed_price_kes: 300000,
+          rate: '0.1000',
+          min_fee_kes: 4000,
+          cap_kes: 500000,
+          commission_kes: 30000,
+          adjustments_kes: -10000,
+          effective_kes: 20000,
+          config_version: 1,
+          adjustments: [
+            {
+              id: 'adj-1',
+              kind: 'REDUCTION',
+              amount_kes: -10000,
+              reason: 'Late',
+              by_platform_admin: true,
+              source_dispute_id: null,
+              created_at: '',
+            },
+          ],
           created_at: '2026-10-02T08:00:00Z',
         },
       ]),
       totals: { records: 1, commission_kes: 30000, adjustments_kes: -10000, effective_kes: 20000 },
-      statements_available: false,
+      statements_available: true,
     });
     renderWithProviders(<CommissionPage />);
 
-    expect(await screen.findByRole('link', { name: 'ABC123' })).toHaveAttribute('href', '/jobs/job-1');
-    expect(screen.getByText(/aren't produced yet/)).toBeInTheDocument();
+    expect(await screen.findByRole('link', { name: 'ABC123' })).toHaveAttribute(
+      'href',
+      '/jobs/job-1',
+    );
+    expect(screen.getByRole('link', { name: 'Open statements' })).toHaveAttribute(
+      'href',
+      '/ops/statements',
+    );
     expect(screen.getAllByText('KSh 200').length).toBeGreaterThan(0);
     expect(screen.getByText(/Reduced/)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /pay/i })).not.toBeInTheDocument();

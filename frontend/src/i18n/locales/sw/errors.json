@@ -48,5 +48,10 @@
   "mfa_required": "Weka msimbo wako wa uthibitishaji kwanza.",
   "mfa_not_enrolled": "Weka programu ya uthibitishaji kwanza.",
   "mfa_already_enrolled": "Akaunti hii tayari ina programu ya uthibitishaji.",
-  "mfa_not_required": "Ni akaunti za wasimamizi pekee zinazotumia programu ya uthibitishaji."
+  "mfa_not_required": "Ni akaunti za wasimamizi pekee zinazotumia programu ya uthibitishaji.",
+  "invalid_statement_period": "Chagua wiki iliyokwisha (taarifa ni za Jumatatu hadi Jumapili).",
+  "invalid_settlement": "Kagua maelezo ya malipo kisha ujaribu tena.",
+  "settlement_exceeds_due": "Hicho ni zaidi ya kinachodaiwa kwenye taarifa hii. Hakuna kilichorekodiwa.",
+  "duplicate_payment_ref": "Malipo yenye namba hii tayari yamerekodiwa. Hakuna kilichorekodiwa.",
+  "settlement_not_reversible": "Malipo haya tayari yamebatilishwa, au yenyewe ni ubatilishaji."
 }

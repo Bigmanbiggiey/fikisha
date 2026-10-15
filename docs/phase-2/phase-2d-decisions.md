@@ -1017,6 +1017,40 @@ and a Home "New statement" card, which S-1 did not provide. S-2 adds:
 **Why it's safe.** It only adds reads, plus one per-person seen marker on a
 statement the person is the payee of. The ledger tables are unchanged.
 
+### ADR-2D-42 addendum — S-3 staff screens (2026-10-15)
+
+Frontend only; no backend change.
+- **Where:** `/ops/statements` and `/ops/statements/<id>`, behind
+  `RequireStaff`, so Operations Officers get their read access (D-4).
+  "Statements" is in the staff navigation, which the Platform Admin
+  shares.
+- **List:**
+  - filters by week (the last 12 finished weeks, Kenya time) and payee
+    kind;
+  - invoiced / paid / still-owed totals for the filter (pilot-strategy
+    §4.7);
+  - a Platform Admin also gets **Run a week** (finished weeks only; the
+    server is idempotent).
+- **Detail:** the payee's breakdown (shared parts), with every payment and
+  its note. A Platform Admin gets:
+  - **Record a payment**: amount (refused above what's still owed),
+    M-Pesa/bank reference, date (not in the future), method, then a
+    confirm step that restates it;
+  - **Reverse**: through the shared admin action dialog, reason at least
+    10 characters.
+  - Both trigger the existing step-up prompt (`StepUpProvider`).
+  - Operations Officers see no action controls. Server-side policy is the
+    enforcement either way.
+- **Control:** last week's invoiced / paid / still owed.
+- **Commission:** the "not produced yet" notice is replaced by a link to
+  Statements.
+- New error messages: `invalid_statement_period`, `invalid_settlement`,
+  `settlement_exceeds_due`, `duplicate_payment_ref`,
+  `settlement_not_reversible`.
+
+**Why it's safe.** These are screens over the S-1 endpoints, whose
+authorization, step-up and limits are unchanged and already tested.
+
 ## Self-caught defects fixed during implementation
 
 Every one of these was found by the implementation's own review or test

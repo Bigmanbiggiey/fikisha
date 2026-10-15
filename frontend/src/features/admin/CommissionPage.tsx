@@ -28,7 +28,8 @@ function sinceFor(days: string): string | undefined {
  * `commission_record`, its adjustments and the effective amount. Read-only.
  * There is no wallet, no balance and no pay action anywhere: Fikisha
  * records commission, and the fare moves between the parties. Weekly
- * statements, settlement and eTIMS aren't built yet; the page says so.
+ * statements and recorded payments are on the Statements page (S-3); eTIMS
+ * is not built.
  */
 export function CommissionPage(): JSX.Element {
   const { t } = useTranslation(['admin', 'errors']);
@@ -54,7 +55,12 @@ export function CommissionPage(): JSX.Element {
         <p className="mt-1 text-body-sm text-fg-muted">{t('admin:commission.subtitle')}</p>
       </div>
 
-      <Alert tone="info">{t('admin:commission.statementsNotYet')}</Alert>
+      <Alert tone="info">
+        {t('admin:commission.statementsLink')}{' '}
+        <Link to="/ops/statements" className="text-action-secondary-text underline">
+          {t('admin:commission.statementsOpen')}
+        </Link>
+      </Alert>
 
       <Card className="max-w-sm">
         <FilterSelect
@@ -67,14 +73,20 @@ export function CommissionPage(): JSX.Element {
             else next.delete('days');
             setParams(next, { replace: true });
           }}
-          options={PERIODS.map((p) => [p, t(`admin:commission.periodOption.${p || 'all'}`)] as [string, string])}
+          options={PERIODS.map(
+            (p) => [p, t(`admin:commission.periodOption.${p || 'all'}`)] as [string, string],
+          )}
         />
       </Card>
 
       {ledger.isLoading ? (
         <PageLoader />
       ) : ledger.isError ? (
-        <ErrorState message={localizeError(ledger.error, t)} error={ledger.error} onRetry={() => void ledger.refetch()} />
+        <ErrorState
+          message={localizeError(ledger.error, t)}
+          error={ledger.error}
+          onRetry={() => void ledger.refetch()}
+        />
       ) : (
         <>
           {totals && (
@@ -88,7 +100,9 @@ export function CommissionPage(): JSX.Element {
                 ] as const
               ).map(([key, value]) => (
                 <Card key={key}>
-                  <dt className="text-body-sm text-fg-muted">{t(`admin:commission.total.${key}`)}</dt>
+                  <dt className="text-body-sm text-fg-muted">
+                    {t(`admin:commission.total.${key}`)}
+                  </dt>
                   <dd className="fk-numeric text-h3 text-fg">{value}</dd>
                 </Card>
               ))}
@@ -103,20 +117,37 @@ export function CommissionPage(): JSX.Element {
                 <caption className="sr-only">{t('admin:commission.title')}</caption>
                 <thead>
                   <tr className="border-b border-line-strong text-fg-secondary">
-                    <th scope="col" className="px-3 py-2">{t('admin:commission.col.job')}</th>
-                    <th scope="col" className="px-3 py-2">{t('admin:commission.col.payee')}</th>
-                    <th scope="col" className="px-3 py-2">{t('admin:commission.col.price')}</th>
-                    <th scope="col" className="px-3 py-2">{t('admin:commission.col.commission')}</th>
-                    <th scope="col" className="px-3 py-2">{t('admin:commission.col.adjustments')}</th>
-                    <th scope="col" className="px-3 py-2">{t('admin:commission.col.effective')}</th>
-                    <th scope="col" className="px-3 py-2">{t('admin:commission.col.date')}</th>
+                    <th scope="col" className="px-3 py-2">
+                      {t('admin:commission.col.job')}
+                    </th>
+                    <th scope="col" className="px-3 py-2">
+                      {t('admin:commission.col.payee')}
+                    </th>
+                    <th scope="col" className="px-3 py-2">
+                      {t('admin:commission.col.price')}
+                    </th>
+                    <th scope="col" className="px-3 py-2">
+                      {t('admin:commission.col.commission')}
+                    </th>
+                    <th scope="col" className="px-3 py-2">
+                      {t('admin:commission.col.adjustments')}
+                    </th>
+                    <th scope="col" className="px-3 py-2">
+                      {t('admin:commission.col.effective')}
+                    </th>
+                    <th scope="col" className="px-3 py-2">
+                      {t('admin:commission.col.date')}
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
                   {rows.map((row) => (
                     <tr key={row.id} className="border-b border-line align-top">
                       <th scope="row" className="px-3 py-2 font-semibold">
-                        <Link to={`/jobs/${row.job_id}`} className="fk-numeric text-action-secondary-text underline">
+                        <Link
+                          to={`/jobs/${row.job_id}`}
+                          className="fk-numeric text-action-secondary-text underline"
+                        >
                           {row.job_reference}
                         </Link>
                         <span className="block font-normal text-fg-muted">{row.business_name}</span>
@@ -138,11 +169,15 @@ export function CommissionPage(): JSX.Element {
                           : row.adjustments.map((a) => (
                               <span key={a.id} className="block">
                                 <span className="fk-numeric">{formatKes(a.amount_kes)}</span> ·{' '}
-                                {t(`admin:commission.adjustment.${a.kind}`, { defaultValue: a.kind })}
+                                {t(`admin:commission.adjustment.${a.kind}`, {
+                                  defaultValue: a.kind,
+                                })}
                               </span>
                             ))}
                       </td>
-                      <td className="fk-numeric px-3 py-2 font-semibold">{formatKes(row.effective_kes)}</td>
+                      <td className="fk-numeric px-3 py-2 font-semibold">
+                        {formatKes(row.effective_kes)}
+                      </td>
                       <td className="px-3 py-2 text-fg-muted">{formatDate(row.created_at)}</td>
                     </tr>
                   ))}
@@ -153,7 +188,11 @@ export function CommissionPage(): JSX.Element {
 
           {ledger.hasNextPage && (
             <div className="flex justify-center">
-              <Button variant="secondary" loading={ledger.isFetchingNextPage} onClick={() => void ledger.fetchNextPage()}>
+              <Button
+                variant="secondary"
+                loading={ledger.isFetchingNextPage}
+                onClick={() => void ledger.fetchNextPage()}
+              >
                 {t('admin:commission.loadMore')}
               </Button>
             </div>

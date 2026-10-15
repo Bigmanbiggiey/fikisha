@@ -74,6 +74,7 @@ const staff: RoleNav = {
   secondary: [
     { to: '/ops/high-value', labelKey: 'common:nav.highValue', icon: 'flag' },
     { to: '/ops/audit', labelKey: 'common:nav.audit', icon: 'eye' },
+    { to: '/ops/statements', labelKey: 'common:nav.statements', icon: 'list' },
   ],
 };
 

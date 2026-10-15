@@ -48,5 +48,10 @@
   "mfa_required": "Enter your authenticator code first.",
   "mfa_not_enrolled": "Set up an authenticator first.",
   "mfa_already_enrolled": "This account already has an authenticator.",
-  "mfa_not_required": "Only admin accounts use an authenticator."
+  "mfa_not_required": "Only admin accounts use an authenticator.",
+  "invalid_statement_period": "Pick a week that has finished (statements run Monday to Sunday).",
+  "invalid_settlement": "Check the payment details and try again.",
+  "settlement_exceeds_due": "That is more than this statement still owes. Nothing was recorded.",
+  "duplicate_payment_ref": "A payment with this reference is already recorded. Nothing was recorded.",
+  "settlement_not_reversible": "This payment has already been reversed, or is itself a reversal."
 }
