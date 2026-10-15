@@ -203,10 +203,37 @@ MFA doesn't exist yet (D-1), so they currently always return 403
 | GET | `/admin/config` | `admin.config.read` | `{version, config, editable_paths, versions}` |
 | POST | `/admin/config/preview` | `admin.config.read` | `{changes: {"<dotted path>": number}}` → `{version, changes: [{path, before, after}], commission_samples}`. Changes nothing. 422 `config_key_not_editable` / `invalid_config_change` |
 | POST | `/admin/config` | `admin.config.change` (*step-up*) | `{changes, rationale}` → 201 `{version, changes}` via `platform_config.services.apply_change` |
-| GET | `/admin/commission?since=&until=&operator_id=&group_id=&cursor=` | `admin.commission.read` | `{data, page, totals, statements_available: false}`. Each row: job, payee, agreed price, rate/min/cap, commission, adjustments, effective, config version |
+| GET | `/admin/commission?since=&until=&operator_id=&group_id=&cursor=` | `admin.commission.read` | `{data, page, totals, statements_available: true}` (true since ADR-2D-42). Each row: job, payee, agreed price, rate/min/cap, commission, adjustments, effective, config version |
 
 **Also new:** `business_suspended` (422). It comes from job creation and from
 the DRAFT → REQUESTED guard when the business is suspended.
+
+---
+
+## 4c-bis. Commission statements (Commission & Statements S-1, ADR-2D-42)
+
+Money is KES minor units. A statement row (`summary`) is
+`{id, reference, payee: {kind, id, name}, period_start, period_end,
+gross_commission_kes, adjustments_kes, net_due_kes, settled_kes,
+outstanding_kes, state: UNPAID|PART_PAID|PAID, overdue, generated_at}`.
+Detail adds:
+- `lines: [{id, kind: COMMISSION|ADJUSTMENT, job_id, job_reference, agreed_price_kes, amount_kes}]`;
+- `settlements: [{id, kind: PAYMENT|REVERSAL, amount_kes, method, payment_ref, paid_on, note, reverses, reversed, recorded_at}]`;
+- `payment: {paybill_number (null until set), account_reference}`.
+
+| Method | Path | Action (authz) | Purpose |
+| --- | --- | --- | --- |
+| GET | `/statements?cursor=` | `statements.read.own` | `{data, page}`: the caller's own statements as a payee (their operator profile, and groups they own or manage), newest week first |
+| GET | `/statements/<id>` | `statements.read.one` | Detail. 403 to anyone but the payee or staff with `statements.read.all` |
+| GET | `/jobs/<id>/earnings` | `statements.job_earnings` | `{job_id, payee_kind, payee_id, agreed_price_kes, commission_kes, adjustments_kes, effective_commission_kes, net_to_operator_kes, statement: {id, reference} or null}`. 404 to anyone but the payee or staff |
+| GET | `/admin/statements?period_start=&payee_kind=&payee_id=&cursor=` | `statements.read.all` | `{data, page, totals: {statements, invoiced_kes, settled_kes, outstanding_kes}}`. Totals cover the whole filter |
+| GET | `/admin/statements/<id>` | `statements.read.all` | Detail |
+| POST | `/admin/statements/run` | `statements.run` | `{period_start?}` (a Monday; default last week) → 201 if any statement was created, else 200, `{period_start, period_end, statements_created, statement_ids, payees_skipped_existing}`. 422 `invalid_statement_period` (not a Monday, or the week hasn't finished) |
+| POST | `/admin/statements/<id>/payments` | `statements.settle` (*step-up*) | `{amount_kes, payment_ref, paid_on, method?: MPESA_PAYBILL\|BANK\|OTHER, note?}` → 201 detail. 422 `invalid_settlement`; 409 `settlement_exceeds_due` / `duplicate_payment_ref` |
+| POST | `/admin/statements/<id>/payments/<payment_id>/reverse` | `statements.settle` (*step-up*) | `{reason}` (≥ 10 characters) → 201 detail. 409 `settlement_not_reversible` |
+
+Beat: `statements-weekly-run` (Monday 06:00 EAT) and `statements-reconcile`
+(02:30 EAT nightly). Command: `manage.py statements_run [--period-start YYYY-MM-DD]`.
 
 ---
 
