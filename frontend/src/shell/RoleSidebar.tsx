@@ -34,7 +34,9 @@ export function RoleSidebar(): JSX.Element | null {
           aria-current={active ? 'page' : undefined}
           className={cn(
             'flex min-h-target items-center gap-3 rounded-md px-3 text-body',
-            active ? 'bg-surface-brand-tint font-semibold text-action-primary' : 'text-fg-secondary hover:text-fg',
+            active
+              ? 'bg-surface-brand-tint font-semibold text-action-primary'
+              : 'text-fg-secondary hover:text-fg',
           )}
         >
           <Icon name={item.icon} size={20} />
@@ -46,7 +48,7 @@ export function RoleSidebar(): JSX.Element | null {
   };
 
   return (
-    <aside className="hidden w-56 shrink-0 py-6 lg:block">
+    <aside className="hidden w-56 shrink-0 py-6 lg:block print:hidden">
       <nav aria-label={t('common:nav.main')} className="sticky top-6 space-y-5">
         {nav.action && (
           <Link

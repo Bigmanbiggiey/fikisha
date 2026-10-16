@@ -223,7 +223,8 @@ Detail adds:
 
 | Method | Path | Action (authz) | Purpose |
 | --- | --- | --- | --- |
-| GET | `/statements?cursor=` | `statements.read.own` | `{data, page}`: the caller's own statements as a payee (their operator profile, and groups they own or manage), newest week first |
+| GET | `/statements?cursor=` | `statements.read.own` | `{data, page, unseen_count}`: the caller's own statements as a payee (their operator profile, and groups they own or manage), newest week first. Each row adds `seen` (S-2) |
+| POST | `/statements/<id>/seen` | `statements.read.one` | 204. Records that the payee opened it (D-6 unread marker); staff opening it records nothing (S-2) |
 | GET | `/statements/<id>` | `statements.read.one` | Detail. 403 to anyone but the payee or staff with `statements.read.all` |
 | GET | `/jobs/<id>/earnings` | `statements.job_earnings` | `{job_id, payee_kind, payee_id, agreed_price_kes, commission_kes, adjustments_kes, effective_commission_kes, net_to_operator_kes, statement: {id, reference} or null}`. 404 to anyone but the payee or staff |
 | GET | `/admin/statements?period_start=&payee_kind=&payee_id=&cursor=` | `statements.read.all` | `{data, page, totals: {statements, invoiced_kes, settled_kes, outstanding_kes}}`. Totals cover the whole filter |

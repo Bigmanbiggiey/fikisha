@@ -9,6 +9,7 @@ app_name = "statements"
 urlpatterns = [
     path("statements", views.MyStatementsView.as_view(), name="mine"),
     path("statements/<uuid:statement_id>", views.StatementDetailView.as_view(), name="detail"),
+    path("statements/<uuid:statement_id>/seen", views.StatementSeenView.as_view(), name="seen"),
     path("jobs/<uuid:job_id>/earnings", views.JobEarningsView.as_view(), name="job-earnings"),
     path("admin/statements", views.AdminStatementsView.as_view(), name="admin-list"),
     path("admin/statements/run", views.AdminRunView.as_view(), name="admin-run"),

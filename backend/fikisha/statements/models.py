@@ -22,7 +22,7 @@ from django.conf import settings
 from django.db import models
 from django.db.models import Q
 
-from fikisha.common.models import AppendOnlyModel, AppendOnlyQuerySet
+from fikisha.common.models import AppendOnlyModel, AppendOnlyQuerySet, TimestampedModel
 
 
 class PayeeKind(models.TextChoices):
@@ -191,3 +191,25 @@ class StatementSettlement(AppendOnlyModel):
 
     def __str__(self) -> str:  # pragma: no cover - debug aid
         return f"{self.kind} {self.amount_kes} on {self.statement_id}"
+
+
+class StatementSeen(TimestampedModel):
+    """ "This payee has opened this statement" (S-2, D-6: the unread marker on
+    the Statements list and the Home "New statement" card). One row per
+    person and statement, written the first time they open it. Not audited:
+    it records what someone looked at, not a change to the ledger (like
+    ``inbox_read_marker``, ADR-2D-37)."""
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="+")
+    statement = models.ForeignKey(
+        CommissionStatement, on_delete=models.CASCADE, related_name="seen_by"
+    )
+
+    class Meta:
+        db_table = "statement_seen"
+        constraints = [
+            models.UniqueConstraint(fields=["user", "statement"], name="uq_statement_seen_user"),
+        ]
+
+    def __str__(self) -> str:  # pragma: no cover - debug aid
+        return f"{self.user_id} saw {self.statement_id}"

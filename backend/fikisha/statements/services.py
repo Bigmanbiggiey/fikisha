@@ -46,6 +46,7 @@ from fikisha.statements.models import (
     SettlementKind,
     SettlementMethod,
     StatementLine,
+    StatementSeen,
     StatementSettlement,
 )
 
@@ -485,6 +486,35 @@ def admin_totals(qs: QuerySet[CommissionStatement]) -> dict[str, int]:
         "settled_kes": settled,
         "outstanding_kes": invoiced - settled,
     }
+
+
+# ─── Seen markers (S-2, D-6) ─────────────────────────────────────────────
+def mark_seen(*, actor: Any, statement: CommissionStatement) -> None:
+    """Record that the payee opened this statement. Staff opening it changes
+    nothing: the marker is the payee's own."""
+    user = _user(actor)
+    if user is None or not is_payee(actor, statement.payee_kind, statement.payee_id):
+        return
+    StatementSeen.objects.get_or_create(user=user, statement=statement)
+
+
+def seen_statement_ids(*, actor: Any, statement_ids: list[Any]) -> set[str]:
+    user = _user(actor)
+    if user is None or not statement_ids:
+        return set()
+    return {
+        str(s)
+        for s in StatementSeen.objects.filter(
+            user=user, statement_id__in=statement_ids
+        ).values_list("statement_id", flat=True)
+    }
+
+
+def unseen_count(actor: Any) -> int:
+    user = _user(actor)
+    if user is None:
+        return 0
+    return statements_for(actor).exclude(seen_by__user=user).count()
 
 
 # ─── Read projections ────────────────────────────────────────────────────

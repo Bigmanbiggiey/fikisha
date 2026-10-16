@@ -1,0 +1,58 @@
+{
+  "title": "Statements",
+  "intro": "Each week Fikisha adds up its commission on your completed jobs into one statement. You pay it to Fikisha's M-Pesa paybill. Fikisha never holds the fare.",
+  "empty": "No statements yet",
+  "emptyBody": "Your first statement appears the Monday after a completed job's dispute window closes.",
+  "new": "New",
+  "loadMore": "Show older statements",
+  "state": {
+    "UNPAID": "Unpaid",
+    "PART_PAID": "Part paid",
+    "PAID": "Paid",
+    "OVERDUE": "Overdue"
+  },
+  "detail": {
+    "eyebrow": "Commission statement",
+    "print": "Print",
+    "notTaxInvoice": "Commission statement — not a tax invoice. Tax invoices will follow once Fikisha's eTIMS invoicing is in place.",
+    "summary": "Summary",
+    "gross": "Commission on your jobs",
+    "credits": "Credits",
+    "netDue": "Total for this week",
+    "paid": "Paid so far",
+    "outstanding": "Still to pay",
+    "creditNote": "Your credits are larger than this week's commission, so there is nothing to pay.",
+    "howToPay": "How to pay",
+    "paybill": "M-Pesa paybill",
+    "account": "Account number",
+    "amount": "Amount",
+    "detailsToFollow": "Payment details will follow. When you pay, use {{reference}} as the account number.",
+    "payNote": "Pay from your own M-Pesa. Fikisha records your payment here once it arrives.",
+    "jobs_one": "{{count}} job",
+    "jobs_other": "{{count}} jobs",
+    "noJobs": "No new jobs this week; this statement only carries a credit.",
+    "job": "Job",
+    "agreedPrice": "Agreed price",
+    "commission": "Commission",
+    "creditsHeading": "Credits",
+    "creditFor": "Credit for job",
+    "payments": "Payments",
+    "payment": "Paid · {{reference}} · {{date}}",
+    "reversal": "Reversed · {{reference}}",
+    "generated": "Issued {{date}}"
+  },
+  "earnings": {
+    "title": "Earnings for this job",
+    "agreed": "Agreed price",
+    "commission": "Fikisha commission",
+    "net": "Yours",
+    "onStatement": "Billed on statement",
+    "notYetBilled": "The commission goes on your weekly statement once the dispute window closes."
+  },
+  "home": {
+    "title_one": "New statement",
+    "title_other": "{{count}} new statements",
+    "body": "{{period}}: {{amount}}",
+    "view": "View statement"
+  }
+}

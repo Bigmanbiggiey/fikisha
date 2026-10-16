@@ -43,6 +43,8 @@ import { OperatorProfilePage } from '@/features/org/OperatorProfilePage';
 import { RecipientConfirmPage } from '@/features/recipient/RecipientConfirmPage';
 import { RecipientPage } from '@/features/recipient/RecipientPage';
 import { RecipientReportIssuePage } from '@/features/recipient/RecipientReportIssuePage';
+import { StatementDetailPage } from '@/features/statements/StatementDetailPage';
+import { StatementsPage } from '@/features/statements/StatementsPage';
 import { VehicleDetailPage } from '@/features/vehicles/VehicleDetailPage';
 import { VehiclesPage } from '@/features/vehicles/VehiclesPage';
 import { VerificationQueuePage } from '@/features/verification/VerificationQueuePage';
@@ -94,6 +96,9 @@ export function AppRoutes(): JSX.Element {
           <Route path="work" element={<WorkListPage />} />
           <Route path="work/:jobId" element={<JobOpportunityPage />} />
           <Route path="my-jobs" element={<MyJobsPage />} />
+          {/* Commission & Statements S-2: a payee's weekly statements. */}
+          <Route path="statements" element={<StatementsPage />} />
+          <Route path="statements/:statementId" element={<StatementDetailPage />} />
           <Route path="businesses" element={<BusinessesPage />} />
           <Route path="businesses/:businessId" element={<BusinessDetailPage />} />
           <Route path="operator" element={<OperatorProfilePage />} />
