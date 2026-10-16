@@ -20,6 +20,7 @@ import negotiationEn from './locales/en/negotiation.json';
 import opsEn from './locales/en/ops.json';
 import orgEn from './locales/en/org.json';
 import recipientEn from './locales/en/recipient.json';
+import statementsEn from './locales/en/statements.json';
 import adminSw from './locales/sw/admin.json';
 import authSw from './locales/sw/auth.json';
 import commonSw from './locales/sw/common.json';
@@ -32,6 +33,7 @@ import negotiationSw from './locales/sw/negotiation.json';
 import opsSw from './locales/sw/ops.json';
 import orgSw from './locales/sw/org.json';
 import recipientSw from './locales/sw/recipient.json';
+import statementsSw from './locales/sw/statements.json';
 
 export const SUPPORTED_LANGUAGES = ['en', 'sw'] as const;
 export type SupportedLanguage = (typeof SUPPORTED_LANGUAGES)[number];
@@ -50,6 +52,7 @@ export const resources = {
     ops: opsEn,
     messages: messagesEn,
     admin: adminEn,
+    statements: statementsEn,
   },
   sw: {
     common: commonSw,
@@ -64,6 +67,7 @@ export const resources = {
     ops: opsSw,
     messages: messagesSw,
     admin: adminSw,
+    statements: statementsSw,
   },
 } as const;
 
@@ -75,7 +79,21 @@ void i18n
     fallbackLng: 'en',
     supportedLngs: SUPPORTED_LANGUAGES as unknown as string[],
     defaultNS: 'common',
-    ns: ['common', 'auth', 'errors', 'org', 'landing', 'jobs', 'negotiation', 'recipient', 'incidents', 'ops', 'messages', 'admin'],
+    ns: [
+      'common',
+      'auth',
+      'errors',
+      'org',
+      'landing',
+      'jobs',
+      'negotiation',
+      'recipient',
+      'incidents',
+      'ops',
+      'messages',
+      'admin',
+      'statements',
+    ],
     interpolation: { escapeValue: false },
     detection: {
       order: ['localStorage', 'navigator', 'htmlTag'],

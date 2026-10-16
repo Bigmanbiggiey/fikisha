@@ -43,14 +43,17 @@ export function TopBar(): JSX.Element {
   const unread = useUnreadMessages(inline.some((i) => i.badge === 'messages'));
 
   return (
-    <header className="border-b border-line bg-surface-nav">
+    <header className="border-b border-line bg-surface-nav print:hidden">
       <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3">
         <Link to="/" className="text-h3 font-bold text-action-primary">
           {t('common:appName')}
         </Link>
 
         {inline.length > 0 && (
-          <nav aria-label={t('common:nav.main')} className="hidden items-center gap-1 md:flex lg:hidden">
+          <nav
+            aria-label={t('common:nav.main')}
+            className="hidden items-center gap-1 md:flex lg:hidden"
+          >
             {inline.map((item) => {
               const active = isNavItemActive(item, pathname);
               return (
@@ -60,7 +63,9 @@ export function TopBar(): JSX.Element {
                   aria-current={active ? 'page' : undefined}
                   className={cn(
                     'flex min-h-target items-center gap-1 rounded-md px-2 text-label',
-                    active ? 'bg-surface-brand-tint text-action-primary-hover' : 'text-fg-secondary hover:text-fg',
+                    active
+                      ? 'bg-surface-brand-tint text-action-primary-hover'
+                      : 'text-fg-secondary hover:text-fg',
                   )}
                 >
                   {t(item.labelKey)}

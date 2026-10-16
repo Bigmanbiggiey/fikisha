@@ -6,6 +6,7 @@ import { EmptyState } from '@/components/EmptyState';
 import { ErrorState } from '@/components/ErrorState';
 import { JobCard } from '@/components/JobCard';
 import { PageLoader } from '@/components/PageLoader';
+import { useAuth } from '@/features/auth/useAuth';
 import { localizeError } from '@/services/errorMessage';
 import { useActiveRole } from '@/shell/activeRole';
 import { useWorkspaces } from '@/shell/useWorkspaces';
@@ -33,7 +34,14 @@ export function CurrentJobPage(): JSX.Element {
   const navigate = useNavigate();
   const { loading, workspaces } = useWorkspaces();
   const { roles } = useActiveRole();
-  const jobs = useQuery({ queryKey: ['jobs'], queryFn: jobsApi.list, retry: false });
+  const { user } = useAuth();
+  // Asks the server for exactly this driver's active jobs, so one past the
+  // first page of the full list still shows (PR #5 follow-up 2).
+  const jobs = useQuery({
+    queryKey: ['jobs', 'current', user?.id],
+    queryFn: () => jobsApi.myAssigned(CURRENT),
+    retry: false,
+  });
 
   if (loading || jobs.isLoading) return <PageLoader />;
   if (jobs.isError) {

@@ -22,7 +22,8 @@
     "control": "Control",
     "directory": "Users & orgs",
     "config": "Configuration",
-    "commission": "Commission"
+    "commission": "Commission",
+    "statements": "Statements"
   },
   "language": {
     "label": "Language",

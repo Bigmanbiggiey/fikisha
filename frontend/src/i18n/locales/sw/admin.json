@@ -154,13 +154,12 @@
   "commission": {
     "title": "Kamisheni",
     "subtitle": "Kila rekodi ya kamisheni, pamoja na marekebisho yake. Fikisha inarekodi kamisheni; nauli inapita kati ya biashara na msafirishaji.",
-    "statementsNotYet": "Taarifa za kila wiki, malipo ya M-Pesa na ankara za eTIMS bado hazitolewi. Daftari hili ndilo rekodi hadi zitakapoanza.",
     "period": "Kipindi",
     "periodOption": {
-      "all": "Wakati wote",
       "7": "Siku 7 zilizopita",
       "30": "Siku 30 zilizopita",
-      "90": "Siku 90 zilizopita"
+      "90": "Siku 90 zilizopita",
+      "all": "Wakati wote"
     },
     "total": {
       "records": "Rekodi",
@@ -183,6 +182,8 @@
     "adjustment": {
       "REDUCTION": "Imepunguzwa",
       "WAIVER": "Imesamehewa"
-    }
+    },
+    "statementsLink": "Taarifa za wiki na malipo yaliyorekodiwa ziko kwenye ukurasa wa Taarifa za malipo.",
+    "statementsOpen": "Fungua taarifa"
   }
 }

@@ -10,6 +10,7 @@ import { PageLoader } from '@/components/PageLoader';
 import { useOnline } from '@/design/useOnline';
 import { opsApi } from '@/features/ops/opsApi';
 import { Queue, QueueRow } from '@/features/ops/Queue';
+import { StatementsSummaryCard } from '@/features/statements/StatementsSummaryCard';
 import { localizeError } from '@/services/errorMessage';
 import { formatDateTime } from '@/services/datetime';
 
@@ -36,8 +37,16 @@ export function AdminControlPage(): JSX.Element {
   const { t } = useTranslation(['ops', 'incidents', 'errors']);
   const online = useOnline();
 
-  const disputes = useQuery({ queryKey: ['ops', 'disputes'], queryFn: opsApi.disputeQueue, retry: false });
-  const highValue = useQuery({ queryKey: ['ops', 'high-value'], queryFn: () => opsApi.highValueQueue(), retry: false });
+  const disputes = useQuery({
+    queryKey: ['ops', 'disputes'],
+    queryFn: opsApi.disputeQueue,
+    retry: false,
+  });
+  const highValue = useQuery({
+    queryKey: ['ops', 'high-value'],
+    queryFn: () => opsApi.highValueQueue(),
+    retry: false,
+  });
 
   if (disputes.isLoading || highValue.isLoading) return <PageLoader />;
   const failed = disputes.error ?? highValue.error;
@@ -84,7 +93,12 @@ export function AdminControlPage(): JSX.Element {
             ))}
           </Queue>
 
-          <Queue title={t('ops:control.highValue')} count={hv.length} more={hvMore} viewAll="/ops/high-value">
+          <Queue
+            title={t('ops:control.highValue')}
+            count={hv.length}
+            more={hvMore}
+            viewAll="/ops/high-value"
+          >
             {hv.slice(0, 8).map((row) => (
               <QueueRow
                 key={row.id}
@@ -97,9 +111,14 @@ export function AdminControlPage(): JSX.Element {
         </div>
       )}
 
+      <StatementsSummaryCard />
+
       <Card>
         <p className="text-body-sm text-fg-secondary">{t('ops:control.opsHint')}</p>
-        <Link to="/ops" className="mt-2 inline-block text-body text-action-secondary-text underline">
+        <Link
+          to="/ops"
+          className="mt-2 inline-block text-body text-action-secondary-text underline"
+        >
           {t('ops:control.openOps')}
         </Link>
       </Card>

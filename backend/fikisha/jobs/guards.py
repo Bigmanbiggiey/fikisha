@@ -526,17 +526,21 @@ def within_delivery_acceptance_window(job: Any, actor: Any, ctx: dict[str, Any])
         _fail("acceptance_window_closed", "The delivery-acceptance window has closed.")
 
 
-def within_post_completion_window(job: Any, actor: Any, ctx: dict[str, Any]) -> None:
+def post_completion_window_hours(job: Any) -> float:
     """job-state-machine §3.3 / D-JOB-5: 72h all bands; 7 days for High/Very-high
-    **or** ``latent_risk_cargo``."""
+    **or** ``latent_risk_cargo``. Shared with the statement run, which bills a
+    job's commission only once this window has closed (Commission & Statements
+    plan D-2)."""
     from fikisha.platform_config import services as cfg
 
     window = cfg.get("timeouts.post_completion_window", {}) or {}
     if job.is_high_value or job.latent_risk_cargo:
-        hrs = float(window.get("high_and_latent_days", 7)) * 24.0
-    else:
-        hrs = float(window.get("default_hours", 72))
-    if not _within_window(job, "completed_at", hrs):
+        return float(window.get("high_and_latent_days", 7)) * 24.0
+    return float(window.get("default_hours", 72))
+
+
+def within_post_completion_window(job: Any, actor: Any, ctx: dict[str, Any]) -> None:
+    if not _within_window(job, "completed_at", post_completion_window_hours(job)):
         _fail("post_completion_window_closed", "The post-completion dispute window has closed.")
 
 

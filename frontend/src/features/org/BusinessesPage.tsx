@@ -3,6 +3,7 @@ import { useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 
+import { useAuth } from '@/features/auth/useAuth';
 import { Alert } from '@/components/Alert';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
@@ -17,12 +18,13 @@ import { localizeError } from '@/services/errorMessage';
 import { orgApi } from './orgApi';
 
 export function BusinessesPage(): JSX.Element {
+  const { user } = useAuth();
   const { t } = useTranslation(['org', 'errors']);
   const qc = useQueryClient();
   const [tradingName, setTradingName] = useState('');
   const [formError, setFormError] = useState<string | null>(null);
 
-  const list = useQuery({ queryKey: ['businesses'], queryFn: orgApi.listBusinesses, retry: false });
+  const list = useQuery({ queryKey: ['businesses', user?.id], queryFn: orgApi.listBusinesses, retry: false });
 
   const create = useMutation({
     mutationFn: () => orgApi.createBusiness({ trading_name: tradingName.trim() }),

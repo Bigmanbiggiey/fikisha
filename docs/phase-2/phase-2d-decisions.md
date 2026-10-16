@@ -959,6 +959,305 @@ which enforces everything, is unchanged.
   themselves under `DRIVER_ACCEPTS`, outsider refused, suspended group) and
   `AssignDriverVehiclePage.test.tsx` (+3).
 
+## ADR-2D-42 — Weekly commission statements and manual settlement (backend) — CONFIRMED (Commission & Statements S-1; plan approved 2026-10-15)
+
+Implements S-1 of `docs/commission-statements-plan.md`, with founder answers
+D-1 to D-8 (all as recommended).
+
+**Module.** A new `fikisha.statements` app. It reads commission only through
+new `jobs.commission` functions (`billable_commission`,
+`unbilled_adjustments`, `commission_for_job`), which return plain rows. It
+never imports job models. Commission itself stays in `jobs` (ADR-2D-23).
+
+**Tables** (append-only at model, queryset and Postgres-trigger level;
+migrations `statements.0001`/`0002`):
+- `commission_statement`: payee (OPERATOR or GROUP + id), Kenya-date
+  period Mon–Sun, gross / adjustments / net due, `reference` (`ST-` + 6
+  characters, the paybill account number, D-3). Unique per payee and
+  period. DB checks: gross ≥ 0, adjustments ≤ 0, net = gross + adjustments.
+- `statement_line`: COMMISSION (one record) or ADJUSTMENT (one adjustment).
+  **One-to-one on the record and on the adjustment**, so nothing can be
+  billed twice. That uniqueness is what "billed" means. The job reference
+  and agreed price are frozen on the line.
+- `statement_settlement`: PAYMENT (positive) or REVERSAL (the negative of
+  the payment it names, one per payment). Paid / part-paid / unpaid,
+  outstanding and overdue are derived on read, never stored.
+
+**Billing rule (D-2).** A record is billed in the first run, as of the end
+of that week (Monday 00:00 EAT), where its job is `COMPLETED` (so not
+`DISPUTED`) and its post-completion dispute window has closed.
+`guards.post_completion_window_hours` is now shared by the dispute guard
+and the run, so there is one source of truth. Adjustments are billed once
+their record is billed and they existed by the end of the week. An
+adjustment to an already-billed record is a credit line on a later
+statement, so net due can be negative and a payee owes nothing that week.
+An adjustment whose record is never billed (a job that ended `FAILED`
+after a dispute) is never billed either.
+
+**The run.** It runs from Celery beat every Monday 06:00 EAT for last
+week, from `POST /admin/statements/run` (Platform Admin), or from
+`manage.py statements_run`. It is serialised by a Postgres advisory lock
+and is idempotent:
+- a re-run bills nothing already billed;
+- a payee who already has that week's statement is skipped, and anything
+  newly ready for them rolls to the next week.
+
+Only finished weeks starting on a Monday are accepted. Each statement is
+audited as `statement.generated`, with source `SCHEDULER` or `ADMIN_UI`, and
+emits `StatementGenerated` with identifiers only. No sender is wired (D-6).
+
+**Payments (D-4, D-5).**
+- Who: Platform Admin only (`statements.settle`), with a fresh step-up.
+- Recording a payment: the statement row is locked first. Recording more
+  than is still owed is refused (409 `settlement_exceeds_due`). Reusing an
+  M-Pesa reference that is still in effect is refused (409
+  `duplicate_payment_ref`). References are stored upper-case.
+- Reversing a payment: needs a reason of at least 10 characters. A payment
+  can be reversed only once, and a reversal can't be reversed (409
+  `settlement_not_reversible`). Once reversed, its reference can be used
+  again.
+- Both are audited (`statement.payment_recorded` / `.payment_reversed`)
+  and emit an event.
+
+**Who sees what (plan §3.5).**
+- A solo operator sees their own statements.
+- A group's OWNER/MANAGER sees the group's.
+- A group DRIVER member and a business see none (FR-O-8, D-7).
+- Staff with `statements.read.all` see all: the Platform Admin through
+  `"*"`, and the Operations Officer, newly granted read only (D-4).
+- `GET /jobs/<id>/earnings` gives the payee their per-job commission. It
+  answers 404 to anyone else, so a job's existence doesn't leak. For the
+  payee's own rows, this replaces ADR-2D-27's Platform-Admin-only read.
+- Statement detail answers 403 to a non-payee.
+
+**Overdue (D-8).** A statement that isn't paid after `statements.overdue_days`
+(default 14) is marked overdue in the API. There is no effect on work.
+
+**Reconciliation** (`commission-ledger.md` §7). A nightly task logs
+CRITICAL for any statement whose totals, lines or payments disagree.
+
+**Deviations from `database-design.md` §4.11, documented:**
+- No stored status columns on records or statements. Status is derived, so
+  every table stays truly append-only. The original design updated
+  `DUE → INVOICED → SETTLED` on append-only rows, which contradicts itself.
+- No `etims_invoice` table and no C2B webhook (decision 5).
+- No `payee_kind`/`payee_id` on `commission_record`; the payee comes from
+  its agreement.
+- **Why it's safe:** the behaviour is the same, the immutability is
+  stronger, and nothing about when or how commission is calculated changes.
+
+**Config.**
+- New `statements.overdue_days` (14) and `statements.paybill_number`
+  (null, D-3).
+- `statements.read.all` is added to the Operations Officer defaults.
+- The live config is seeded from defaults only once. A fresh database
+  gets all three; an existing database reads the two settings from their
+  code fallbacks, but **its Ops Officers lack `statements.read.all` until
+  `role_permissions` is updated**. Only the local dev database is affected,
+  since there is no production yet.
+
+**Also changed.** `GET /admin/commission` now returns
+`statements_available: true`. The admin screen's "not produced yet" notice
+is updated in S-3.
+
+**Tests:** `fikisha/statements/tests/` (24), covering:
+- billing: closed vs open window, disputed held, waiver netting, a later
+  credit, solo vs group payees, idempotent re-runs, the skipped payee,
+  period validation, the weekly task as SCHEDULER, reconciliation;
+- payments: part/full payment, over-payment, duplicate reference,
+  reversal rules, step-up and Platform Admin only, overdue, append-only on
+  all three tables at ORM and DB level;
+- the API: each payee lists only their own, detail IDOR, earnings IDOR,
+  Ops read-only, the admin run, payment and reversal over HTTP with a
+  stale vs fresh step-up.
+
+### ADR-2D-42 addendum — S-2 payee screens and the "seen" marker (2026-10-15)
+
+**Backend addition.** D-6 asks for an unread marker on the Statements list
+and a Home "New statement" card, which S-1 did not provide. S-2 adds:
+- `statement_seen` (migration `statements.0003`): one row per person and
+  statement, written the first time the **payee** opens it, through
+  `POST /statements/<id>/seen`. Staff opening a statement records nothing.
+- `GET /statements` now returns `seen` on each row and `unseen_count`.
+- The marker records what someone looked at, not a change to the ledger.
+  It is therefore mutable-table style and not audited, like
+  `inbox_read_marker` (ADR-2D-37).
+- Test: `test_new_statements_are_unseen_until_the_payee_opens_them`.
+
+**Screens** (`frontend/src/features/statements`):
+- **Statements** (`/statements`): in the operator and Group Manager
+  navigation (P3 §7.5). The list shows the unseen dot and the
+  paid / part-paid / overdue badge.
+- **Statement detail** (`/statements/<id>`):
+  - "Commission statement — not a tax invoice" (D-1);
+  - the summary, the jobs and any credits;
+  - payments, with reversals struck through;
+  - "How to pay": the paybill once set, otherwise "details to follow"
+    with the account reference (D-3);
+  - a printable layout: the navigation hides, the wordmark shows (P3
+    §6.5).
+- **Home** "New statement" card on the operator Home.
+- **Job Detail**: a completed job's "Earnings for this job" card, showing
+  agreed price − commission = net and linking the statement (P3 §7.4).
+  The payee's server answer decides; a group's driver gets 404 and no
+  card.
+- **Fixed on the way:** a completed job's operator action card said "will
+  be marked complete automatically" and "coming in a later update". It now
+  says "Nothing needed from you right now."
+
+**Why it's safe.** It only adds reads, plus one per-person seen marker on a
+statement the person is the payee of. The ledger tables are unchanged.
+
+### ADR-2D-42 addendum — S-3 staff screens (2026-10-15)
+
+Frontend only; no backend change.
+- **Where:** `/ops/statements` and `/ops/statements/<id>`, behind
+  `RequireStaff`, so Operations Officers get their read access (D-4).
+  "Statements" is in the staff navigation, which the Platform Admin
+  shares.
+- **List:**
+  - filters by week (the last 12 finished weeks, Kenya time) and payee
+    kind;
+  - invoiced / paid / still-owed totals for the filter (pilot-strategy
+    §4.7);
+  - a Platform Admin also gets **Run a week** (finished weeks only; the
+    server is idempotent).
+- **Detail:** the payee's breakdown (shared parts), with every payment and
+  its note. A Platform Admin gets:
+  - **Record a payment**: amount (refused above what's still owed),
+    M-Pesa/bank reference, date (not in the future), method, then a
+    confirm step that restates it;
+  - **Reverse**: through the shared admin action dialog, reason at least
+    10 characters.
+  - Both trigger the existing step-up prompt (`StepUpProvider`).
+  - Operations Officers see no action controls. Server-side policy is the
+    enforcement either way.
+- **Control:** last week's invoiced / paid / still owed.
+- **Commission:** the "not produced yet" notice is replaced by a link to
+  Statements.
+- New error messages: `invalid_statement_period`, `invalid_settlement`,
+  `settlement_exceeds_due`, `duplicate_payment_ref`,
+  `settlement_not_reversible`.
+
+**Why it's safe.** These are screens over the S-1 endpoints, whose
+authorization, step-up and limits are unchanged and already tested.
+
+## ADR-2D-43 — PR #5 review follow-ups and the last "coming later" placeholders — CONFIRMED (founder approval 2026-10-16)
+
+The four non-blocking follow-ups from the PR #5 re-review (2026-10-13),
+plus the Job Detail placeholders still saying "coming in a later update".
+
+1. **Per-user cache keys.** The businesses, groups and vehicles lists were
+   cached as `['businesses']`, `['groups']`, `['vehicles']` in the
+   navigation (`useWorkspaces`, `useNavRoles`) and their pages. Sign-out
+   doesn't clear the cache, so a second person on the same tab could
+   briefly get the first person's navigation. Each is now keyed by user id,
+   like `['operator', 'me', …]` since 10c. Invalidation by prefix still
+   refreshes them. UX only; the server authorises every action.
+2. **Current job reads past page 1.**
+   - `GET /jobs` gains two optional filters: `status=A,B` and
+     `assigned=me`, meaning jobs whose assigned driver is the caller's own
+     operator profile. Both only narrow `jobs_visible_to`. An unknown
+     status or any other `assigned` value is 400.
+   - The driver's Current job asks for exactly their active jobs, instead
+     of filtering the first page of everything.
+3. **Messages filters cover the whole inbox.**
+   - `GET /messages` gains `kind=OFFER,FIKISHA_UPDATE,INCIDENT,DISPUTE`,
+     applied before paging. `unread_count` still covers everything. An
+     unknown kind is 400.
+   - The filter chips now ask the server, and keep the last result on
+     screen while the next loads.
+4. **"Written by you" on incidents is recorded, not guessed.**
+   - The inbox treated an incident as the reporter's own when it was
+     "updated within 2 s of creation", so a quick staff review read as
+     untouched. `Incident.last_changed_by` (migration `incidents.0003`) is
+     now set on create (the reporter; null for a recipient-link report) and
+     on review, facilitation, escalation and resolution (the staff member).
+     The inbox compares it to the viewer.
+   - The migration fills existing rows with the old rule, so nothing
+     changes for them.
+   - Test: a staff review within 2 s of the report is now unread for the
+     reporter.
+5. **Placeholders.** On a disputed job with no dispute the viewer can link
+   to, both the business and the operator action cards said "coming in a
+   later update". They now say "Fikisha is reviewing this job. You'll be
+   told when there's an update", or show loading while the dispute record
+   loads. The `jobs.detail.comingSoon` string is gone; `disputeUnderReview`
+   is new (EN + SW, added to the Swahili review list).
+
+**Why it's safe.** The new API filters only narrow existing visibility. The
+new incident field is a recorded fact used only for an unread marker, and
+the authorization paths are untouched. Tests:
+- `jobs/tests/test_job_list_filters.py` (2);
+- `inbox/tests/test_inbox.py` (+2: kind filter before paging, staff review
+  unread);
+- `CurrentJobPage.test.tsx`, `MessagesPage.test.tsx` and
+  `JobDetailPage.test.tsx` updated.
+
+## ADR-2D-44 — Edit-conflict protection: `If-Match` wired at the HTTP layer — CONFIRMED (founder approval 2026-10-16)
+
+Closes the gap `phase-2d-api.md` recorded in Step 10. The domain check
+(`TransitionContext.if_match_version` → `StaleJob` 412, ADR-2D-02) has
+existed since Increment 1, but no view read the header. It also settles
+Design Phase 6 Q4, where `StaleBadge` was presentational only until this
+gap closed.
+
+**Backend.**
+- `GET /jobs/<id>` returns `ETag: "<version>"`. The version is already in
+  the body.
+- `fikisha.common.if_match.IfMatchMiddleware` notes an `If-Match` header on
+  any unsafe request whose URL names a `job_id`.
+  `JobLifecycleService.transition()`, the single writer of job status,
+  takes it for that job only, once. This covers every job action (submit,
+  cancel, assign, custody steps, staff actions, opening a dispute) without
+  changing a dozen service signatures.
+  - **Only that job:** a transition on any other job is unaffected.
+  - **Only once:** an action that makes two transitions on the same job
+    doesn't trip over its own first write.
+  - An explicit `if_match_version` from a caller still wins.
+- `"7"`, `W/"7"` and `7` are accepted, and `*` means any version. Anything
+  else is 400 `invalid_if_match`.
+- `if-match` is added to `CORS_ALLOW_HEADERS`. Without it, browsers would
+  block every request carrying it: the same trap as `Idempotency-Key` in
+  Increment 3.
+
+**Frontend.**
+- `features/jobs/jobVersions.ts` remembers the last version this tab saw
+  for each job: from job detail, from every job action's response, and from
+  opening a dispute. `jobsApi` actions and dispute opening send it as
+  `If-Match`.
+- A `412 stale_job` triggers the query client to refresh every job and
+  dispute view, and the action's error message says "Someone else changed
+  this job while you had it open. It has been refreshed: check it and try
+  again. Nothing was changed."
+- Versions are forgotten on sign-out.
+- **Fixed on the way:** the business "Continue request" action never
+  showed its error at all. It now does.
+
+**Deviation from `api-architecture.md`, documented:** the architecture says
+job mutations *require* `If-Match`. This build enforces it when sent, but
+does not yet reject a request without it.
+- **Why:** some flows don't hold a job version, such as negotiation
+  acceptance (thread URLs), the recipient's link page (token URLs) and
+  scheduled sweeps.
+- **Why it's safe:** every screen that shows a job and acts on it now sends
+  the header, so the conflicts this protects against are caught. Requests
+  without it behave exactly as before.
+- **Making it mandatory later:** one check in
+  `take_expected_version`/`transition()` (428 when absent on a job URL),
+  once every client sends it.
+
+**Tests:**
+- `jobs/tests/test_if_match.py` (9): ETag; a stale header is refused and
+  changes nothing; current, weak, bare, `*` and missing all go through;
+  malformed is 400; CORS allows it.
+- `jobVersions.test.ts` (3): version sent and then advanced, none for an
+  unknown job, refresh on `stale_job`.
+- `apiClient.test.ts` (+1): the header.
+- **Live check:** the business opened a draft, it was submitted elsewhere,
+  and the business's click sent `If-Match: "0"`, got 412, showed the
+  message and refreshed to Requested.
+
 ## Self-caught defects fixed during implementation
 
 Every one of these was found by the implementation's own review or test

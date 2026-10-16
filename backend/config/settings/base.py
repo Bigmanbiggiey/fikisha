@@ -9,6 +9,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+from celery.schedules import crontab
 from corsheaders.defaults import default_headers
 
 from config import env
@@ -68,6 +69,8 @@ LOCAL_APPS = [
     # Design Phase 7 10g — Messages inbox (read-only composition, ADR-2D-37).
     "fikisha.inbox",
     "fikisha.admin_console",
+    # Commission & Statements S-1 — weekly statements + manual settlement (ADR-2D-42).
+    "fikisha.statements",
 ]
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
@@ -84,6 +87,8 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    # Notes an If-Match header for the job in the URL (ADR-2D-44).
+    "fikisha.common.if_match.IfMatchMiddleware",
 ]
 
 TEMPLATES = [
@@ -156,6 +161,16 @@ CELERY_BEAT_SCHEDULE = {
         "task": "fikisha.jobs.tasks.expire_requests",
         "schedule": float(JOBS_EXPIRE_REQUESTS_POLL_SECONDS),
         "options": {"expires": JOBS_EXPIRE_REQUESTS_POLL_SECONDS},
+    },
+    # Commission & Statements: bill last week every Monday 06:00 EAT
+    # (CELERY_TIMEZONE); reconcile nightly (commission-ledger.md §7).
+    "statements-weekly-run": {
+        "task": "fikisha.statements.tasks.run_weekly_statements",
+        "schedule": crontab(minute=0, hour=6, day_of_week=1),
+    },
+    "statements-reconcile": {
+        "task": "fikisha.statements.tasks.reconcile_statements",
+        "schedule": crontab(minute=30, hour=2),
     },
     "jobs-autocomplete-delivered": {
         "task": "fikisha.jobs.tasks.autocomplete_delivered",
@@ -268,7 +283,7 @@ CORS_ALLOW_CREDENTIALS = True  # refresh cookie
 # Invisible to the jsdom-based frontend test suite, which doesn't enforce
 # real CORS — only caught by a live cross-origin browser request
 # (Design Phase 6 Increment 3 verification, 2026-09-15).
-CORS_ALLOW_HEADERS = [*default_headers, "idempotency-key"]
+CORS_ALLOW_HEADERS = [*default_headers, "idempotency-key", "if-match"]
 
 # ─── Dev-only demo endpoints (also gated by the `demo_endpoints` feature flag) ─
 # Proves the audit + outbox atomicity path. Off by default; dev/test turn it on;
