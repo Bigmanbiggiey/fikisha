@@ -1103,6 +1103,70 @@ the authorization paths are untouched. Tests:
 - `CurrentJobPage.test.tsx`, `MessagesPage.test.tsx` and
   `JobDetailPage.test.tsx` updated.
 
+## ADR-2D-44 — Edit-conflict protection: `If-Match` wired at the HTTP layer — CONFIRMED (founder approval 2026-10-16)
+
+Closes the gap `phase-2d-api.md` recorded in Step 10. The domain check
+(`TransitionContext.if_match_version` → `StaleJob` 412, ADR-2D-02) has
+existed since Increment 1, but no view read the header. It also settles
+Design Phase 6 Q4, where `StaleBadge` was presentational only until this
+gap closed.
+
+**Backend.**
+- `GET /jobs/<id>` returns `ETag: "<version>"`. The version is already in
+  the body.
+- `fikisha.common.if_match.IfMatchMiddleware` notes an `If-Match` header on
+  any unsafe request whose URL names a `job_id`.
+  `JobLifecycleService.transition()`, the single writer of job status,
+  takes it for that job only, once. This covers every job action (submit,
+  cancel, assign, custody steps, staff actions, opening a dispute) without
+  changing a dozen service signatures.
+  - **Only that job:** a transition on any other job is unaffected.
+  - **Only once:** an action that makes two transitions on the same job
+    doesn't trip over its own first write.
+  - An explicit `if_match_version` from a caller still wins.
+- `"7"`, `W/"7"` and `7` are accepted, and `*` means any version. Anything
+  else is 400 `invalid_if_match`.
+- `if-match` is added to `CORS_ALLOW_HEADERS`. Without it, browsers would
+  block every request carrying it: the same trap as `Idempotency-Key` in
+  Increment 3.
+
+**Frontend.**
+- `features/jobs/jobVersions.ts` remembers the last version this tab saw
+  for each job: from job detail, from every job action's response, and from
+  opening a dispute. `jobsApi` actions and dispute opening send it as
+  `If-Match`.
+- A `412 stale_job` triggers the query client to refresh every job and
+  dispute view, and the action's error message says "Someone else changed
+  this job while you had it open. It has been refreshed: check it and try
+  again. Nothing was changed."
+- Versions are forgotten on sign-out.
+- **Fixed on the way:** the business "Continue request" action never
+  showed its error at all. It now does.
+
+**Deviation from `api-architecture.md`, documented:** the architecture says
+job mutations *require* `If-Match`. This build enforces it when sent, but
+does not yet reject a request without it.
+- **Why:** some flows don't hold a job version, such as negotiation
+  acceptance (thread URLs), the recipient's link page (token URLs) and
+  scheduled sweeps.
+- **Why it's safe:** every screen that shows a job and acts on it now sends
+  the header, so the conflicts this protects against are caught. Requests
+  without it behave exactly as before.
+- **Making it mandatory later:** one check in
+  `take_expected_version`/`transition()` (428 when absent on a job URL),
+  once every client sends it.
+
+**Tests:**
+- `jobs/tests/test_if_match.py` (9): ETag; a stale header is refused and
+  changes nothing; current, weak, bare, `*` and missing all go through;
+  malformed is 400; CORS allows it.
+- `jobVersions.test.ts` (3): version sent and then advanced, none for an
+  unknown job, refresh on `stale_job`.
+- `apiClient.test.ts` (+1): the header.
+- **Live check:** the business opened a draft, it was submitted elsewhere,
+  and the business's click sent `If-Match: "0"`, got 412, showed the
+  message and refreshed to Requested.
+
 ## Self-caught defects fixed during implementation
 
 Every one of these was found by the implementation's own review or test
