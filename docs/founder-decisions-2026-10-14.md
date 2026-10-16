@@ -43,4 +43,7 @@ authoritative copy; the form was only the means of collecting it.
 4. **Commission & Statements** (5), with its own plan first.
 5. **Swahili review list** (20), before the pilot launch.
 
+   **Compiled 2026-10-15** (`docs/swahili-review/`): 1,096 strings with
+   English source and screen, ready for a native-speaker review.
+
 The order is a proposal; the founder sets it.

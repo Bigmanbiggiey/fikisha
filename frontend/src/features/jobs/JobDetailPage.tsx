@@ -34,6 +34,7 @@ import {
 import { formatKes } from './money';
 import type { Job, JobStatus } from './types';
 import { useJobViewerRole } from './useJobViewerRole';
+import { JobEarningsCard } from '@/features/statements/JobEarningsCard';
 
 /** A timeline row's time: just the time today, date and time before that
  * (P-14), always in Kenya time. */
@@ -68,7 +69,8 @@ export function JobDetailPage(): JSX.Element {
   }
 
   const arrivePickup = useMutation({
-    mutationFn: async () => jobsApi.arrivePickup(jobId!, await getOneShotGeo(), crypto.randomUUID()),
+    mutationFn: async () =>
+      jobsApi.arrivePickup(jobId!, await getOneShotGeo(), crypto.randomUUID()),
     onSuccess: invalidateJob,
   });
   const startTransit = useMutation({
@@ -76,7 +78,8 @@ export function JobDetailPage(): JSX.Element {
     onSuccess: invalidateJob,
   });
   const arriveDestination = useMutation({
-    mutationFn: async () => jobsApi.arriveDestination(jobId!, await getOneShotGeo(), crypto.randomUUID()),
+    mutationFn: async () =>
+      jobsApi.arriveDestination(jobId!, await getOneShotGeo(), crypto.randomUUID()),
     onSuccess: invalidateJob,
   });
 
@@ -84,7 +87,13 @@ export function JobDetailPage(): JSX.Element {
 
   if (job.isLoading || viewer.loading) return <PageLoader />;
   if (job.isError) {
-    return <ErrorState message={localizeError(job.error, t)} error={job.error} onRetry={() => void job.refetch()} />;
+    return (
+      <ErrorState
+        message={localizeError(job.error, t)}
+        error={job.error}
+        onRetry={() => void job.refetch()}
+      />
+    );
   }
   const data = job.data!;
 
@@ -109,7 +118,9 @@ export function JobDetailPage(): JSX.Element {
       arrivingDestination={arriveDestination.isPending}
     />
   );
-  const lifecycleError = (arrivePickup.isError || startTransit.isError || arriveDestination.isError) && (
+  const lifecycleError = (arrivePickup.isError ||
+    startTransit.isError ||
+    arriveDestination.isError) && (
     <Alert tone="danger">
       {localizeError((arrivePickup.error ?? startTransit.error ?? arriveDestination.error)!, t)}
     </Alert>
@@ -138,7 +149,9 @@ export function JobDetailPage(): JSX.Element {
         <h2 className="text-label text-fg-secondary">{t('jobs:detail.cargo')}</h2>
         <p className="mt-2 text-body text-fg">{data.cargo?.description || '—'}</p>
         {data.cargo?.handling_flags && data.cargo.handling_flags.length > 0 && (
-          <p className="mt-1 text-body-sm text-fg-secondary">{data.cargo.handling_flags.join(' · ')}</p>
+          <p className="mt-1 text-body-sm text-fg-secondary">
+            {data.cargo.handling_flags.join(' · ')}
+          </p>
         )}
       </Card>
 
@@ -160,6 +173,9 @@ export function JobDetailPage(): JSX.Element {
         </div>
       </Card>
 
+      {/* "Earnings for this Job" (P3 §7.4): the payee's view once completed */}
+      {isOperatorViewer && data.status === 'COMPLETED' && <JobEarningsCard jobId={data.id} />}
+
       <JobNotesSection jobId={data.id} />
     </>
   );
@@ -169,7 +185,12 @@ export function JobDetailPage(): JSX.Element {
   // driver once the job is finished, sees the page below.
   if (viewer.isAssignedDriver && DRIVER_VIEW_STATUSES.includes(data.status)) {
     return (
-      <DriverJobView job={data} action={operatorActionSection} actionError={lifecycleError} fullDetail={detailCards} />
+      <DriverJobView
+        job={data}
+        action={operatorActionSection}
+        actionError={lifecycleError}
+        fullDetail={detailCards}
+      />
     );
   }
 
@@ -201,12 +222,16 @@ export function JobDetailPage(): JSX.Element {
       ) : isOperatorViewer ? (
         operatorActionSection
       ) : (
-        <NextActionSection
-          action={businessAction}
-          status={data.status}
-          onRetrySubmit={() => retrySubmit.mutate()}
-          retrying={retrySubmit.isPending}
-        />
+        <>
+          <NextActionSection
+            action={businessAction}
+            status={data.status}
+            onRetrySubmit={() => retrySubmit.mutate()}
+            retrying={retrySubmit.isPending}
+          />
+          {/* e.g. 412 stale_job: someone else moved the job on (ADR-2D-44) */}
+          {retrySubmit.isError && <Alert tone="danger">{localizeError(retrySubmit.error, t)}</Alert>}
+        </>
       )}
 
       {detailCards}
@@ -216,7 +241,10 @@ export function JobDetailPage(): JSX.Element {
           `party_kind_for_job` eligibility check rather than predicted here. */}
       {data.status !== 'DRAFT' && !isStaffViewer && (
         <div className="flex justify-end">
-          <Link to={`/jobs/${jobId}/report-issue`} className="text-body-sm text-action-secondary-text underline">
+          <Link
+            to={`/jobs/${jobId}/report-issue`}
+            className="text-body-sm text-action-secondary-text underline"
+          >
             {t('incidents:report.entryLink')}
           </Link>
         </div>
@@ -271,27 +299,43 @@ function NextActionSection({
   if (!action) {
     // DELIVERED completes on its own (P-09): say so rather than "nothing needed".
     return (
-      <NextActionCard emptyLabel={t(status === 'DELIVERED' ? 'jobs:detail.autoCompleteNote' : 'jobs:detail.nothingNeeded')} />
+      <NextActionCard
+        emptyLabel={t(
+          status === 'DELIVERED' ? 'jobs:detail.autoCompleteNote' : 'jobs:detail.nothingNeeded',
+        )}
+      />
     );
   }
 
   if (action === 'continueRequest') {
     return (
       <NextActionCard
-        action={{ label: t('jobs:action.continueRequest'), onClick: onRetrySubmit, loading: retrying }}
+        action={{
+          label: t('jobs:action.continueRequest'),
+          onClick: onRetrySubmit,
+          loading: retrying,
+        }}
         note={t('jobs:detail.draftNote')}
       />
     );
   }
   if (action === 'confirmPickup') {
     return (
-      <NextActionCard action={{ label: t('jobs:action.confirmPickup'), onClick: () => navigate(`/jobs/${jobId}/confirm-pickup`) }} />
+      <NextActionCard
+        action={{
+          label: t('jobs:action.confirmPickup'),
+          onClick: () => navigate(`/jobs/${jobId}/confirm-pickup`),
+        }}
+      />
     );
   }
   if (action === 'reviewOffers') {
     return (
       <NextActionCard
-        action={{ label: t('jobs:action.reviewOffers'), onClick: () => navigate(`/jobs/${jobId}/negotiation`) }}
+        action={{
+          label: t('jobs:action.reviewOffers'),
+          onClick: () => navigate(`/jobs/${jobId}/negotiation`),
+        }}
       />
     );
   }
@@ -300,11 +344,20 @@ function NextActionSection({
     if (dispute) {
       return (
         <NextActionCard
-          action={{ label: t('jobs:action.viewDispute'), onClick: () => navigate(`/disputes/${dispute.id}`) }}
+          action={{
+            label: t('jobs:action.viewDispute'),
+            onClick: () => navigate(`/disputes/${dispute.id}`),
+          }}
         />
       );
     }
-    return <NextActionCard emptyLabel={t('jobs:action.viewDispute')} note={t('jobs:detail.comingSoon')} />;
+    // No dispute record to link yet: still loading, or not one this
+    // viewer can open. Say what is happening instead of "coming later".
+    return (
+      <NextActionCard
+        emptyLabel={t(disputes.isLoading ? 'common:actions.loading' : 'jobs:detail.disputeUnderReview')}
+      />
+    );
   }
   // viewSummary — informational only, the read-only detail below already shows it.
   return <NextActionCard emptyLabel={t('jobs:detail.nothingNeeded')} />;
@@ -342,7 +395,10 @@ function OperatorNextActionSection({
   if (action === 'respond') {
     return (
       <NextActionCard
-        action={{ label: t('jobs:workAction.respond'), onClick: () => navigate(`/jobs/${jobId}/negotiation`) }}
+        action={{
+          label: t('jobs:workAction.respond'),
+          onClick: () => navigate(`/jobs/${jobId}/negotiation`),
+        }}
       />
     );
   }
@@ -363,7 +419,11 @@ function OperatorNextActionSection({
     return (
       <NextActionCard
         driver
-        action={{ label: t('jobs:workAction.arriveAtPickup'), onClick: onArrivePickup, loading: arrivingPickup }}
+        action={{
+          label: t('jobs:workAction.arriveAtPickup'),
+          onClick: onArrivePickup,
+          loading: arrivingPickup,
+        }}
         note={t('jobs:workAction.arriveAtPickupNote')}
       />
     );
@@ -372,7 +432,10 @@ function OperatorNextActionSection({
     return (
       <NextActionCard
         driver
-        action={{ label: t('jobs:workAction.confirmPickup'), onClick: () => navigate(`/jobs/${jobId}/pickup-proof`) }}
+        action={{
+          label: t('jobs:workAction.confirmPickup'),
+          onClick: () => navigate(`/jobs/${jobId}/pickup-proof`),
+        }}
       />
     );
   }
@@ -380,7 +443,11 @@ function OperatorNextActionSection({
     return (
       <NextActionCard
         driver
-        action={{ label: t('jobs:workAction.startTransit'), onClick: onStartTransit, loading: startingTransit }}
+        action={{
+          label: t('jobs:workAction.startTransit'),
+          onClick: onStartTransit,
+          loading: startingTransit,
+        }}
       />
     );
   }
@@ -408,19 +475,30 @@ function OperatorNextActionSection({
     );
   }
   if (action === 'viewStatement') {
-    // No operator-facing commission-preview endpoint exists yet — deferred.
-    return <NextActionCard emptyLabel={t('jobs:detail.autoCompleteNote')} note={t('jobs:detail.comingSoon')} />;
+    // The job is done. Its earnings (and the statement link, once billed)
+    // are in the "Earnings for this job" card below (Commission &
+    // Statements S-2); a group's driver, who isn't the payee, sees no card.
+    return <NextActionCard emptyLabel={t('jobs:detail.nothingNeeded')} />;
   }
   if (action === 'viewDispute') {
     const dispute = disputes.data?.data[0];
     if (dispute) {
       return (
         <NextActionCard
-          action={{ label: t('jobs:workAction.viewDispute'), onClick: () => navigate(`/disputes/${dispute.id}`) }}
+          action={{
+            label: t('jobs:workAction.viewDispute'),
+            onClick: () => navigate(`/disputes/${dispute.id}`),
+          }}
         />
       );
     }
-    return <NextActionCard emptyLabel={t('jobs:workAction.viewDispute')} note={t('jobs:detail.comingSoon')} />;
+    // No dispute record to link yet: still loading, or not one this
+    // viewer can open. Say what is happening instead of "coming later".
+    return (
+      <NextActionCard
+        emptyLabel={t(disputes.isLoading ? 'common:actions.loading' : 'jobs:detail.disputeUnderReview')}
+      />
+    );
   }
   // viewSummary — informational only, the read-only detail below already shows it.
   return <NextActionCard emptyLabel={t('jobs:detail.nothingNeeded')} />;
@@ -455,14 +533,30 @@ function Timeline({ job }: { job: Job }): JSX.Element {
   const steps: TimelineStep[] = HAPPY_PATH_STATUSES.map((status, i) => ({
     id: status,
     label: t(`jobs:status.${status}`),
-    node: isFrozen ? (i <= currentIndex ? 'done' : 'upcoming') : i < currentIndex ? 'done' : i === currentIndex ? 'current' : 'upcoming',
+    node: isFrozen
+      ? i <= currentIndex
+        ? 'done'
+        : 'upcoming'
+      : i < currentIndex
+        ? 'done'
+        : i === currentIndex
+          ? 'current'
+          : 'upcoming',
     time: stamp(timestampByStatus[status] ?? null),
   }));
 
   return (
     <JobTimeline
       steps={steps}
-      endCap={isTerminalNegative ? (job.status === 'CANCELLED' ? 'cancelled' : 'failed') : isDisputed ? 'disputed' : undefined}
+      endCap={
+        isTerminalNegative
+          ? job.status === 'CANCELLED'
+            ? 'cancelled'
+            : 'failed'
+          : isDisputed
+            ? 'disputed'
+            : undefined
+      }
       endCapText={isFrozen ? t(`jobs:status.${job.status}`) : undefined}
     />
   );

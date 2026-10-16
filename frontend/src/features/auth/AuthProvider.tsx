@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useLocation } from 'react-router-dom';
 
+import { forgetJobVersions } from '@/features/jobs/jobVersions';
 import { onAuthLost, setAccessToken } from '@/services/apiClient';
 
 import { authApi } from './authApi';
@@ -36,6 +37,7 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
     } catch {
       // Best effort — clear locally regardless.
     }
+    forgetJobVersions(); // the next person starts with no remembered job versions
     setAccessToken(null);
     setUser(null);
     setStatus('anonymous');

@@ -50,9 +50,9 @@
     "timeline": "Ratiba",
     "cancel": "Ghairi ombi",
     "nothingNeeded": "Hakuna kinachohitajika kwako sasa.",
+    "disputeUnderReview": "Fikisha inakagua kazi hii. Utaarifiwa kukiwa na taarifa mpya.",
     "draftNote": "Ombi hili bado halijatumwa.",
-    "autoCompleteNote": "Usafirishaji huu utakamilishwa kiotomatiki — hakuna kinachohitajika kwako.",
-    "comingSoon": "Skrini hii inakuja katika toleo lijalo."
+    "autoCompleteNote": "Usafirishaji huu utakamilishwa kiotomatiki — hakuna kinachohitajika kwako."
   },
   "pickupConfirm": {
     "whatYoureConfirming": "Thibitisha kwamba {{cargo}} za Kazi {{ref}} zimekabidhiwa kwa dereva mahali {{location}}.",
@@ -228,14 +228,20 @@
     "title": "Panga dereva na gari",
     "forJob": "Kwa kazi {{ref}}",
     "movedOn": "Kazi hii imeendelea — hakuna kinachohitajika hapa.",
-    "groupNotSupported": "Kupanga dereva wa kikundi bado hakupatikani — panga kazi hii kutoka akaunti ya meneja inayotumika, au wasiliana na usaidizi.",
     "chooseDriver": "Chagua dereva",
     "chooseVehicle": "Chagua gari",
     "trustLevel": "Kiwango {{level}}",
     "noLevel": "hakuna",
     "capacity": "{{value}} {{unit}}",
     "noVehicles": "Bado hujasajili gari lolote.",
-    "confirm": "Thibitisha upangaji"
+    "noGroupVehicles": "Kikundi hiki bado hakijasajili gari lolote.",
+    "confirm": "Thibitisha upangaji",
+    "noDrivers": "Kikundi hiki bado hakina wanachama hai wa kugawiwa. Ongeza madereva kwenye kikundi kwanza.",
+    "groupRole": {
+      "OWNER": "Mmiliki",
+      "MANAGER": "Meneja",
+      "DRIVER": "Dereva"
+    }
   },
   "pickupProof": {
     "title": "Thibitisha uchukuzi",

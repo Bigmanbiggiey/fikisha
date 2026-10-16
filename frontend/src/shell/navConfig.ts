@@ -15,7 +15,7 @@ import type { IconName } from '@/design/Icon';
  *
  * Deliberately absent until their screens exist: Group Manager "Team", Ops "Incidents / Disputes"
  * lists and "Search", Platform Admin Trust & Reputation and
- * System (`design-phase-6-increment-9-scope.md` D-5), statements, help and settings. Diagnostics is left out of user navigation; it stays
+ * System (`design-phase-6-increment-9-scope.md` D-5), help and settings. Diagnostics is left out of user navigation; it stays
  * reachable at /diagnostics.
  */
 
@@ -56,7 +56,14 @@ const home: NavItem = { to: '/home', labelKey: 'common:nav.home', icon: 'home', 
 const vehicles: NavItem = { to: '/vehicles', labelKey: 'org:nav.vehicles', icon: 'truck' };
 const profile: NavItem = { to: '/operator', labelKey: 'org:nav.operator', icon: 'badge' };
 const groups: NavItem = { to: '/groups', labelKey: 'org:nav.groups', icon: 'handshake' };
-const messages: NavItem = { to: '/messages', labelKey: 'common:nav.messages', icon: 'chat', badge: 'messages' };
+const messages: NavItem = {
+  to: '/messages',
+  labelKey: 'common:nav.messages',
+  icon: 'chat',
+  badge: 'messages',
+};
+/** Commission statements (Commission & Statements S-2): the payee's own. */
+const statements: NavItem = { to: '/statements', labelKey: 'common:nav.statements', icon: 'list' };
 
 const staff: RoleNav = {
   primary: [
@@ -67,12 +74,17 @@ const staff: RoleNav = {
   secondary: [
     { to: '/ops/high-value', labelKey: 'common:nav.highValue', icon: 'flag' },
     { to: '/ops/audit', labelKey: 'common:nav.audit', icon: 'eye' },
+    { to: '/ops/statements', labelKey: 'common:nav.statements', icon: 'list' },
   ],
 };
 
 export const NAV: Record<NavRole, RoleNav> = {
   BUSINESS: {
-    primary: [home, { to: '/jobs', labelKey: 'common:nav.jobs', icon: 'list', notActive: ['/jobs/new'] }, messages],
+    primary: [
+      home,
+      { to: '/jobs', labelKey: 'common:nav.jobs', icon: 'list', notActive: ['/jobs/new'] },
+      messages,
+    ],
     action: { to: '/jobs/new', labelKey: 'common:nav.requestTransport', icon: 'plus', end: true },
     secondary: [{ to: '/businesses', labelKey: 'org:nav.businesses', icon: 'box' }],
   },
@@ -88,19 +100,25 @@ export const NAV: Record<NavRole, RoleNav> = {
       profile,
       { to: '/operating-locations', labelKey: 'org:nav.locations', icon: 'pin' },
       groups,
+      statements,
     ],
   },
   DRIVER: {
     primary: [
       // A driver's job pages are part of "Current job", not of "Jobs".
-      { to: '/current-job', labelKey: 'common:nav.currentJob', icon: 'truck', alsoActive: ['/jobs/'] },
+      {
+        to: '/current-job',
+        labelKey: 'common:nav.currentJob',
+        icon: 'truck',
+        alsoActive: ['/jobs/'],
+      },
       { to: '/my-jobs', labelKey: 'common:nav.jobs', icon: 'list' },
     ],
     secondary: [profile],
   },
   GROUP_MANAGER: {
     primary: [home, { to: '/my-jobs', labelKey: 'common:nav.jobs', icon: 'list' }],
-    secondary: [groups, vehicles],
+    secondary: [groups, vehicles, statements],
   },
   OPERATIONS_OFFICER: staff,
   PLATFORM_ADMIN: {

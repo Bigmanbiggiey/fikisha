@@ -206,7 +206,8 @@ def _time_param(request: Request, name: str) -> Any:
 class CommissionLedgerView(OrgApiView):
     """``GET /admin/commission?since=&until=&operator_id=&group_id=`` —
     ``{data, page, totals, statements_available}``. ``totals`` covers the
-    whole filtered ledger. Statements aren't produced yet."""
+    whole filtered ledger. Weekly statements exist since Commission & Statements
+    S-1 (`GET /admin/statements`, ADR-2D-42)."""
 
     action_get = "admin.commission.read"
 
@@ -221,5 +222,5 @@ class CommissionLedgerView(OrgApiView):
         page = paginator.paginate_queryset(qs, request)
         response = paginator.get_paginated_response(_LedgerRow(page, many=True).data)
         response.data["totals"] = admin_ledger.totals(qs)
-        response.data["statements_available"] = False
+        response.data["statements_available"] = True
         return response

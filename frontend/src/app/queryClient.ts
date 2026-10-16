@@ -1,9 +1,20 @@
-import { QueryClient } from '@tanstack/react-query';
+import { MutationCache, QueryClient } from '@tanstack/react-query';
 
 import { ApiError } from '@/services/problem';
 
 export function createQueryClient(): QueryClient {
-  return new QueryClient({
+  const client: QueryClient = new QueryClient({
+    // A job action refused with 412 `stale_job` means someone else changed the
+    // job since this screen loaded it (ADR-2D-44). Refresh every job view so
+    // the person sees what changed; the action's own error message says so.
+    mutationCache: new MutationCache({
+      onError: (error) => {
+        if (error instanceof ApiError && error.code === 'stale_job') {
+          void client.invalidateQueries({ queryKey: ['jobs'] });
+          void client.invalidateQueries({ queryKey: ['disputes'] });
+        }
+      },
+    }),
     defaultOptions: {
       queries: {
         staleTime: 30_000,
@@ -18,4 +29,5 @@ export function createQueryClient(): QueryClient {
       mutations: { retry: false },
     },
   });
+  return client;
 }
