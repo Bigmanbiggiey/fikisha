@@ -78,11 +78,21 @@ export function AssignDriverVehiclePage(): JSX.Element {
 
   if (job.isLoading || candidates.isLoading) return <PageLoader />;
   if (job.isError) {
-    return <ErrorState message={localizeError(job.error, t)} error={job.error} onRetry={() => void job.refetch()} />;
+    return (
+      <ErrorState
+        message={localizeError(job.error, t)}
+        error={job.error}
+        onRetry={() => void job.refetch()}
+      />
+    );
   }
   if (candidates.isError) {
     return (
-      <ErrorState message={localizeError(candidates.error, t)} error={candidates.error} onRetry={() => void candidates.refetch()} />
+      <ErrorState
+        message={localizeError(candidates.error, t)}
+        error={candidates.error}
+        onRetry={() => void candidates.refetch()}
+      />
     );
   }
   const data = job.data!;
@@ -101,12 +111,11 @@ export function AssignDriverVehiclePage(): JSX.Element {
     );
   }
 
-  if (!c.supports_group_assignment && c.drivers.length === 0) {
-    // A group-confirmed job — the Group Manager driver-pool flow isn't built
-    // yet this increment (founder scope decision, 2026-09-21).
+  if (c.drivers.length === 0) {
+    // a group with no active members can't take the job yet
     return (
       <Card>
-        <Alert tone="info">{t('jobs:assign.groupNotSupported')}</Alert>
+        <Alert tone="info">{t('jobs:assign.noDrivers')}</Alert>
       </Card>
     );
   }
@@ -126,14 +135,25 @@ export function AssignDriverVehiclePage(): JSX.Element {
 
       <Card>
         <h2 className="text-label text-fg-secondary">{t('jobs:assign.chooseDriver')}</h2>
-        <div role="radiogroup" aria-label={t('jobs:assign.chooseDriver')} className="mt-2 space-y-2">
+        <div
+          role="radiogroup"
+          aria-label={t('jobs:assign.chooseDriver')}
+          className="mt-2 space-y-2"
+        >
           {c.drivers.map((d) => (
             <EligibilityRow
               key={d.id}
               name="driver"
               value={d.id}
               label={d.name}
-              meta={t('jobs:assign.trustLevel', { level: d.trust_level || t('jobs:assign.noLevel') })}
+              meta={[
+                d.group_role
+                  ? t(`jobs:assign.groupRole.${d.group_role}`, { defaultValue: d.group_role })
+                  : null,
+                t('jobs:assign.trustLevel', { level: d.trust_level || t('jobs:assign.noLevel') }),
+              ]
+                .filter(Boolean)
+                .join(' · ')}
               eligible={d.eligible}
               reasons={d.reasons}
               selected={driverId === d.id}
@@ -146,9 +166,19 @@ export function AssignDriverVehiclePage(): JSX.Element {
       <Card>
         <h2 className="text-label text-fg-secondary">{t('jobs:assign.chooseVehicle')}</h2>
         {c.vehicles.length === 0 ? (
-          <p className="mt-2 text-body-sm text-fg-secondary">{t('jobs:assign.noVehicles')}</p>
+          <p className="mt-2 text-body-sm text-fg-secondary">
+            {t(
+              c.supports_group_assignment
+                ? 'jobs:assign.noGroupVehicles'
+                : 'jobs:assign.noVehicles',
+            )}
+          </p>
         ) : (
-          <div role="radiogroup" aria-label={t('jobs:assign.chooseVehicle')} className="mt-2 space-y-2">
+          <div
+            role="radiogroup"
+            aria-label={t('jobs:assign.chooseVehicle')}
+            className="mt-2 space-y-2"
+          >
             {c.vehicles.map((v) => (
               <EligibilityRow
                 key={v.id}
@@ -168,7 +198,12 @@ export function AssignDriverVehiclePage(): JSX.Element {
 
       {assign.isError && <Alert tone="danger">{localizeError(assign.error, t)}</Alert>}
 
-      <Button fullWidth disabled={!canSubmit} loading={assign.isPending} onClick={() => assign.mutate()}>
+      <Button
+        fullWidth
+        disabled={!canSubmit}
+        loading={assign.isPending}
+        onClick={() => assign.mutate()}
+      >
         {t('jobs:assign.confirm')}
       </Button>
     </div>

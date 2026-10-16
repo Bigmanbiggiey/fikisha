@@ -92,31 +92,4 @@ def test_high_value_band_reports_blocked_and_a_trust_reason(
     assert any("trust level" in reason for reason in driver_row["reasons"])
 
 
-def test_group_confirmed_job_reports_group_assignment_not_supported_yet(
-    client_for: Callable, make_confirmed_job: Callable, make_verified_operator: Callable
-) -> None:
-    from fikisha.groups.models import (
-        GroupMemberRole,
-        GroupMembership,
-        GroupMembershipStatus,
-        GroupType,
-        OperatorGroup,
-    )
-
-    manager = make_verified_operator("+254733999003", "Group Manager")
-    group = OperatorGroup.objects.create(
-        name="Kitengela Fleet", type=GroupType.FLEET, primary_contact=manager.user
-    )
-    GroupMembership.objects.create(
-        group=group,
-        operator=manager,
-        role=GroupMemberRole.OWNER,
-        status=GroupMembershipStatus.ACTIVE,
-    )
-    job = make_confirmed_job(group=group)
-    client = client_for(manager.user)
-    r = client.get(f"/api/v1/jobs/{job.id}/assignment-candidates")
-    assert r.status_code == 200, r.content
-    assert r.data["supports_group_assignment"] is False
-    assert r.data["drivers"] == []
-    assert r.data["vehicles"] == []
+# Group jobs' candidates: see test_assignment_groups.py (founder decision 2026-10-14).
