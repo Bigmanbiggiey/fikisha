@@ -34,6 +34,11 @@ urlpatterns = [
         name="contacts-reveal",
     ),
     path(
+        "jobs/<uuid:job_id>/high-value-decision/reverse",
+        views.JobHighValueReversalView.as_view(),
+        name="high-value-reversal",
+    ),
+    path(
         "jobs/<uuid:job_id>/high-value-decision",
         views.JobHighValueDecisionView.as_view(),
         name="high-value-decision",

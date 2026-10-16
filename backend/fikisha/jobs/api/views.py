@@ -23,7 +23,7 @@ from fikisha.evidence.models import EvidencePurpose, PiiClass, UploaderKind
 from fikisha.identity.authz.step_up import require_step_up
 from fikisha.jobs import assignment_candidates as assignment_candidates_service
 from fikisha.jobs import commission as commission_service
-from fikisha.jobs import creation, custody, discovery, job_authz, ops
+from fikisha.jobs import creation, custody, discovery, high_value, job_authz, ops
 from fikisha.jobs import recipient as recipient_service
 from fikisha.jobs.api.serializers import (
     AddNoteSerializer,
@@ -106,7 +106,7 @@ class JobCollectionView(OrgApiView):
             .select_related("business", "agreement", "assignment")
             .order_by("-created_at")
         )
-        return paginated(request, qs, _JobListSerializer)
+        return paginated(request, qs, _JobListSerializer, context={"viewer": actor})
 
     def post(self, request: Request) -> Response:
         serializer = JobCreateSerializer(data=request.data)
@@ -134,7 +134,7 @@ class JobDetailView(OrgApiView):
 
     def get(self, request: Request, job_id: str) -> Response:
         job = self.get_authz_resource()
-        return Response(creation.job_detail(job))
+        return Response(creation.job_detail(job, viewer=self.actor(request)))
 
 
 class JobSubmitView(OrgApiView):
@@ -208,6 +208,22 @@ class OpsHighValueQueueView(OrgApiView):
             "pickup_location", "destination_location", "agreement"
         )
         return _paginate_rows(request, qs, ops.high_value_rows)
+
+
+class JobHighValueReversalView(OrgApiView):
+    """``POST /jobs/<id>/high-value-decision/reverse {reason}`` — a Platform
+    Admin reverses a rejection (founder decision 2026-10-14). Needs a fresh
+    step-up."""
+
+    action_post = "highvalue.approve"
+
+    def post(self, request: Request, job_id: str) -> Response:
+        reason = str(request.data.get("reason") or "")
+        require_step_up(self.actor(request))
+        return Response(
+            high_value.reverse_rejection(actor=self.actor(request), job_id=job_id, reason=reason),
+            status=status.HTTP_201_CREATED,
+        )
 
 
 class JobHighValueDecisionView(OrgApiView):
@@ -617,7 +633,7 @@ class _JobListSerializer(serializers.BaseSerializer):
     the detail endpoint uses (no second representation to keep in sync)."""
 
     def to_representation(self, instance: Job) -> dict[str, Any]:
-        return creation.job_detail(instance)
+        return creation.job_detail(instance, viewer=self.context.get("viewer"))
 
 
 class _JobOpportunitySerializer(serializers.BaseSerializer):

@@ -193,15 +193,30 @@ def cancel_job(
     )
 
 
-def job_detail(job: Job) -> dict[str, Any]:
+def job_detail(job: Job, viewer: Any = None) -> dict[str, Any]:
     """Read projection for the API — `job_view()` plus the lightweight,
     already-frozen related-object summaries a caller needs (never
-    recomputed business logic — every field here is a stored value)."""
+    recomputed business logic — every field here is a stored value).
+
+    Pass the ``viewer`` (the actor reading it): contact phone numbers are
+    blanked for anyone ``job_authz.may_see_contact_phones`` refuses, e.g. an
+    operator still negotiating (founder decision 2026-10-14, ADR-2D-36), and
+    ``contacts_hidden`` says so. Without a viewer (the business's own create
+    response) nothing is hidden."""
+    hide = viewer is not None and not job_authz.may_see_contact_phones(viewer, job)
     view = job_view(job)
-    view["pickup_location"] = _location_view(job.pickup_location)
-    view["destination_location"] = _location_view(job.destination_location)
+    view["pickup_location"] = _location_view(job.pickup_location, hide_phone=hide)
+    view["destination_location"] = _location_view(job.destination_location, hide_phone=hide)
     view["recipient_name"] = job.recipient_name
-    view["recipient_phone"] = job.recipient_phone
+    view["recipient_phone"] = "" if hide else job.recipient_phone
+    view["contacts_hidden"] = hide
+    if viewer is not None and job.is_high_value and job_authz.is_admin(viewer):
+        # staff only: the effective high-value decision, so the console can
+        # offer a Platform Admin the reversal of a rejection
+        from fikisha.jobs.high_value import effective_decision
+
+        decision, _ = effective_decision(job)
+        view["high_value_decision"] = decision
     view["cargo"] = _cargo_view(job.cargo)
     agreement = job.agreement
     assignment = job.assignment
@@ -213,7 +228,9 @@ def job_detail(job: Job) -> dict[str, Any]:
     return view
 
 
-def _location_view(location: JobLocation | None) -> dict[str, Any] | None:
+def _location_view(
+    location: JobLocation | None, *, hide_phone: bool = False
+) -> dict[str, Any] | None:
     if location is None:
         return None
     return {
@@ -223,7 +240,7 @@ def _location_view(location: JobLocation | None) -> dict[str, Any] | None:
         "lat": location.lat,
         "lng": location.lng,
         "contact_name": location.contact_name,
-        "contact_phone": location.contact_phone,
+        "contact_phone": "" if hide_phone else location.contact_phone,
     }
 
 

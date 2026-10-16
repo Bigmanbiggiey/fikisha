@@ -87,7 +87,7 @@ def opportunity_view(job: Any, actor: Any) -> dict[str, Any]:
     derive — reusing the exact predicates the assignment guards enforce
     (``jobs.guards._driver_verification_reasons`` /
     ``_driver_trust_reasons``)."""
-    view = creation.job_detail(job)
+    view = creation.job_detail(job, viewer=actor)
     driver = _driver_for(actor)
     if driver is None:
         view["eligibility"] = {

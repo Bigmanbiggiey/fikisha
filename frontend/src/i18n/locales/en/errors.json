@@ -48,5 +48,6 @@
   "mfa_required": "Enter your authenticator code first.",
   "mfa_not_enrolled": "Set up an authenticator first.",
   "mfa_already_enrolled": "This account already has an authenticator.",
-  "mfa_not_required": "Only admin accounts use an authenticator."
+  "mfa_not_required": "Only admin accounts use an authenticator.",
+  "high_value_not_reversible": "Only a rejected high-value decision can be reversed."
 }

@@ -4,8 +4,11 @@
 An Operations Officer may decide a HIGH job; only a Platform Admin may decide a
 VERY_HIGH job (and the ``HighValueApproved`` guard independently re-checks that
 a VERY_HIGH approval was made by a Platform Admin). The decision is
-append-only and immutable (``high_value_approval`` is ``U(job_id)``); a
-correction would be an admin adjustment, out of scope here.
+append-only and immutable (``high_value_approval`` is ``U(job_id)``). A
+**rejection** can be reversed by a Platform Admin with a reason (founder
+decision 2026-10-14): an append-only ``high_value_reversal`` row, after which
+the job counts as approved by a Platform Admin. Readers use
+:func:`effective_decision`.
 """
 
 from __future__ import annotations
@@ -15,13 +18,14 @@ from typing import Any
 from django.db import IntegrityError, transaction
 
 from fikisha.audit import services as audit
+from fikisha.common.exceptions import DomainError
 from fikisha.jobs.constants import HIGH_VALUE_BANDS, HighValueDecision, ValueBand
 from fikisha.jobs.errors import (
     HighValueAlreadyDecided,
     NotAHighValueJob,
     NotAuthorisedToAssign,
 )
-from fikisha.jobs.models import HighValueApproval
+from fikisha.jobs.models import HighValueApproval, HighValueReversal
 from fikisha.jobs.selectors import get_job
 from fikisha.outbox.services import emit
 
@@ -105,3 +109,68 @@ def decide_high_value(
         "decision": decision,
         "decided_by_is_platform_admin": is_platform_admin,
     }
+
+
+# ─── effective decision and reversal (founder decision 2026-10-14) ────────
+REASON_MIN_LENGTH = 10
+
+
+class NotReversible(DomainError):
+    default_code = "high_value_not_reversible"
+    default_detail = "Only a rejected high-value decision can be reversed."
+
+
+def effective_decision(job: Any) -> tuple[str | None, bool]:
+    """``(decision, by_platform_admin)`` for a job: ``(None, False)`` when
+    nothing is decided yet; a reversed rejection reads as APPROVED by a
+    Platform Admin."""
+    approval = HighValueApproval.objects.filter(job=job).select_related("reversal").first()
+    if approval is None:
+        return None, False
+    if getattr(approval, "reversal", None) is not None:
+        return HighValueDecision.APPROVED, True
+    return approval.decision, approval.decided_by_is_platform_admin
+
+
+@transaction.atomic
+def reverse_rejection(*, actor: Any, job_id: Any, reason: str) -> dict[str, Any]:
+    """A Platform Admin reverses a rejection. Needs a reason (step-up is
+    checked at the API view, like the decision itself)."""
+    if not _is_platform_admin(actor):
+        raise NotAuthorisedToAssign("Only a Platform Admin may reverse a high-value rejection.")
+    reason = (reason or "").strip()
+    if len(reason) < REASON_MIN_LENGTH:
+        raise NotReversible(f"Give a reason of at least {REASON_MIN_LENGTH} characters.")
+    job = get_job(job_id)
+    approval = HighValueApproval.objects.select_for_update().filter(job=job).first()
+    if approval is None or approval.decision != HighValueDecision.REJECTED:
+        raise NotReversible()
+    if HighValueReversal.objects.filter(approval=approval).exists():
+        raise HighValueAlreadyDecided("This rejection was already reversed.")
+    user = getattr(actor, "user", actor)
+    reversal = HighValueReversal.objects.create(approval=approval, reversed_by=user, reason=reason)
+    audit.record(
+        actor=actor,
+        action="job.highvalue.rejection_reversed",
+        entity_type="high_value_approval",
+        entity_id=approval.id,
+        before={"decision": HighValueDecision.REJECTED},
+        after={
+            "effective_decision": HighValueDecision.APPROVED,
+            "reason": reason,
+            "reversal_id": str(reversal.id),
+        },
+    )
+    emit(
+        event_type="HighValueDecision",
+        aggregate_type="job",
+        aggregate_id=str(job.id),
+        payload={
+            "job_id": str(job.id),
+            "value_band": job.value_band,
+            "decision": HighValueDecision.APPROVED,
+            "decided_by_is_platform_admin": True,
+            "reversal": True,
+        },
+    )
+    return {"job_id": str(job.id), "decision": HighValueDecision.APPROVED, "reversed": True}

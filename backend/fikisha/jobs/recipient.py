@@ -287,8 +287,11 @@ def view(*, principal: RecipientPrincipal) -> dict[str, Any]:
         entity_id=job.id,
         after={"link_id": principal.link_id},
     )
+    from fikisha.jobs.ops import job_reference
+
     return {
-        "delivery_reference": job.id.hex[-8:].upper(),
+        # the same 6-character reference the app shows (founder decision 2026-10-14)
+        "delivery_reference": job_reference(job.id),
         "recipient_display_name": _first_name_last_initial(job.recipient_name),
         "cargo_summary": cargo_summary[:200],
         "status": job.status,

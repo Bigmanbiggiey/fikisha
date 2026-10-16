@@ -90,6 +90,38 @@ def operator_is_party(actor: Any, job: Any) -> bool:
     return False
 
 
+def may_see_contact_phones(actor: Any, job: Any) -> bool:
+    """Who sees the job's contact phone numbers (pickup and destination
+    contacts, recipient) — founder decision 2026-10-14, closing ADR-2D-36:
+    staff; any member of the job's business; and, once the job is assigned,
+    the confirmed operator / group manager and the assigned driver. An
+    operator who has only negotiated sees names, not numbers."""
+    if is_admin(actor):
+        return True
+    if business_authz.active_membership(actor, _BusinessRef(job.business_id)) is not None:
+        return True
+    assignment = getattr(job, "assignment", None)
+    if assignment is None:
+        return False
+    agreement = getattr(job, "agreement", None)
+    if agreement is not None:
+        if agreement.operator_id is not None and operators_authz.owns_profile(
+            actor, {"operator_id": str(agreement.operator_id)}
+        ):
+            return True
+        if agreement.group_id is not None and groups_authz.can_manage(
+            actor, {"group_id": str(agreement.group_id)}
+        ):
+            return True
+    driver = assignment.assigned_driver_profile
+    user = getattr(actor, "user", None)
+    return bool(
+        driver is not None
+        and user is not None
+        and getattr(driver, "user_id", None) == getattr(user, "id", None)
+    )
+
+
 def is_job_party(actor: Any, job: Any) -> bool:
     """Coarse "may this actor see/act on this job at all" boundary —
     prevents cross-business / cross-operator access (Step 10 brief §20)."""

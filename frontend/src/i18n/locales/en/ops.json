@@ -129,7 +129,11 @@
     "showEvents": "Show all events",
     "hideEvents": "Hide events",
     "eventNote": "Note",
-    "highValuePending": "High-value review pending"
+    "highValuePending": "High-value review pending",
+    "highValueRejected": "High-value review rejected",
+    "reverseRejection": "Reverse the rejection",
+    "reverseRestate": "Reverse the high-value rejection of job {{ref}}. It will count as approved and can be assigned.",
+    "reverseConfirm": "Reverse"
   },
   "notes": {
     "title": "Updates from Fikisha"

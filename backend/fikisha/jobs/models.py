@@ -577,6 +577,26 @@ class HighValueApproval(AppendOnlyModel):
         db_table = "high_value_approval"
 
 
+class HighValueReversal(AppendOnlyModel):
+    """A Platform Admin reversing a high-value **rejection**, with a reason
+    (founder decision 2026-10-14). The original decision row is never
+    changed; a reversed rejection counts as approved by a Platform Admin
+    (``jobs.high_value.effective_decision``). One reversal per decision."""
+
+    approval = models.OneToOneField(
+        HighValueApproval, on_delete=models.PROTECT, related_name="reversal"
+    )
+    reversed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="+"
+    )
+    reason = models.TextField()
+
+    objects = AppendOnlyQuerySet.as_manager()
+
+    class Meta:
+        db_table = "high_value_reversal"
+
+
 class CommissionRecord(AppendOnlyModel):
     """The platform's commission entitlement for one completed Job (Step 9,
     plan §19, CLAUDE.md §4 "Payments / revenue"). Created exactly once per Job
