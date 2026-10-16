@@ -43,6 +43,8 @@ import { OperatorProfilePage } from '@/features/org/OperatorProfilePage';
 import { RecipientConfirmPage } from '@/features/recipient/RecipientConfirmPage';
 import { RecipientPage } from '@/features/recipient/RecipientPage';
 import { RecipientReportIssuePage } from '@/features/recipient/RecipientReportIssuePage';
+import { AdminStatementDetailPage } from '@/features/statements/AdminStatementDetailPage';
+import { AdminStatementsPage } from '@/features/statements/AdminStatementsPage';
 import { StatementDetailPage } from '@/features/statements/StatementDetailPage';
 import { StatementsPage } from '@/features/statements/StatementsPage';
 import { VehicleDetailPage } from '@/features/vehicles/VehicleDetailPage';
@@ -123,6 +125,9 @@ export function AppRoutes(): JSX.Element {
             <Route path="jobs" element={<OpsJobsPage />} />
             <Route path="high-value" element={<HighValueReviewPage />} />
             <Route path="audit" element={<AuditLogPage />} />
+            {/* Commission & Statements S-3: staff read; Platform Admin acts. */}
+            <Route path="statements" element={<AdminStatementsPage />} />
+            <Route path="statements/:statementId" element={<AdminStatementDetailPage />} />
           </Route>
           {/* Platform Admin console (Design Phase 6 Increment 9, P3 §19). */}
           <Route

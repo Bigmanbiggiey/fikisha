@@ -71,3 +71,32 @@ export interface JobEarnings {
   net_to_operator_kes: number;
   statement: { id: string; reference: string } | null;
 }
+
+/** Staff list (`GET /admin/statements`, S-3). Totals cover the whole filter. */
+export interface AdminStatementsPage {
+  data: StatementSummary[];
+  page: { next_cursor: string | null; prev_cursor: string | null };
+  totals: {
+    statements: number;
+    invoiced_kes: number;
+    settled_kes: number;
+    outstanding_kes: number;
+  };
+}
+
+export interface RunResult {
+  period_start: string;
+  period_end: string;
+  statements_created: number;
+  statement_ids: string[];
+  payees_skipped_existing: number;
+}
+
+export interface PaymentInput {
+  amount_kes: number;
+  payment_ref: string;
+  /** YYYY-MM-DD */
+  paid_on: string;
+  method: StatementSettlement['method'];
+  note: string;
+}

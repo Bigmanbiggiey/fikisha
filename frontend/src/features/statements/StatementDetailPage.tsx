@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect } from 'react';
+import { useEffect, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 
 import { Alert } from '@/components/Alert';
 import { Button } from '@/components/Button';
@@ -9,12 +9,12 @@ import { Card } from '@/components/Card';
 import { ErrorState } from '@/components/ErrorState';
 import { PageLoader } from '@/components/PageLoader';
 import { StatusBadge } from '@/components/StatusBadge';
-import { cn } from '@/components/cn';
 import { formatKes } from '@/features/jobs/money';
 import { formatDate } from '@/services/datetime';
 import { localizeError } from '@/services/errorMessage';
 
 import { periodLabel, stateBadge } from './statementFormat';
+import { LinesCard, PaymentsCard, Row, SummaryCard } from './StatementParts';
 import { statementsApi, statementsQueryKey } from './statementsApi';
 import type { StatementDetail } from './types';
 
@@ -58,60 +58,14 @@ export function StatementDetailPage(): JSX.Element {
     );
   }
   const s: StatementDetail = statement.data!;
-  const lang = i18n.resolvedLanguage;
-  const badge = stateBadge(s);
-  const jobs = s.lines.filter((l) => l.kind === 'COMMISSION');
-  const credits = s.lines.filter((l) => l.kind === 'ADJUSTMENT');
 
   return (
     <div className="mx-auto max-w-2xl space-y-5">
-      {/* the printed copy carries the wordmark (P3 §6.5); on screen the
-          top bar already does */}
-      <p className="hidden text-h3 font-semibold text-action-primary print:block">
-        {t('common:appName')}
-      </p>
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="text-label text-fg-secondary">{t('statements:detail.eyebrow')}</p>
-          <h1 className="fk-numeric text-h1 text-fg">{s.reference}</h1>
-          <p className="mt-1 text-body text-fg-secondary">{periodLabel(s, lang)}</p>
-          {s.payee.name && <p className="text-body-sm text-fg-muted">{s.payee.name}</p>}
-        </div>
-        <div className="flex items-center gap-2">
-          <StatusBadge tone={badge.tone} label={t(`statements:state.${badge.key}`)} />
-          <Button variant="secondary" className="print:hidden" onClick={() => window.print()}>
-            {t('statements:detail.print')}
-          </Button>
-        </div>
-      </div>
+      <StatementHeading s={s} />
 
       <Alert tone="info">{t('statements:detail.notTaxInvoice')}</Alert>
 
-      <Card>
-        <h2 className="text-label text-fg-secondary">{t('statements:detail.summary')}</h2>
-        <dl className="mt-2 space-y-1 text-body">
-          <Row label={t('statements:detail.gross')} value={formatKes(s.gross_commission_kes)} />
-          {s.adjustments_kes !== 0 && (
-            <Row label={t('statements:detail.credits')} value={formatKes(s.adjustments_kes)} />
-          )}
-          <Row
-            label={t('statements:detail.netDue')}
-            value={formatKes(Math.max(s.net_due_kes, 0))}
-            strong
-          />
-          {s.settled_kes !== 0 && (
-            <Row label={t('statements:detail.paid')} value={formatKes(s.settled_kes)} />
-          )}
-          <Row
-            label={t('statements:detail.outstanding')}
-            value={formatKes(s.outstanding_kes)}
-            strong
-          />
-        </dl>
-        {s.net_due_kes < 0 && (
-          <p className="mt-2 text-body-sm text-fg-secondary">{t('statements:detail.creditNote')}</p>
-        )}
-      </Card>
+      <SummaryCard s={s} />
 
       {s.outstanding_kes > 0 && (
         <Card>
@@ -131,122 +85,53 @@ export function StatementDetailPage(): JSX.Element {
         </Card>
       )}
 
-      <Card>
-        <h2 className="text-label text-fg-secondary">
-          {t('statements:detail.jobs', { count: jobs.length })}
-        </h2>
-        {jobs.length === 0 ? (
-          <p className="mt-2 text-body-sm text-fg-muted">{t('statements:detail.noJobs')}</p>
-        ) : (
-          <div className="mt-2 overflow-x-auto">
-            <table className="w-full text-body-sm">
-              <thead>
-                <tr className="text-left text-fg-muted">
-                  <th className="py-1 pr-3 font-normal">{t('statements:detail.job')}</th>
-                  <th className="py-1 pr-3 text-right font-normal">
-                    {t('statements:detail.agreedPrice')}
-                  </th>
-                  <th className="py-1 text-right font-normal">
-                    {t('statements:detail.commission')}
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-line">
-                {jobs.map((l) => (
-                  <tr key={l.id}>
-                    <td className="py-2 pr-3">
-                      <Link
-                        to={`/jobs/${l.job_id}`}
-                        className="fk-numeric text-action-secondary-text underline"
-                      >
-                        {l.job_reference}
-                      </Link>
-                    </td>
-                    <td className="fk-numeric py-2 pr-3 text-right text-fg">
-                      {l.agreed_price_kes != null ? formatKes(l.agreed_price_kes) : '—'}
-                    </td>
-                    <td className="fk-numeric py-2 text-right text-fg">
-                      {formatKes(l.amount_kes)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-        {credits.length > 0 && (
-          <div className="mt-4">
-            <h3 className="text-label text-fg-secondary">
-              {t('statements:detail.creditsHeading')}
-            </h3>
-            <ul className="mt-1 space-y-1 text-body-sm">
-              {credits.map((l) => (
-                <li key={l.id} className="flex justify-between gap-3">
-                  <span className="text-fg-secondary">
-                    {t('statements:detail.creditFor')}{' '}
-                    <Link
-                      to={`/jobs/${l.job_id}`}
-                      className="fk-numeric text-action-secondary-text underline"
-                    >
-                      {l.job_reference}
-                    </Link>
-                  </span>
-                  <span className="fk-numeric text-fg">{formatKes(l.amount_kes)}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-      </Card>
-
-      {s.settlements.length > 0 && (
-        <Card>
-          <h2 className="text-label text-fg-secondary">{t('statements:detail.payments')}</h2>
-          <ul className="mt-2 space-y-2 text-body-sm">
-            {s.settlements.map((p) => (
-              <li key={p.id} className="flex flex-wrap justify-between gap-x-3">
-                <span className={cn('text-fg', p.reversed && 'text-fg-muted line-through')}>
-                  {p.kind === 'REVERSAL'
-                    ? t('statements:detail.reversal', { reference: p.payment_ref })
-                    : t('statements:detail.payment', {
-                        reference: p.payment_ref,
-                        date: formatDate(p.paid_on, lang),
-                      })}
-                </span>
-                <span
-                  className={cn('fk-numeric text-fg', p.reversed && 'text-fg-muted line-through')}
-                >
-                  {formatKes(p.amount_kes)}
-                </span>
-                {p.kind === 'REVERSAL' && p.note && (
-                  <span className="basis-full text-caption text-fg-muted">{p.note}</span>
-                )}
-              </li>
-            ))}
-          </ul>
-        </Card>
-      )}
+      <LinesCard s={s} />
+      <PaymentsCard s={s} />
 
       <p className="text-caption text-fg-muted">
-        {t('statements:detail.generated', { date: formatDate(s.generated_at, lang) })}
+        {t('statements:detail.generated', {
+          date: formatDate(s.generated_at, i18n.resolvedLanguage),
+        })}
       </p>
     </div>
   );
 }
 
-function Row({
-  label,
-  value,
-  strong,
+/** Wordmark (print only), reference, week, payee, state badge and Print.
+ * ``actions`` lets the staff page add its own buttons. */
+export function StatementHeading({
+  s,
+  actions,
 }: {
-  label: string;
-  value: string;
-  strong?: boolean;
+  s: StatementDetail;
+  actions?: ReactNode;
 }): JSX.Element {
+  const { t, i18n } = useTranslation(['statements', 'common']);
+  const badge = stateBadge(s);
   return (
-    <div className="flex justify-between gap-3">
-      <dt className="text-fg-muted">{label}</dt>
-      <dd className={cn('fk-numeric text-fg', strong && 'font-semibold')}>{value}</dd>
-    </div>
+    <>
+      {/* the printed copy carries the wordmark (P3 §6.5); on screen the
+          top bar already does */}
+      <p className="hidden text-h3 font-semibold text-action-primary print:block">
+        {t('common:appName')}
+      </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-label text-fg-secondary">{t('statements:detail.eyebrow')}</p>
+          <h1 className="fk-numeric text-h1 text-fg">{s.reference}</h1>
+          <p className="mt-1 text-body text-fg-secondary">
+            {periodLabel(s, i18n.resolvedLanguage)}
+          </p>
+          {s.payee.name && <p className="text-body-sm text-fg-muted">{s.payee.name}</p>}
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <StatusBadge tone={badge.tone} label={t(`statements:state.${badge.key}`)} />
+          {actions}
+          <Button variant="secondary" className="print:hidden" onClick={() => window.print()}>
+            {t('statements:detail.print')}
+          </Button>
+        </div>
+      </div>
+    </>
   );
 }

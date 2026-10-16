@@ -1,5 +1,5 @@
 import type { BadgeTone } from '@/components/StatusBadge';
-import { formatDate } from '@/services/datetime';
+import { formatDate, TIME_ZONE } from '@/services/datetime';
 
 import type { StatementSummary } from './types';
 
@@ -21,4 +21,34 @@ export function stateBadge(s: Pick<StatementSummary, 'state' | 'overdue'>): {
   return s.state === 'PART_PAID'
     ? { key: 'PART_PAID', tone: 'warning' }
     : { key: 'UNPAID', tone: 'neutral' };
+}
+
+/** Today's date in Kenya as YYYY-MM-DD, whatever the device's time zone. */
+export function kenyaToday(now: Date = new Date()): string {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: TIME_ZONE }).format(now);
+}
+
+function addDays(iso: string, days: number): string {
+  const d = new Date(`${iso}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
+/** The Monday that starts the last finished Mon–Sun week, Kenya time —
+ * what the weekly run bills (plan §3.4). */
+export function lastWeekStart(now: Date = new Date()): string {
+  const today = kenyaToday(now);
+  const weekday = (new Date(`${today}T00:00:00Z`).getUTCDay() + 6) % 7; // Monday = 0
+  return addDays(today, -weekday - 7);
+}
+
+/** The last ``count`` finished weeks' Mondays, newest first. */
+export function recentWeekStarts(count: number, now: Date = new Date()): string[] {
+  const latest = lastWeekStart(now);
+  return Array.from({ length: count }, (_, i) => addDays(latest, -7 * i));
+}
+
+/** The Sunday that ends the week starting ``monday``. */
+export function weekEnd(monday: string): string {
+  return addDays(monday, 6);
 }
