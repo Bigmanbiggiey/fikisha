@@ -87,6 +87,8 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    # Notes an If-Match header for the job in the URL (ADR-2D-44).
+    "fikisha.common.if_match.IfMatchMiddleware",
 ]
 
 TEMPLATES = [
@@ -281,7 +283,7 @@ CORS_ALLOW_CREDENTIALS = True  # refresh cookie
 # Invisible to the jsdom-based frontend test suite, which doesn't enforce
 # real CORS — only caught by a live cross-origin browser request
 # (Design Phase 6 Increment 3 verification, 2026-09-15).
-CORS_ALLOW_HEADERS = [*default_headers, "idempotency-key"]
+CORS_ALLOW_HEADERS = [*default_headers, "idempotency-key", "if-match"]
 
 # ─── Dev-only demo endpoints (also gated by the `demo_endpoints` feature flag) ─
 # Proves the audit + outbox atomicity path. Off by default; dev/test turn it on;

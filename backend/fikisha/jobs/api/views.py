@@ -15,6 +15,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from fikisha.common import if_match
 from fikisha.common.api import OrgApiView, paginated
 from fikisha.common.exceptions import ConflictError
 from fikisha.common.idempotency import idempotent
@@ -158,7 +159,8 @@ class JobDetailView(OrgApiView):
 
     def get(self, request: Request, job_id: str) -> Response:
         job = self.get_authz_resource()
-        return Response(creation.job_detail(job))
+        # ETag = the version a client sends back as If-Match (ADR-2D-44)
+        return Response(creation.job_detail(job), headers={"ETag": if_match.etag(job.version)})
 
 
 class JobSubmitView(OrgApiView):

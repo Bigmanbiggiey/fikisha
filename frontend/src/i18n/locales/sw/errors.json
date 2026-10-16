@@ -53,5 +53,7 @@
   "invalid_settlement": "Kagua maelezo ya malipo kisha ujaribu tena.",
   "settlement_exceeds_due": "Hicho ni zaidi ya kinachodaiwa kwenye taarifa hii. Hakuna kilichorekodiwa.",
   "duplicate_payment_ref": "Malipo yenye namba hii tayari yamerekodiwa. Hakuna kilichorekodiwa.",
-  "settlement_not_reversible": "Malipo haya tayari yamebatilishwa, au yenyewe ni ubatilishaji."
+  "settlement_not_reversible": "Malipo haya tayari yamebatilishwa, au yenyewe ni ubatilishaji.",
+  "stale_job": "Mtu mwingine amebadilisha kazi hii ukiwa umeifungua. Imesasishwa: ikague kisha ujaribu tena. Hakuna kilichobadilishwa.",
+  "invalid_if_match": "Skrini hii imetuma toleo la kazi lisilosomeka. Onyesha upya ukurasa kisha ujaribu tena."
 }

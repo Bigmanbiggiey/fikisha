@@ -47,14 +47,15 @@ via the link token itself, not a bearer session.
     `dispute.status == RESOLVED` and cleanly returns `409
     dispute_already_resolved` instead (no duplicate `Resolution`/
     `CommissionAdjustment` is possible either way).
-- **Optimistic concurrency (`If-Match` / `job.version`):** the domain layer
-  (`TransitionContext.if_match_version` → `StaleJob`/`412`, ADR-2D-02) has
-  supported this since Increment 1, but **no current API view actually
-  parses an `If-Match` request header and forwards it** — this is a real,
-  honest gap between what the domain layer can do and what Step 10 wired at
-  the HTTP layer, not a designed limitation. Recorded here rather than
-  silently assumed to be covered; a candidate for a future small addition,
-  not a Phase 2D product decision.
+- **Optimistic concurrency (`If-Match` / `job.version`):** wired at the HTTP
+  layer since ADR-2D-44 (2026-10-16). `GET /jobs/<id>` returns
+  `ETag: "<version>"`. Any job action (an unsafe request on a URL with a
+  `job_id`) may send `If-Match: "<version>"`; if the job has moved on, it is
+  refused with `412 stale_job` and nothing changes. `*` means any version, a
+  malformed value is `400 invalid_if_match`, and a missing header is still
+  accepted (see the ADR on making it mandatory). Before ADR-2D-44 the domain
+  check (`TransitionContext.if_match_version`, ADR-2D-02) existed but no view
+  read the header.
 - **Multipart uploads:** custody/incident evidence photos go through
   `fikisha.evidence.services.store()` — never a DB blob, never a signed
   bucket URL; a validation failure (empty file, oversized, disallowed

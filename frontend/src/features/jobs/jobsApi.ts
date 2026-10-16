@@ -1,4 +1,4 @@
-import { apiRequest } from '@/services/apiClient';
+import { apiRequest, type RequestOptions } from '@/services/apiClient';
 
 import type {
   AssignBody,
@@ -18,6 +18,13 @@ import type {
   Opportunity,
   Paged,
 } from './types';
+import { jobVersion, rememberJobVersion } from './jobVersions';
+
+/** A job action: sends the last version seen as `If-Match` and remembers
+ * the version the server answers with (ADR-2D-44). */
+function jobAction<T>(jobId: string, path: string, options: RequestOptions): Promise<T> {
+  return apiRequest<T>(path, { ...options, ifMatch: jobVersion(jobId) }).then(rememberJobVersion);
+}
 
 /** Every lifecycle-transition call takes an `idempotencyKey` (generate once
  * per user-initiated attempt, e.g. `crypto.randomUUID()`, and reuse it
@@ -35,24 +42,24 @@ export const jobsApi = {
       body: { ...body, business_id: businessId },
       idempotencyKey,
     }),
-  get: (jobId: string) => apiRequest<Job>(`/jobs/${jobId}`),
+  get: (jobId: string) => apiRequest<Job>(`/jobs/${jobId}`).then(rememberJobVersion),
 
   submit: (jobId: string, idempotencyKey: string) =>
-    apiRequest<JobTransitionResult>(`/jobs/${jobId}/submit`, { method: 'POST', idempotencyKey }),
+    jobAction<JobTransitionResult>(jobId, `/jobs/${jobId}/submit`, { method: 'POST', idempotencyKey }),
 
   cancel: (
     jobId: string,
     body: { reason_code: CancellationReason; reason_text?: string },
     idempotencyKey: string,
   ) =>
-    apiRequest<JobTransitionResult>(`/jobs/${jobId}/cancel`, {
+    jobAction<JobTransitionResult>(jobId, `/jobs/${jobId}/cancel`, {
       method: 'POST',
       body,
       idempotencyKey,
     }),
 
   assign: (jobId: string, body: AssignBody, idempotencyKey: string) =>
-    apiRequest<JobTransitionResult>(`/jobs/${jobId}/assign`, {
+    jobAction<JobTransitionResult>(jobId, `/jobs/${jobId}/assign`, {
       method: 'POST',
       body,
       idempotencyKey,
@@ -78,19 +85,19 @@ export const jobsApi = {
   // own). `ArriveSerializer`/`ConfirmDeliverySerializer` expect it nested
   // under a `geo` key — never send it flat.
   arrivePickup: (jobId: string, geo: GeoBody | undefined, idempotencyKey: string) =>
-    apiRequest<JobTransitionResult>(`/jobs/${jobId}/custody/arrive-pickup`, {
+    jobAction<JobTransitionResult>(jobId, `/jobs/${jobId}/custody/arrive-pickup`, {
       method: 'POST',
       body: geo ? { geo } : {},
       idempotencyKey,
     }),
   confirmPickupOtp: (jobId: string, body: ConfirmPickupOtpBody, idempotencyKey: string) =>
-    apiRequest<JobTransitionResult>(`/jobs/${jobId}/custody/confirm-pickup/otp`, {
+    jobAction<JobTransitionResult>(jobId, `/jobs/${jobId}/custody/confirm-pickup/otp`, {
       method: 'POST',
       body,
       idempotencyKey,
     }),
   confirmPickupBusiness: (jobId: string, body: ConfirmPickupBusinessBody, idempotencyKey: string) =>
-    apiRequest<JobTransitionResult>(`/jobs/${jobId}/custody/confirm-pickup/business`, {
+    jobAction<JobTransitionResult>(jobId, `/jobs/${jobId}/custody/confirm-pickup/business`, {
       method: 'POST',
       body,
       idempotencyKey,
@@ -102,26 +109,26 @@ export const jobsApi = {
     form.append('pickup_contact_name', body.pickup_contact_name);
     if (body.condition_note) form.append('condition_note', body.condition_note);
     form.append('photo', body.photo);
-    return apiRequest<JobTransitionResult>(`/jobs/${jobId}/custody/confirm-pickup/attested`, {
+    return jobAction<JobTransitionResult>(jobId, `/jobs/${jobId}/custody/confirm-pickup/attested`, {
       method: 'POST',
       body: form,
       idempotencyKey,
     });
   },
   failAtPickup: (jobId: string, body: FailAtPickupBody, idempotencyKey: string) =>
-    apiRequest<JobTransitionResult>(`/jobs/${jobId}/custody/fail-at-pickup`, {
+    jobAction<JobTransitionResult>(jobId, `/jobs/${jobId}/custody/fail-at-pickup`, {
       method: 'POST',
       body,
       idempotencyKey,
     }),
   // No request body at all — `StartTransitView` parses no serializer.
   startTransit: (jobId: string, idempotencyKey: string) =>
-    apiRequest<JobTransitionResult>(`/jobs/${jobId}/custody/start-transit`, {
+    jobAction<JobTransitionResult>(jobId, `/jobs/${jobId}/custody/start-transit`, {
       method: 'POST',
       idempotencyKey,
     }),
   arriveDestination: (jobId: string, geo: GeoBody | undefined, idempotencyKey: string) =>
-    apiRequest<JobTransitionResult>(`/jobs/${jobId}/custody/arrive-destination`, {
+    jobAction<JobTransitionResult>(jobId, `/jobs/${jobId}/custody/arrive-destination`, {
       method: 'POST',
       body: geo ? { geo } : {},
       idempotencyKey,
@@ -135,7 +142,7 @@ export const jobsApi = {
     if (body.condition_note) form.append('condition_note', body.condition_note);
     for (const photo of body.photos ?? []) form.append('photos', photo);
     if (body.signature) form.append('signature', body.signature);
-    return apiRequest<JobTransitionResult>(`/jobs/${jobId}/custody/confirm-delivery`, {
+    return jobAction<JobTransitionResult>(jobId, `/jobs/${jobId}/custody/confirm-delivery`, {
       method: 'POST',
       body: form,
       idempotencyKey,

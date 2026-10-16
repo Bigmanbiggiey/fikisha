@@ -222,12 +222,16 @@ export function JobDetailPage(): JSX.Element {
       ) : isOperatorViewer ? (
         operatorActionSection
       ) : (
-        <NextActionSection
-          action={businessAction}
-          status={data.status}
-          onRetrySubmit={() => retrySubmit.mutate()}
-          retrying={retrySubmit.isPending}
-        />
+        <>
+          <NextActionSection
+            action={businessAction}
+            status={data.status}
+            onRetrySubmit={() => retrySubmit.mutate()}
+            retrying={retrySubmit.isPending}
+          />
+          {/* e.g. 412 stale_job: someone else moved the job on (ADR-2D-44) */}
+          {retrySubmit.isError && <Alert tone="danger">{localizeError(retrySubmit.error, t)}</Alert>}
+        </>
       )}
 
       {detailCards}

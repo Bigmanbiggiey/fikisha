@@ -35,6 +35,7 @@ from django.http import Http404
 from django.utils import timezone
 
 from fikisha.audit import services as audit
+from fikisha.common.if_match import take_expected_version
 from fikisha.jobs.apply_fns import APPLY
 from fikisha.jobs.constants import (
     CUSTODY_EVENT_TYPES,
@@ -298,10 +299,13 @@ def transition(
             if locked_prior is not None:
                 return dict(locked_prior.stored_response)
 
-        if ctx.if_match_version is not None and ctx.if_match_version != job.version:
-            raise StaleJob(
-                f"Job is at version {job.version}, not {ctx.if_match_version}; refetch and retry."
-            )
+        # The caller's version, or the request's If-Match for this job
+        # (fikisha.common.if_match, ADR-2D-44), read once.
+        expected = ctx.if_match_version
+        if expected is None:
+            expected = take_expected_version(job.id)
+        if expected is not None and expected != job.version:
+            raise StaleJob(f"Job is at version {job.version}, not {expected}; refetch and retry.")
 
         from_status = job.status
         rule = rule_for(from_status, to)
