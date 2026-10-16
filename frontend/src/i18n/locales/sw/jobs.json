@@ -50,9 +50,9 @@
     "timeline": "Ratiba",
     "cancel": "Ghairi ombi",
     "nothingNeeded": "Hakuna kinachohitajika kwako sasa.",
+    "disputeUnderReview": "Fikisha inakagua kazi hii. Utaarifiwa kukiwa na taarifa mpya.",
     "draftNote": "Ombi hili bado halijatumwa.",
-    "autoCompleteNote": "Usafirishaji huu utakamilishwa kiotomatiki — hakuna kinachohitajika kwako.",
-    "comingSoon": "Skrini hii inakuja katika toleo lijalo."
+    "autoCompleteNote": "Usafirishaji huu utakamilishwa kiotomatiki — hakuna kinachohitajika kwako."
   },
   "pickupConfirm": {
     "whatYoureConfirming": "Thibitisha kwamba {{cargo}} za Kazi {{ref}} zimekabidhiwa kwa dereva mahali {{location}}.",

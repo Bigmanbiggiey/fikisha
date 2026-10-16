@@ -1051,6 +1051,58 @@ Frontend only; no backend change.
 **Why it's safe.** These are screens over the S-1 endpoints, whose
 authorization, step-up and limits are unchanged and already tested.
 
+## ADR-2D-43 — PR #5 review follow-ups and the last "coming later" placeholders — CONFIRMED (founder approval 2026-10-16)
+
+The four non-blocking follow-ups from the PR #5 re-review (2026-10-13),
+plus the Job Detail placeholders still saying "coming in a later update".
+
+1. **Per-user cache keys.** The businesses, groups and vehicles lists were
+   cached as `['businesses']`, `['groups']`, `['vehicles']` in the
+   navigation (`useWorkspaces`, `useNavRoles`) and their pages. Sign-out
+   doesn't clear the cache, so a second person on the same tab could
+   briefly get the first person's navigation. Each is now keyed by user id,
+   like `['operator', 'me', …]` since 10c. Invalidation by prefix still
+   refreshes them. UX only; the server authorises every action.
+2. **Current job reads past page 1.**
+   - `GET /jobs` gains two optional filters: `status=A,B` and
+     `assigned=me`, meaning jobs whose assigned driver is the caller's own
+     operator profile. Both only narrow `jobs_visible_to`. An unknown
+     status or any other `assigned` value is 400.
+   - The driver's Current job asks for exactly their active jobs, instead
+     of filtering the first page of everything.
+3. **Messages filters cover the whole inbox.**
+   - `GET /messages` gains `kind=OFFER,FIKISHA_UPDATE,INCIDENT,DISPUTE`,
+     applied before paging. `unread_count` still covers everything. An
+     unknown kind is 400.
+   - The filter chips now ask the server, and keep the last result on
+     screen while the next loads.
+4. **"Written by you" on incidents is recorded, not guessed.**
+   - The inbox treated an incident as the reporter's own when it was
+     "updated within 2 s of creation", so a quick staff review read as
+     untouched. `Incident.last_changed_by` (migration `incidents.0003`) is
+     now set on create (the reporter; null for a recipient-link report) and
+     on review, facilitation, escalation and resolution (the staff member).
+     The inbox compares it to the viewer.
+   - The migration fills existing rows with the old rule, so nothing
+     changes for them.
+   - Test: a staff review within 2 s of the report is now unread for the
+     reporter.
+5. **Placeholders.** On a disputed job with no dispute the viewer can link
+   to, both the business and the operator action cards said "coming in a
+   later update". They now say "Fikisha is reviewing this job. You'll be
+   told when there's an update", or show loading while the dispute record
+   loads. The `jobs.detail.comingSoon` string is gone; `disputeUnderReview`
+   is new (EN + SW, added to the Swahili review list).
+
+**Why it's safe.** The new API filters only narrow existing visibility. The
+new incident field is a recorded fact used only for an unread marker, and
+the authorization paths are untouched. Tests:
+- `jobs/tests/test_job_list_filters.py` (2);
+- `inbox/tests/test_inbox.py` (+2: kind filter before paging, staff review
+  unread);
+- `CurrentJobPage.test.tsx`, `MessagesPage.test.tsx` and
+  `JobDetailPage.test.tsx` updated.
+
 ## Self-caught defects fixed during implementation
 
 Every one of these was found by the implementation's own review or test

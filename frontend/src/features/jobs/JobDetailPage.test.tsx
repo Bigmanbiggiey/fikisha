@@ -281,12 +281,12 @@ describe('JobDetailPage', () => {
     expect(await screen.findByText('Dispute screen')).toBeInTheDocument();
   });
 
-  it('falls back to "coming in a later update" if a DISPUTED job somehow has no dispute row', async () => {
+  it("says Fikisha is reviewing a DISPUTED job whose dispute it can't link to", async () => {
     get.mockResolvedValue(baseJob({ status: 'DISPUTED', next_allowed_statuses: [] }));
     listDisputesForJob.mockResolvedValue({ data: [] });
     renderAtJob('01a0a4123456');
 
-    expect(await screen.findByText('This screen is coming in a later update.')).toBeInTheDocument();
+    expect(await screen.findByText("Fikisha is reviewing this job. You'll be told when there's an update.")).toBeInTheDocument();
   });
 
   it('offers "Report an issue" once the job is no longer a DRAFT', async () => {

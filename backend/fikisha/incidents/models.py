@@ -72,6 +72,13 @@ class Incident(TimestampedModel):
     owner_admin = models.ForeignKey(
         settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
     )
+    #: Who made the latest change to this record (created it, or moved its
+    #: status); null for a recipient-link report. The Messages inbox uses it
+    #: to tell activity the viewer wrote from activity they haven't seen
+    #: (PR #5 follow-up 4; replaces an "updated within 2 s of creation" guess).
+    last_changed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
+    )
     linked_custody_event_ids = models.JSONField(default=list, blank=True)
     # SLA targets (config-driven, platform_config.sla_targets — already
     # approved/present) computed once at creation; informational only in

@@ -190,6 +190,7 @@ def report_incident(
         if party_kind == PartyKind.ADMIN
         else ReportedByKind.USER,
         reported_by_user=_actor_user(actor),
+        last_changed_by=_actor_user(actor),
         description=(description or "").strip(),
         status=IncidentStatus.OPEN,
         **_sla_due_at(severity or DEFAULT_SEVERITY),
@@ -357,10 +358,8 @@ def inbox_items_for_jobs(*, actor: Any, jobs: list[Any]) -> dict[str, list[dict[
     change, otherwise the incident record itself (created, or its status
     changed). Per dispute: its resolution when there is one, otherwise the
     dispute record. ``by_viewer`` is true only for activity the viewer wrote
-    (their own statement, or an incident they reported and nobody has
-    touched since), so it never counts as unread for them."""
-    from datetime import timedelta
-
+    (their own statement, or an incident whose latest change was theirs,
+    ``last_changed_by``), so it never counts as unread for them."""
     from fikisha.incidents import authz
 
     party_job_ids = [
@@ -383,8 +382,9 @@ def inbox_items_for_jobs(*, actor: Any, jobs: list[Any]) -> dict[str, list[dict[
             by_viewer = last.party_user_id is not None and last.party_user_id == user_id
         else:
             at, text = incident.updated_at, incident.description
-            untouched = incident.updated_at - incident.created_at < timedelta(seconds=2)
-            by_viewer = untouched and incident.reported_by_user_id == user_id
+            by_viewer = (
+                incident.last_changed_by_id is not None and incident.last_changed_by_id == user_id
+            )
         out.setdefault(str(incident.job_id), []).append(
             {
                 "kind": "INCIDENT",
@@ -433,9 +433,10 @@ def start_review(*, actor: Any, incident_id: Any) -> Incident:
     if incident.status == IncidentStatus.RESOLVED:
         raise IncidentAlreadyResolved()
     incident.status = IncidentStatus.UNDER_REVIEW
+    incident.last_changed_by = _actor_user(actor)
     if incident.owner_admin_id is None:
         incident.owner_admin = _actor_user(actor)
-    incident.save(update_fields=["status", "owner_admin", "updated_at"])
+    incident.save(update_fields=["status", "owner_admin", "last_changed_by", "updated_at"])
     audit.record(
         actor=actor,
         action="incident.review.started",
@@ -457,7 +458,8 @@ def start_amicable_window(*, actor: Any, incident_id: Any) -> Incident:
     if incident.status == IncidentStatus.RESOLVED:
         raise IncidentAlreadyResolved()
     incident.status = IncidentStatus.AMICABLE_PENDING
-    incident.save(update_fields=["status", "updated_at"])
+    incident.last_changed_by = _actor_user(actor)
+    incident.save(update_fields=["status", "last_changed_by", "updated_at"])
     audit.record(
         actor=actor,
         action="incident.amicable_window.started",
@@ -640,7 +642,7 @@ def resolve_dispute(
     dispute.save(update_fields=["status", "officer_admin", "updated_at"])
     Incident.objects.filter(id__in=dispute.incident_ids).exclude(
         status=IncidentStatus.RESOLVED
-    ).update(status=IncidentStatus.RESOLVED)
+    ).update(status=IncidentStatus.RESOLVED, last_changed_by=_actor_user(actor))
 
     if commission_treatment in _COMMISSION_TREATMENTS_REQUIRING_ADJUSTMENT:
         commission_record = commission_service.get_commission_record(job)
@@ -727,7 +729,8 @@ def escalate(
     )
     if incident.status != IncidentStatus.RESOLVED:
         incident.status = IncidentStatus.ESCALATED
-        incident.save(update_fields=["status", "updated_at"])
+        incident.last_changed_by = _actor_user(actor)
+        incident.save(update_fields=["status", "last_changed_by", "updated_at"])
     if dispute is not None and dispute.status != DisputeStatus.RESOLVED:
         dispute.status = DisputeStatus.ESCALATED
         dispute.save(update_fields=["status", "updated_at"])

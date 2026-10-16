@@ -76,7 +76,12 @@ describe('MessagesPage (Design Phase 7 10g)', () => {
   beforeEach(() => {
     list.mockReset();
     markRead.mockReset();
-    list.mockResolvedValue({ data: items, page: { next_cursor: null, prev_cursor: null }, unread_count: 1 });
+    // filters like the server does: before paging (PR #5 follow-up 3)
+    list.mockImplementation(async (_cursor: unknown, kinds?: string[] | null) => ({
+      data: kinds ? items.filter((i) => kinds.includes(i.kind)) : items,
+      page: { next_cursor: null, prev_cursor: null },
+      unread_count: 1,
+    }));
     markRead.mockResolvedValue(null);
   });
 
@@ -113,11 +118,13 @@ describe('MessagesPage (Design Phase 7 10g)', () => {
 
     await user.click(screen.getByRole('button', { name: 'Issues' }));
     expect(screen.getByRole('button', { name: 'Issues' })).toHaveAttribute('aria-pressed', 'true');
+    // the server is asked for the kinds, so older pages are covered too
+    expect(list).toHaveBeenLastCalledWith(null, ['INCIDENT', 'DISPUTE']);
+    expect(await screen.findByRole('button', { name: /Issue · 30EDE6/ })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Offer · 1C5238/ })).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Issue · 30EDE6/ })).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Fikisha updates' }));
-    expect(screen.getByRole('button', { name: /Update from Fikisha/ })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: /Update from Fikisha/ })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Issue · 30EDE6/ })).not.toBeInTheDocument();
   });
 

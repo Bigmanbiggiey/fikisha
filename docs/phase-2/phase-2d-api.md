@@ -74,7 +74,7 @@ via the link token itself, not a bearer session.
 
 | Method | Path | Action (authz) | Purpose |
 | --- | --- | --- | --- |
-| GET | `/jobs` | `job.read` | List jobs visible to the actor (cursor-paginated, `-created_at`) |
+| GET | `/jobs?status=&assigned=` | `job.read` | List jobs visible to the actor (cursor-paginated, `-created_at`). Optional `status=A,B` and `assigned=me` (jobs whose assigned driver is the caller's operator profile) only narrow the list; an unknown value is 400 (ADR-2D-43) |
 | POST | `/jobs` | `job.create` | Create a `DRAFT` job (`jobs.creation.create_draft`) |
 | GET | `/jobs/opportunities` | `job.discover` | Operator work discovery: open `REQUESTED`/`NEGOTIATING` jobs matching the operator's own vehicle class(es) and not already threaded, each row with a server-computed eligibility marker (Design Phase 6 Increment 4; individual operators only) |
 | GET | `/jobs/<job_id>/opportunity` | `job.discover` | One job's opportunity view, reachable before the operator is a negotiation party; only while the job is still open (Increment 4) |
@@ -174,7 +174,7 @@ jobs. No message is created here. Staff get an empty list.
 
 | Method | Path | Action (authz) | Purpose |
 | --- | --- | --- | --- |
-| GET | `/messages?cursor=&limit=` | `inbox.read` | `{data, page: {next_cursor, prev_cursor: null}, unread_count}`, newest first. `limit` 1–100 (default 25); `unread_count` covers the whole inbox. A bad cursor is 400 `inbox_invalid_cursor` |
+| GET | `/messages?kind=&cursor=&limit=` | `inbox.read` | `{data, page: {next_cursor, prev_cursor: null}, unread_count}`, newest first. `kind=OFFER,FIKISHA_UPDATE,INCIDENT,DISPUTE` filters before paging (unknown kind 400, ADR-2D-43). `limit` 1–100 (default 25); `unread_count` covers the whole inbox. A bad cursor is 400 `inbox_invalid_cursor` |
 | POST | `/messages/read` | `inbox.mark_read` | `{conversation_key}` → 204. Marks the caller's own conversation read up to now. Anything but `offer:`/`notes:`/`incident:`/`dispute:` + a UUID is 400 `inbox_invalid_conversation_key` |
 
 Each item: `conversation_key`, `kind` (`OFFER` / `FIKISHA_UPDATE` /

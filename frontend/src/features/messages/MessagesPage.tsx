@@ -1,4 +1,4 @@
-import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
@@ -38,9 +38,14 @@ export function MessagesPage(): JSX.Element {
   const { user } = useAuth();
   const [filter, setFilter] = useState<keyof typeof FILTERS>('all');
 
+  // The server applies the filter before paging, so it covers the whole
+  // inbox, not only the pages loaded so far (PR #5 follow-up 3). The last
+  // result stays on screen while a new filter loads.
+  const kinds = FILTERS[filter];
   const list = useInfiniteQuery({
-    queryKey: [...messagesQueryKey, 'list', user?.id],
-    queryFn: ({ pageParam }) => messagesApi.list(pageParam),
+    queryKey: [...messagesQueryKey, 'list', user?.id, filter],
+    queryFn: ({ pageParam }) => messagesApi.list(pageParam, kinds),
+    placeholderData: keepPreviousData,
     initialPageParam: null as string | null,
     getNextPageParam: (last) => last.page.next_cursor,
     retry: false,
@@ -61,9 +66,7 @@ export function MessagesPage(): JSX.Element {
     return <ErrorState message={localizeError(list.error, t)} error={list.error} onRetry={() => void list.refetch()} />;
   }
 
-  const items = (list.data?.pages ?? []).flatMap((p) => p.data);
-  const kinds = FILTERS[filter];
-  const shown = kinds ? items.filter((i) => kinds.includes(i.kind)) : items;
+  const shown = (list.data?.pages ?? []).flatMap((p) => p.data);
 
   return (
     <div className="space-y-4">
@@ -92,7 +95,7 @@ export function MessagesPage(): JSX.Element {
       </div>
 
       {shown.length === 0 ? (
-        <EmptyState title={t(items.length === 0 ? 'messages:empty' : 'messages:emptyFiltered')} />
+        <EmptyState title={t(kinds ? 'messages:emptyFiltered' : 'messages:empty')} />
       ) : (
         <ul className="divide-y divide-line rounded-md border border-line bg-surface-card">
           {shown.map((item) => {
