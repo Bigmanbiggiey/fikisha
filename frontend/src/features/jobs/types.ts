@@ -186,6 +186,8 @@ export interface DriverCandidate {
   trust_level: string;
   eligible: boolean;
   reasons: string[];
+  /** Group jobs only: the member's role in the group (OWNER, MANAGER, DRIVER). */
+  group_role?: string;
 }
 
 export interface VehicleCandidate {
@@ -202,8 +204,11 @@ export interface VehicleCandidate {
 export interface AssignmentCandidates {
   job_id: string;
   value_band: ValueBand;
-  /** Always `false` this increment — Group Manager assign is deferred. */
+  /** `true` for a group job: the pool is the group's active members and
+   * the group's vehicles (founder decision 2026-10-14). */
   supports_group_assignment: boolean;
+  /** Group jobs only: `MANAGER_ASSIGNS` or `DRIVER_ACCEPTS`. */
+  assignment_mode?: string;
   /** Non-null when a HIGH/VERY_HIGH pre-assignment review is still pending. */
   blocked: string | null;
   drivers: DriverCandidate[];

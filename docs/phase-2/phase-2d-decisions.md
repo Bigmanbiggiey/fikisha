@@ -915,6 +915,50 @@ characters, as the app shows) instead of 8 hex characters.
 - Tests: `jobs/tests/test_followups_batch.py` (9) and
   `StaffJobContext.test.tsx` (2).
 
+## ADR-2D-41 — Group Manager assigns from the driver pool — CONFIRMED (founder decision 2026-10-14, item 19; scope approved as built 2026-10-15)
+
+Closes the deferral recorded on 2026-09-21 (Increment 4: "Group Manager
+driver-pool assign deferred"). The assign step itself already handled
+group jobs (`assignment._resolve_authority`, `guards.driver_assignment_allowed`,
+`guards.vehicle_eligible`). What was missing was the candidates list and the
+screen, so a Group Manager had nothing to pick from.
+
+**The pool** (`GET /jobs/<id>/assignment-candidates` on a group job):
+- **Group Manager (OWNER/MANAGER) or staff:** every **active** member of the
+  confirmed group, each with `group_role`, and the **group's** vehicles.
+  A member's own vehicle is not offered, because `vehicle_eligible` would
+  refuse it.
+- **`DRIVER_ACCEPTS` group, a member who doesn't manage it:** only themselves,
+  matching the self-assign path in `_resolve_authority`.
+- **`MANAGER_ASSIGNS` group, a member who doesn't manage it, or anyone
+  outside the group:** refused (`NotAuthorisedToAssign`), no pool returned.
+- **Suspended group:** the pool is shown, but every driver is ineligible with
+  the suspension reason, matching `driver_assignment_allowed`.
+- The response now has `supports_group_assignment: true` and
+  `assignment_mode`. Per-row reasons come from the same guard predicates as
+  the assignment, so the preview and the assign step agree.
+
+**Frontend** (`AssignDriverVehiclePage`): each driver row shows the group
+role next to the trust level. A group with no active members gets "This
+group has no active members to assign yet", and a group with no vehicles
+gets "This group has no vehicles registered yet". The old "not available
+yet" message is gone. SW strings are added; they go on the Swahili review
+list (decision 20).
+
+**Not changed:** value-band gating still uses the chosen driver's and
+vehicle's own eligibility (§4 invariant: a group is not a substitute for the
+driver's trust level). No new model, migration, endpoint or permission. The
+cross-module reads of `fikisha.groups.models` follow the existing jobs
+pattern (`guards.py`, `assignment.py`, `job_authz.py`).
+
+**Why it's safe.** It only adds a read-only list to an endpoint that already
+existed, under the same authorisation as the assign step. The assign step,
+which enforces everything, is unchanged.
+- Tests: `jobs/tests/test_assignment_groups.py` (+5: manager pool and assign
+  over HTTP, member refused under `MANAGER_ASSIGNS`, member sees only
+  themselves under `DRIVER_ACCEPTS`, outsider refused, suspended group) and
+  `AssignDriverVehiclePage.test.tsx` (+3).
+
 ## Self-caught defects fixed during implementation
 
 Every one of these was found by the implementation's own review or test
