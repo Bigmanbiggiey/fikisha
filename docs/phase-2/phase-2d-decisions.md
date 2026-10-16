@@ -868,6 +868,118 @@ is possible without MFA now. Every MFA path is tested, including the
 replay, lockout, expiry, roles-wait and non-admin cases, and the
 stale-versus-fresh step-up on each guarded action.
 
+## ADR-2D-42 — Weekly commission statements and manual settlement (backend) — CONFIRMED (Commission & Statements S-1; plan approved 2026-10-15)
+
+Implements S-1 of `docs/commission-statements-plan.md`, with founder answers
+D-1 to D-8 (all as recommended).
+
+**Module.** A new `fikisha.statements` app. It reads commission only through
+new `jobs.commission` functions (`billable_commission`,
+`unbilled_adjustments`, `commission_for_job`), which return plain rows. It
+never imports job models. Commission itself stays in `jobs` (ADR-2D-23).
+
+**Tables** (append-only at model, queryset and Postgres-trigger level;
+migrations `statements.0001`/`0002`):
+- `commission_statement`: payee (OPERATOR or GROUP + id), Kenya-date
+  period Mon–Sun, gross / adjustments / net due, `reference` (`ST-` + 6
+  characters, the paybill account number, D-3). Unique per payee and
+  period. DB checks: gross ≥ 0, adjustments ≤ 0, net = gross + adjustments.
+- `statement_line`: COMMISSION (one record) or ADJUSTMENT (one adjustment).
+  **One-to-one on the record and on the adjustment**, so nothing can be
+  billed twice. That uniqueness is what "billed" means. The job reference
+  and agreed price are frozen on the line.
+- `statement_settlement`: PAYMENT (positive) or REVERSAL (the negative of
+  the payment it names, one per payment). Paid / part-paid / unpaid,
+  outstanding and overdue are derived on read, never stored.
+
+**Billing rule (D-2).** A record is billed in the first run, as of the end
+of that week (Monday 00:00 EAT), where its job is `COMPLETED` (so not
+`DISPUTED`) and its post-completion dispute window has closed.
+`guards.post_completion_window_hours` is now shared by the dispute guard
+and the run, so there is one source of truth. Adjustments are billed once
+their record is billed and they existed by the end of the week. An
+adjustment to an already-billed record is a credit line on a later
+statement, so net due can be negative and a payee owes nothing that week.
+An adjustment whose record is never billed (a job that ended `FAILED`
+after a dispute) is never billed either.
+
+**The run.** It runs from Celery beat every Monday 06:00 EAT for last
+week, from `POST /admin/statements/run` (Platform Admin), or from
+`manage.py statements_run`. It is serialised by a Postgres advisory lock
+and is idempotent:
+- a re-run bills nothing already billed;
+- a payee who already has that week's statement is skipped, and anything
+  newly ready for them rolls to the next week.
+
+Only finished weeks starting on a Monday are accepted. Each statement is
+audited as `statement.generated`, with source `SCHEDULER` or `ADMIN_UI`, and
+emits `StatementGenerated` with identifiers only. No sender is wired (D-6).
+
+**Payments (D-4, D-5).**
+- Who: Platform Admin only (`statements.settle`), with a fresh step-up.
+- Recording a payment: the statement row is locked first. Recording more
+  than is still owed is refused (409 `settlement_exceeds_due`). Reusing an
+  M-Pesa reference that is still in effect is refused (409
+  `duplicate_payment_ref`). References are stored upper-case.
+- Reversing a payment: needs a reason of at least 10 characters. A payment
+  can be reversed only once, and a reversal can't be reversed (409
+  `settlement_not_reversible`). Once reversed, its reference can be used
+  again.
+- Both are audited (`statement.payment_recorded` / `.payment_reversed`)
+  and emit an event.
+
+**Who sees what (plan §3.5).**
+- A solo operator sees their own statements.
+- A group's OWNER/MANAGER sees the group's.
+- A group DRIVER member and a business see none (FR-O-8, D-7).
+- Staff with `statements.read.all` see all: the Platform Admin through
+  `"*"`, and the Operations Officer, newly granted read only (D-4).
+- `GET /jobs/<id>/earnings` gives the payee their per-job commission. It
+  answers 404 to anyone else, so a job's existence doesn't leak. For the
+  payee's own rows, this replaces ADR-2D-27's Platform-Admin-only read.
+- Statement detail answers 403 to a non-payee.
+
+**Overdue (D-8).** A statement that isn't paid after `statements.overdue_days`
+(default 14) is marked overdue in the API. There is no effect on work.
+
+**Reconciliation** (`commission-ledger.md` §7). A nightly task logs
+CRITICAL for any statement whose totals, lines or payments disagree.
+
+**Deviations from `database-design.md` §4.11, documented:**
+- No stored status columns on records or statements. Status is derived, so
+  every table stays truly append-only. The original design updated
+  `DUE → INVOICED → SETTLED` on append-only rows, which contradicts itself.
+- No `etims_invoice` table and no C2B webhook (decision 5).
+- No `payee_kind`/`payee_id` on `commission_record`; the payee comes from
+  its agreement.
+- **Why it's safe:** the behaviour is the same, the immutability is
+  stronger, and nothing about when or how commission is calculated changes.
+
+**Config.**
+- New `statements.overdue_days` (14) and `statements.paybill_number`
+  (null, D-3).
+- `statements.read.all` is added to the Operations Officer defaults.
+- The live config is seeded from defaults only once. A fresh database
+  gets all three; an existing database reads the two settings from their
+  code fallbacks, but **its Ops Officers lack `statements.read.all` until
+  `role_permissions` is updated**. Only the local dev database is affected,
+  since there is no production yet.
+
+**Also changed.** `GET /admin/commission` now returns
+`statements_available: true`. The admin screen's "not produced yet" notice
+is updated in S-3.
+
+**Tests:** `fikisha/statements/tests/` (24), covering:
+- billing: closed vs open window, disputed held, waiver netting, a later
+  credit, solo vs group payees, idempotent re-runs, the skipped payee,
+  period validation, the weekly task as SCHEDULER, reconciliation;
+- payments: part/full payment, over-payment, duplicate reference,
+  reversal rules, step-up and Platform Admin only, overdue, append-only on
+  all three tables at ORM and DB level;
+- the API: each payee lists only their own, detail IDOR, earnings IDOR,
+  Ops read-only, the admin run, payment and reversal over HTTP with a
+  stale vs fresh step-up.
+
 ## Self-caught defects fixed during implementation
 
 Every one of these was found by the implementation's own review or test

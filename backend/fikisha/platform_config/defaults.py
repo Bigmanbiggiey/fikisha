@@ -31,6 +31,11 @@ DEFAULT_CONFIG: dict[str, Any] = {
         "cap_kes": 500000,  # KES 5,000.00
         "party_liable": "OPERATOR",
     },
+    # ─── Commission statements (Commission & Statements plan, ADR-2D-42) ─
+    "statements": {
+        "overdue_days": 14,  # D-8: an admin "overdue" marker only
+        "paybill_number": None,  # D-3: set by the founder; null shows "details to follow"
+    },
     # ─── Value bands / trust gating (Phase 0 D-TRU-5) ────────────────
     "high_value_threshold_kes": 25000000,  # KES 250,000.00
     "value_bands": [
@@ -114,6 +119,8 @@ DEFAULT_CONFIG: dict[str, Any] = {
             "operator.read",
             "group.read",
             "vehicle.read",
+            # Commission statements, read-only (Commission & Statements D-4).
+            "statements.read.all",
         ],
     },
     # ─── Retention windows (proposed; REQUIRES VALIDATION — legal-scope §7) ─

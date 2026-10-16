@@ -4,8 +4,8 @@ the effective amount. Read-only: records and adjustments are append-only,
 and nothing here moves money. Fikisha records commission; the fare moves
 party-to-party.
 
-Weekly statements, settlement and eTIMS are not built (commission-ledger.md
-§3.3 to 3.4); the ledger says so rather than inventing a status.
+Weekly statements and manual settlement live in ``fikisha.statements``
+(ADR-2D-42); eTIMS is not built. This ledger stays the per-job record.
 """
 
 from __future__ import annotations
