@@ -347,10 +347,11 @@ function NextActionSection({
         />
       );
     }
+    // No dispute record to link yet: still loading, or not one this
+    // viewer can open. Say what is happening instead of "coming later".
     return (
       <NextActionCard
-        emptyLabel={t('jobs:action.viewDispute')}
-        note={t('jobs:detail.comingSoon')}
+        emptyLabel={t(disputes.isLoading ? 'common:actions.loading' : 'jobs:detail.disputeUnderReview')}
       />
     );
   }
@@ -487,10 +488,11 @@ function OperatorNextActionSection({
         />
       );
     }
+    // No dispute record to link yet: still loading, or not one this
+    // viewer can open. Say what is happening instead of "coming later".
     return (
       <NextActionCard
-        emptyLabel={t('jobs:workAction.viewDispute')}
-        note={t('jobs:detail.comingSoon')}
+        emptyLabel={t(disputes.isLoading ? 'common:actions.loading' : 'jobs:detail.disputeUnderReview')}
       />
     );
   }

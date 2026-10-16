@@ -25,6 +25,10 @@ import type {
  * (`phase-2d-api.md` §1). */
 export const jobsApi = {
   list: () => apiRequest<Paged<Job>>('/jobs'),
+  /** The caller's own active driving jobs, whatever page they'd fall on in
+   * the full list (PR #5 follow-up 2). */
+  myAssigned: (statuses: readonly string[]) =>
+    apiRequest<Paged<Job>>(`/jobs?assigned=me&status=${statuses.join(',')}`),
   create: (businessId: string, body: JobCreateBody, idempotencyKey: string) =>
     apiRequest<Job>('/jobs', {
       method: 'POST',

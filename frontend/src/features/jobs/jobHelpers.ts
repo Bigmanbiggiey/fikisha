@@ -50,9 +50,9 @@ export type BusinessActionKey =
  *   (`jobs.tasks.autocomplete_delivered`, ADR-2D-29). It is a status the
  *   business watches ("Delivered — completes automatically"), not
  *   something it must do, so it isn't under "Needs your action".
- * - **`viewDispute`** (→ dispute detail) points at a screen that doesn't
- *   exist yet (Increment 7) — rendered as an informational state with a
- *   "coming in a later update" note, not a dead link. `reviewOffers` (→
+ * - **`viewDispute`** (→ dispute detail, Increment 7). When no dispute it can
+ *   link to is visible, the card says Fikisha is reviewing the job (it said
+ *   "coming in a later update" until 2026-10-16). `reviewOffers` (→
  *   Negotiation) was the same until Increment 3, which built it. */
 /** The subset of `businessNextAction` states worth surfacing under "Needs
  * your action" on Business Home (§6.1's example: a counter-offer and a

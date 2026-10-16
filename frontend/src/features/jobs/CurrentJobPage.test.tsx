@@ -11,7 +11,7 @@ const list = vi.fn();
 let workspaces: Workspace[] = [];
 let roles: string[] = ['DRIVER'];
 
-vi.mock('./jobsApi', () => ({ jobsApi: { list: (...a: unknown[]) => list(...a) } }));
+vi.mock('./jobsApi', () => ({ jobsApi: { myAssigned: (...a: unknown[]) => list(...a) } }));
 vi.mock('@/shell/useWorkspaces', () => ({ useWorkspaces: () => ({ loading: false, workspaces }) }));
 vi.mock('@/shell/activeRole', () => ({
   useActiveRole: () => ({ loading: false, roles, role: roles[0], setRole: vi.fn() }),
@@ -54,6 +54,8 @@ describe('CurrentJobPage (Design Phase 7 P-04)', () => {
     list.mockResolvedValue({ data: [job('j1', 'COMPLETED'), job('j2', 'IN_TRANSIT'), job('j3', 'ASSIGNED', 'someone-else')] });
     renderPage();
     expect(await screen.findByText('Job screen')).toBeInTheDocument();
+    // asks the server for this driver's active jobs, not page 1 of everything
+    expect(list).toHaveBeenCalledWith(expect.arrayContaining(['ASSIGNED', 'IN_TRANSIT', 'DISPUTED']));
   });
 
   it('lists several current jobs to choose from', async () => {

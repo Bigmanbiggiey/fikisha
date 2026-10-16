@@ -30,7 +30,8 @@ export function useWorkspaces(): WorkspacesState {
   const enabled = status === 'authenticated' && !!user;
 
   const businesses = useQuery({
-    queryKey: ['businesses'],
+    // keyed by user, like the operator query below (PR #5 follow-up 1)
+    queryKey: ['businesses', user?.id],
     queryFn: orgApi.listBusinesses,
     enabled,
     retry: false,
@@ -64,7 +65,7 @@ export function useWorkspaces(): WorkspacesState {
     retry: (count) => count < 1,
     retryOnMount: false,
   });
-  const groups = useQuery({ queryKey: ['groups'], queryFn: orgApi.listGroups, enabled, retry: false, retryOnMount: false });
+  const groups = useQuery({ queryKey: ['groups', user?.id], queryFn: orgApi.listGroups, enabled, retry: false, retryOnMount: false });
 
   if (!enabled) {
     return { loading: status === 'loading', workspaces: [] };

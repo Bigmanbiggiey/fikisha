@@ -168,6 +168,31 @@ def test_incident_activity_is_unread_only_when_someone_else_wrote_it(
     assert _by_kind(inbox.conversations_for(_actor(operator_a.user)), "INCIDENT") == []
 
 
+def test_a_staff_status_change_right_after_the_report_is_not_the_reporters_own(
+    offers: dict[str, Any],
+    requested_job: Any,
+    owner_actor: Any,
+    ops_officer: Any,
+    _actor: Callable,
+) -> None:
+    """PR #5 follow-up 4: the old "updated within 2 s of creation" guess read a
+    quick staff review as untouched, so the reporter never saw it as new.
+    ``last_changed_by`` records who actually changed it."""
+    from fikisha.incidents import services as incidents
+
+    incident = incidents.report_incident(
+        actor=owner_actor, job_id=requested_job.id, type="DELAY", description="Goods not ready"
+    )
+    incident.refresh_from_db()
+    assert incident.last_changed_by_id == owner_actor.user.id
+
+    incidents.start_review(actor=_actor(ops_officer), incident_id=incident.id)  # within 2 s
+    incident.refresh_from_db()
+    assert incident.last_changed_by_id == ops_officer.id
+    [item] = _by_kind(inbox.conversations_for(owner_actor), "INCIDENT")
+    assert item["unread"] is True
+
+
 # ─── read markers ─────────────────────────────────────────────────────
 def test_marking_read_clears_unread_until_the_other_side_writes_again(
     offers: dict[str, Any], owner_actor: Any, operator_a: Any, _actor: Callable
@@ -335,3 +360,35 @@ def test_the_query_count_does_not_grow_with_the_number_of_jobs(
     for side in ("business", "operator"):
         assert after[side][1] > before[side][1]  # more conversations ...
         assert after[side][0] == before[side][0]  # ... for the same number of queries
+
+
+# ─── kind filter (PR #5 follow-up 3) ─────────────────────────────────
+def test_the_kind_filter_applies_before_paging(
+    offers: dict[str, Any],
+    requested_job: Any,
+    ops_officer: Any,
+    business_owner: Any,
+    client_for: Callable,
+    _actor: Callable,
+) -> None:
+    from fikisha.jobs import ops
+
+    ops.add_note(actor=_actor(ops_officer), job_id=requested_job.id, text="Driver running late")
+    client = client_for(business_owner)
+
+    everything = client.get("/api/v1/messages").json()
+    assert {i["kind"] for i in everything["data"]} == {"OFFER", "FIKISHA_UPDATE"}
+
+    # one item per page: the filter still finds both offers, on page 1 and 2
+    first = client.get("/api/v1/messages?kind=OFFER&limit=1").json()
+    assert [i["kind"] for i in first["data"]] == ["OFFER"]
+    cursor = first["page"]["next_cursor"]
+    second = client.get(f"/api/v1/messages?kind=OFFER&limit=1&cursor={cursor}").json()
+    assert [i["kind"] for i in second["data"]] == ["OFFER"]
+    assert second["page"]["next_cursor"] is None
+    # unread_count still covers the whole inbox
+    assert first["unread_count"] == everything["unread_count"]
+
+    updates = client.get("/api/v1/messages?kind=FIKISHA_UPDATE").json()
+    assert [i["kind"] for i in updates["data"]] == ["FIKISHA_UPDATE"]
+    assert client.get("/api/v1/messages?kind=CHAT").status_code == 400

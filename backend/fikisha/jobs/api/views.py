@@ -8,6 +8,7 @@ from __future__ import annotations
 from typing import Any
 
 from rest_framework import serializers, status
+from rest_framework.exceptions import ValidationError
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.permissions import AllowAny
 from rest_framework.request import Request
@@ -41,6 +42,7 @@ from fikisha.jobs.api.serializers import (
     RecipientReportIssueSerializer,
 )
 from fikisha.jobs.assignment import assign_job
+from fikisha.jobs.constants import JobStatus
 from fikisha.jobs.errors import CommissionRecordNotFound
 from fikisha.jobs.high_value import decide_high_value
 from fikisha.jobs.models import CommissionAdjustment, CommissionRecord, Job
@@ -100,12 +102,34 @@ class JobCollectionView(OrgApiView):
     action_post = "job.create"
 
     def get(self, request: Request) -> Response:
+        """``GET /jobs?status=A,B&assigned=me``. Both filters only narrow what
+        the actor may already see: ``status`` to those states, ``assigned=me``
+        to jobs whose assigned driver is the caller's own operator profile
+        (the driver's "Current job", PR #5 follow-up 2)."""
         actor = self.actor(request)
         qs = (
             job_authz.jobs_visible_to(actor)
             .select_related("business", "agreement", "assignment")
             .order_by("-created_at")
         )
+        statuses = [s for s in (request.query_params.get("status") or "").split(",") if s]
+        if statuses:
+            unknown = sorted(set(statuses) - set(JobStatus.values))
+            if unknown:
+                raise ValidationError({"status": [f"Unknown status: {', '.join(unknown)}."]})
+            qs = qs.filter(status__in=statuses)
+        assigned = request.query_params.get("assigned")
+        if assigned is not None:
+            if assigned != "me":
+                raise ValidationError({"assigned": ["Only 'me' is supported."]})
+            from fikisha.operators import services as operators_services
+
+            profile = operators_services.profile_for(self.user(request))
+            qs = (
+                qs.filter(assignment__assigned_driver_profile_id=profile.id)
+                if profile
+                else qs.none()
+            )
         return paginated(request, qs, _JobListSerializer)
 
     def post(self, request: Request) -> Response:
