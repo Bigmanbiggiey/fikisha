@@ -171,7 +171,7 @@ describe('AssignDriverVehiclePage — group jobs', () => {
     renderAtJob('job1');
 
     const driver = await screen.findByRole('radio', { name: /B\. Otieno/ });
-    expect(screen.getByText(/Driver · Level L1/)).toBeInTheDocument();
+    expect(screen.getByText(/Driver · Tier: L1 · Verified/)).toBeInTheDocument();
     await user.click(driver);
     await user.click(screen.getByRole('radio', { name: /KDA 200B/ }));
     await user.click(screen.getByRole('button', { name: 'Confirm assignment' }));

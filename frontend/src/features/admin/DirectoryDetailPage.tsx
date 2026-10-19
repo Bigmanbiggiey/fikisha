@@ -14,6 +14,8 @@ import { localizeError } from '@/services/errorMessage';
 import { displayPhone } from '@/services/phone';
 import { formatDateTime } from '@/services/datetime';
 
+import { StaffTierPanel } from '@/features/trust/StaffTierPanel';
+
 import { AccountStateBadge } from './AccountStateBadge';
 import { AdminActionDialog } from './AdminActionDialog';
 import { adminApi } from './adminApi';
@@ -153,6 +155,8 @@ export function DirectoryDetailPage(): JSX.Element {
         )}
         <p className="text-body-sm text-fg-muted">{t('admin:detail.suspensionEffect')}</p>
       </Card>
+
+      {kind === 'operators' && <StaffTierPanel operatorId={d.id} />}
 
       <Card className="space-y-2">
         <h2 className="text-h3 text-fg">{t('admin:detail.inFlightTitle')}</h2>

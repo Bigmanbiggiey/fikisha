@@ -1,8 +1,10 @@
-"""Interim driver trust ceiling (ADR-2D-05 Option b — Founder-approved).
+"""Driver trust level for value-band gating (operator tiers, ADR-2D-52;
+replaces the interim rule of ADR-2D-05 Option b).
 
-There is no Trust engine in the codebase yet. Until the dedicated Trust phase,
-a driver's trust level is derived **conservatively and deterministically** from
-approved verification facts only, and the job's ``required_trust_level`` /
+A driver's level is their stored tier (``fikisha.trust``: L1 / L2 / L3 /
+RESTRICTED, L1 when none was ever recorded), with verification as the
+floor: without current IDENTITY + LICENCE + GOOD_CONDUCT (config) they have
+no level and can take no banded job. The job's ``required_trust_level`` /
 ``value_band`` come from ``platform_config`` (``value_bands[].min_trust_level``).
 
 **No ratings, stars, ranking, recommendation, or opaque scoring.** HIGH /
@@ -16,7 +18,13 @@ from typing import Any
 from fikisha.jobs.constants import TrustLevel, ValueBand
 from fikisha.platform_config import services as config_service
 
-_LEVEL_ORDER: dict[str, int] = {TrustLevel.L1: 1, TrustLevel.L2: 2, TrustLevel.L3: 3}
+#: RESTRICTED covers what L1 covers: STANDARD only (TD-4).
+_LEVEL_ORDER: dict[str, int] = {
+    TrustLevel.RESTRICTED: 1,
+    TrustLevel.L1: 1,
+    TrustLevel.L2: 2,
+    TrustLevel.L3: 3,
+}
 _BAND_ORDER: dict[str, int] = {
     ValueBand.STANDARD: 1,
     ValueBand.ELEVATED: 2,
@@ -25,20 +33,16 @@ _BAND_ORDER: dict[str, int] = {
 }
 
 
-def interim_driver_trust_level(driver: Any) -> str:
-    """Conservative: a driver with current IDENTITY + LICENCE + GOOD_CONDUCT
-    verification is ``L1``. ``L2``/``L3`` require the (not-yet-built) Trust
-    engine's job-history / rating / admin-confirmation criteria, so they are
-    **unreachable in 2D** — an ``L2``/``L3`` job needs a recorded
-    ``admin_override_reason`` at assignment until the Trust phase ships.
-    """
-    from fikisha.verification.models import Domain
-    from fikisha.verification.services import subject_meets
+def driver_trust_level(driver: Any) -> str:
+    """``L1`` / ``L2`` / ``L3`` / ``RESTRICTED``, or ``""`` (the
+    verification floor isn't met: no banded job). Tiers change only through
+    ``fikisha.trust`` (a confirmed proposal or a Platform Admin's manual
+    change); an ``L2``/``L3`` job for a lower driver still needs a recorded
+    ``admin_override_reason`` at assignment."""
+    from fikisha.trust import services as trust
 
-    required = {Domain.IDENTITY, Domain.LICENCE, Domain.GOOD_CONDUCT}
-    if subject_meets(driver, list(required)):
-        return TrustLevel.L1
-    return ""  # not even L1 — cannot take any banded job
+    level = trust.effective_level(driver)
+    return "" if level == "L0" else level
 
 
 def band_min_trust_level(band: str) -> str:

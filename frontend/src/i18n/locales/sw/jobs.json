@@ -243,7 +243,7 @@
     "movedOn": "Kazi hii imeendelea — hakuna kinachohitajika hapa.",
     "chooseDriver": "Chagua dereva",
     "chooseVehicle": "Chagua gari",
-    "trustLevel": "Kiwango {{level}}",
+    "trustLevel": "Daraja: {{level}}",
     "noLevel": "hakuna",
     "capacity": "{{value}} {{unit}}",
     "noVehicles": "Bado hujasajili gari lolote.",

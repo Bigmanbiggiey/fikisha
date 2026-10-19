@@ -279,6 +279,21 @@ APPROVED).
 The recipient page's `delivery_reference` is now 6 characters, matching the
 app.
 
+### Operator tiers (ADR-2D-52)
+
+| Method | Path | Authorization | Notes |
+| --- | --- | --- | --- |
+| GET | `/operators/me/tier` | own operator profile | the tier view below; 404 without a profile |
+| GET | `/operators/<id>/tier` | the operator, or staff with `operator.read` | staff history rows add `by` |
+| GET | `/admin/tier-proposals` | staff with `operator.read` | `{data: [change + operator_id, operator_name]}`, oldest first, still-current only |
+| POST | `/admin/operators/<id>/tier` | `trust.change.apply` (Platform Admin) + step-up | `{level: L1\|L2\|L3\|RESTRICTED, reason}` → the tier view. 422 `invalid_tier_change` (reason under 10 characters); 409 `tier_change_not_allowed` (same tier, own profile) |
+| POST | `/admin/tier-proposals/<id>/decision` | `trust.change.apply` + step-up | `{decision: CONFIRM\|REJECT, reason}` → the tier view. 409 `tier_proposal_not_open` (decided or stale) |
+
+Tier view: `{operator_id, operator_name, level (L0|L1|L2|L3|RESTRICTED),
+stored_level, floor_met, since, bands, max_value_kes, next_level,
+criteria: [{key, status: MET|NOT_MET|NOT_MEASURED, current, target}],
+ready_for_review, open_proposal, history}`.
+
 ---
 
 ## 5. What is deliberately absent
@@ -286,5 +301,5 @@ app.
 No route exposes: a raw scheduler/lifecycle transition (sweeps run only as
 `SystemActor`, confirmed by `test_no_http_endpoint_exposes_a_raw_scheduler_
 transition`) · `DISPUTED → RESUME`/`RESUME_PRIOR` (not implemented, ADR-2D-07)
-· a trust/rating read or write of any kind · any M-Pesa/eTIMS/SMS/WhatsApp
+· a rating read or write of any kind (tiers: ADR-2D-52) · any M-Pesa/eTIMS/SMS/WhatsApp
 provider callback · a wallet/escrow/fare-custody operation.

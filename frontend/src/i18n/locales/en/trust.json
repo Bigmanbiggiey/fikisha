@@ -1,0 +1,81 @@
+{
+  "level": {
+    "L0": "Pending",
+    "L1": "L1 · Verified",
+    "L2": "L2 · Established",
+    "L3": "L3 · Trusted",
+    "RESTRICTED": "Restricted"
+  },
+  "title": { "self": "Your tier", "staff": "Tier" },
+  "allowed": {
+    "none": "No jobs yet: verification isn't complete.",
+    "upTo": "Jobs with goods worth up to {{amount}}.",
+    "noCap": "Jobs of any value; the highest-value jobs need Fikisha's approval each time."
+  },
+  "restricted": {
+    "self": "Fikisha has restricted you to smaller jobs. Talk to Fikisha about lifting it.",
+    "staff": "Restricted by Fikisha: smaller jobs only until lifted."
+  },
+  "lapsed": {
+    "self": "Your tier is {{level}}, but it applies only while your verification is current. Renew it to take jobs again.",
+    "staff": "Recorded tier {{level}}; it applies again once verification is current."
+  },
+  "toward": "Toward {{level}}",
+  "seeProgress": "See your progress toward {{level}}",
+  "seeTier": "See your tier",
+  "notMeasured": "not measured yet",
+  "status": { "MET": "done", "NOT_MET": "not yet", "NOT_MEASURED": "not measured yet" },
+  "criterion": {
+    "verified_identity": "ID verified",
+    "verified_licence": "Driving licence verified",
+    "verified_good_conduct": "Certificate of Good Conduct verified",
+    "completed_jobs": "Completed jobs: {{current}} of {{target}}",
+    "days_active": "Days since your first completed job: {{current}} of {{target}}",
+    "avg_rating": "Average rating of {{target}} or more",
+    "unresolved_incidents": "No open issue on your jobs ({{current}} open)",
+    "serious_unresolved_incidents": "No open loss, damage or misconduct issue ({{current}} open)",
+    "clean_elevated_jobs": "Larger jobs completed with no issue: {{current}} of {{target}}",
+    "at_fault_findings": "No at-fault findings",
+    "good_conduct": "Certificate of Good Conduct verified",
+    "no_cancellation_flag": "Fewer than {{target}} late cancellations in 30 days (you have {{current}})"
+  },
+  "ready": {
+    "self": "You meet everything we measure for {{level}}. Fikisha will review it.",
+    "staff": "Meets every measured criterion for {{level}}; a proposal is made on the next check."
+  },
+  "proposed": {
+    "self": "You meet everything we measure for {{level}}. Fikisha is reviewing it.",
+    "staff": "Proposed for {{level}}: waiting for a Platform Admin."
+  },
+  "howItWorks": {
+    "self": "A new tier always needs Fikisha's review. Ratings aren't measured yet.",
+    "staff": "Fikisha proposes a tier when every measured criterion is met; a Platform Admin confirms it. Ratings and at-fault findings aren't measured yet."
+  },
+  "history": { "title": "History", "none": "No changes yet." },
+  "trigger": {
+    "AUTO_PROPOSED": "Proposed",
+    "ADMIN_CONFIRMED": "Confirmed after review",
+    "ADMIN_REJECTED": "Review: not yet",
+    "ADMIN_OVERRIDE": "Changed by Fikisha (manual)"
+  },
+  "admin": {
+    "title": "Change tier",
+    "proposal": "Fikisha proposes {{from}} → {{to}}.",
+    "confirm": "Confirm promotion",
+    "reject": "Not yet",
+    "confirmTitle": "Confirm the proposed tier",
+    "rejectTitle": "Turn down the proposed tier",
+    "confirmRestate": "Promote {{name}} to {{to}}",
+    "rejectRestate": "Keep {{name}} below {{to}} for now (not proposed again for 30 days)",
+    "changeTo": "Change to",
+    "choose": "Choose a tier",
+    "change": "Change tier…",
+    "promoteTitle": "Promote operator",
+    "demoteTitle": "Demote operator",
+    "setRestate": "Change {{name}} from {{from}} to {{to}} (recorded as a manual change)",
+    "promote": "Promote",
+    "demote": "Demote",
+    "hint": "A demotion applies to new assignments; jobs already assigned keep their driver."
+  },
+  "reviews": { "title": "Tier reviews" }
+}

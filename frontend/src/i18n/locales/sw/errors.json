@@ -56,5 +56,8 @@
   "duplicate_payment_ref": "Malipo yenye namba hii tayari yamerekodiwa. Hakuna kilichorekodiwa.",
   "settlement_not_reversible": "Malipo haya tayari yamebatilishwa, au yenyewe ni ubatilishaji.",
   "stale_job": "Mtu mwingine amebadilisha kazi hii ukiwa umeifungua. Imesasishwa: ikague kisha ujaribu tena. Hakuna kilichobadilishwa.",
-  "invalid_if_match": "Skrini hii imetuma toleo la kazi lisilosomeka. Onyesha upya ukurasa kisha ujaribu tena."
+  "invalid_if_match": "Skrini hii imetuma toleo la kazi lisilosomeka. Onyesha upya ukurasa kisha ujaribu tena.",
+  "tier_change_not_allowed": "Badiliko hilo la daraja haliwezekani kwa sasa.",
+  "invalid_tier_change": "Kagua daraja na utoe sababu ya angalau herufi 10.",
+  "tier_proposal_not_open": "Pendekezo hili limeshaamuliwa au limepitwa na wakati. Ukurasa una taarifa za karibuni."
 }

@@ -151,7 +151,7 @@ class Job(TimestampedModel):
     declared_value_kes = models.BigIntegerField(default=0)
     value_band = models.CharField(max_length=12, choices=ValueBand.choices, null=True, blank=True)
     required_trust_level = models.CharField(
-        max_length=4, choices=TrustLevel.choices, null=True, blank=True
+        max_length=12, choices=TrustLevel.choices, null=True, blank=True
     )
     is_high_value = models.BooleanField(default=False)
     latent_risk_cargo = models.BooleanField(default=False)
@@ -294,7 +294,7 @@ class Assignment(TimestampedModel):
         "self", null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
     )
     admin_override_reason = models.TextField(blank=True, default="")
-    driver_trust_level = models.CharField(max_length=4, choices=TrustLevel.choices)
+    driver_trust_level = models.CharField(max_length=12, choices=TrustLevel.choices)
     config_version = models.ForeignKey(
         "platform_config.PlatformConfigVersion",
         null=True,

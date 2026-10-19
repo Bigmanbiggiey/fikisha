@@ -34,6 +34,11 @@ def profile_for(user: User) -> OperatorProfile | None:
     return OperatorProfile.objects.filter(user=user).first()
 
 
+def profile_by_id(operator_id: Any) -> OperatorProfile | None:
+    """For another module (e.g. trust) that holds only an operator id."""
+    return OperatorProfile.objects.select_related("user").filter(id=operator_id).first()
+
+
 def display_name_for(operator_id: Any) -> str | None:
     """The operator's public display name — for another module (e.g.
     negotiation) to label a counterparty without reaching through the FK
@@ -277,4 +282,14 @@ def end_association(*, actor: Any, membership: BaseMembership) -> None:
         entity_type="base_membership",
         entity_id=membership.id,
         after={"status": membership.status},
+    )
+
+
+def active_operator_ids() -> list[Any]:
+    """Operators who can work (approved, not suspended / offboarded) — for
+    the nightly tier evaluation."""
+    return list(
+        OperatorProfile.objects.filter(
+            status__in=[OperatorStatus.ACTIVE, OperatorStatus.RESTRICTED]
+        ).values_list("id", flat=True)
     )

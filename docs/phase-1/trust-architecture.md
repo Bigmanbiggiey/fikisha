@@ -93,6 +93,9 @@ Rules:
 - An admin's only levers are: **confirm** or **reject** a `PROPOSED` change, or
   **impose Restricted** with a recorded reason. There is **no** "set level = 3"
   action. (brief §14.)
+  **Changed by the founder 2026-10-20 (ADR-2D-52, TD-1):** a Platform Admin
+  may also change a tier directly, with a reason and a fresh step-up; the
+  change is append-only and shown as manual.
 - Every `trust_level_change` row is fully auditable: the `criteria_snapshot`
   makes the decision reproducible; the `evidence_*` arrays link the concrete
   jobs/incidents.

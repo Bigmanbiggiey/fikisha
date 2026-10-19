@@ -295,9 +295,9 @@ def driver_verification_current(job: Any, actor: Any, ctx: dict[str, Any]) -> No
 def _driver_trust_reasons(
     driver: Any, job: Any, *, admin_override_reason: str = ""
 ) -> tuple[str, list[str]]:
-    """``(interim_trust_level, reasons)`` — shared with
+    """``(trust_level, reasons)`` — shared with
     ``jobs.assignment_candidates``, see ``_vehicle_reasons``."""
-    level = eligibility.interim_driver_trust_level(driver)
+    level = eligibility.driver_trust_level(driver)
     band = job.value_band or ValueBand.STANDARD
     if eligibility.level_covers_band(level, band):
         return level, []

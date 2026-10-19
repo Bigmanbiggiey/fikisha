@@ -44,6 +44,20 @@ DEFAULT_CONFIG: dict[str, Any] = {
         {"band": "HIGH", "max_declared_value_kes": 100000000, "min_trust_level": "L3"},
         {"band": "VERY_HIGH", "max_declared_value_kes": None, "min_trust_level": "L3"},
     ],
+    # ─── Operator tiers (trust-architecture §1 pilot values; operator-tiers
+    # plan). Ratings and at-fault findings aren't measured yet (TD-3), so
+    # the rating values are recorded for when they are, and block nothing.
+    "trust_tiers": {
+        "L2": {"min_completed_jobs": 8, "min_days_active": 14, "min_avg_rating": 4.2},
+        "L3": {
+            "min_completed_jobs": 30,
+            "min_days_active": 60,
+            "min_avg_rating": 4.5,
+            "min_clean_elevated_jobs": 3,
+        },
+        "late_cancellation_flag": {"count": 3, "window_days": 30},
+        "reproposal_cooldown_days": 30,
+    },
     # ─── Enumerations (admin-extensible later) ──────────────────────
     # Vehicle classes moved to the `config_vehicle_class` lookup table in
     # Phase 2C (ADR-2C-01); `ConfigService`/`ConfigPublicView` expose the codes.

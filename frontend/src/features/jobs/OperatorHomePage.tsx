@@ -15,6 +15,7 @@ import { jobsApi } from './jobsApi';
 import { formatKes } from './money';
 import type { Job } from './types';
 import { NewStatementCard } from '@/features/statements/NewStatementCard';
+import { MyTierCard } from '@/features/trust/MyTierCard';
 
 /**
  * Operator Home (`design-phase-3-wireframes.md` §7.1) — mirrors
@@ -59,6 +60,8 @@ export function OperatorHomePage(): JSX.Element {
       </div>
 
       <NewStatementCard />
+
+      <MyTierCard compact />
 
       <section aria-labelledby="current-job-heading">
         <h2 id="current-job-heading" className="text-label text-fg-secondary">

@@ -1,0 +1,81 @@
+{
+  "level": {
+    "L0": "Inasubiri",
+    "L1": "L1 · Amethibitishwa",
+    "L2": "L2 · Mzoefu",
+    "L3": "L3 · Anaaminika",
+    "RESTRICTED": "Amezuiliwa"
+  },
+  "title": { "self": "Daraja lako", "staff": "Daraja" },
+  "allowed": {
+    "none": "Bado hakuna kazi: uthibitisho haujakamilika.",
+    "upTo": "Kazi zenye mizigo ya thamani hadi {{amount}}.",
+    "noCap": "Kazi za thamani yoyote; kazi za thamani ya juu kabisa zinahitaji idhini ya Fikisha kila mara."
+  },
+  "restricted": {
+    "self": "Fikisha imekuzuilia kazi ndogo pekee. Zungumza na Fikisha kuhusu kuondoa kizuizi.",
+    "staff": "Amezuiliwa na Fikisha: kazi ndogo pekee hadi kizuizi kiondolewe."
+  },
+  "lapsed": {
+    "self": "Daraja lako ni {{level}}, lakini linatumika tu uthibitisho wako ukiwa halali. Uhuishe ili upate kazi tena.",
+    "staff": "Daraja lililorekodiwa ni {{level}}; litatumika tena uthibitisho ukiwa halali."
+  },
+  "toward": "Kuelekea {{level}}",
+  "seeProgress": "Ona maendeleo yako kuelekea {{level}}",
+  "seeTier": "Ona daraja lako",
+  "notMeasured": "bado halipimwi",
+  "status": { "MET": "imekamilika", "NOT_MET": "bado", "NOT_MEASURED": "bado halipimwi" },
+  "criterion": {
+    "verified_identity": "Kitambulisho kimethibitishwa",
+    "verified_licence": "Leseni ya udereva imethibitishwa",
+    "verified_good_conduct": "Cheti cha Tabia Njema kimethibitishwa",
+    "completed_jobs": "Kazi zilizokamilika: {{current}} kati ya {{target}}",
+    "days_active": "Siku tangu kazi yako ya kwanza kukamilika: {{current}} kati ya {{target}}",
+    "avg_rating": "Wastani wa ukadiriaji wa {{target}} au zaidi",
+    "unresolved_incidents": "Hakuna tatizo lililo wazi kwenye kazi zako ({{current}} wazi)",
+    "serious_unresolved_incidents": "Hakuna tatizo la upotevu, uharibifu au utovu wa nidhamu lililo wazi ({{current}} wazi)",
+    "clean_elevated_jobs": "Kazi kubwa zilizokamilika bila tatizo: {{current}} kati ya {{target}}",
+    "at_fault_findings": "Hakuna uamuzi wa kosa dhidi yako",
+    "good_conduct": "Cheti cha Tabia Njema kimethibitishwa",
+    "no_cancellation_flag": "Ughairi wa kuchelewa chini ya {{target}} ndani ya siku 30 (una {{current}})"
+  },
+  "ready": {
+    "self": "Umetimiza kila tunachopima kwa {{level}}. Fikisha itakagua.",
+    "staff": "Ametimiza kila kigezo kinachopimwa kwa {{level}}; pendekezo litatolewa ukaguzi ujao."
+  },
+  "proposed": {
+    "self": "Umetimiza kila tunachopima kwa {{level}}. Fikisha inakagua.",
+    "staff": "Amependekezwa kwa {{level}}: anasubiri Msimamizi wa Jukwaa."
+  },
+  "howItWorks": {
+    "self": "Daraja jipya linahitaji ukaguzi wa Fikisha kila mara. Ukadiriaji bado haupimwi.",
+    "staff": "Fikisha hupendekeza daraja kila kigezo kinachopimwa kikitimizwa; Msimamizi wa Jukwaa huthibitisha. Ukadiriaji na maamuzi ya kosa bado hayapimwi."
+  },
+  "history": { "title": "Historia", "none": "Bado hakuna mabadiliko." },
+  "trigger": {
+    "AUTO_PROPOSED": "Limependekezwa",
+    "ADMIN_CONFIRMED": "Limethibitishwa baada ya ukaguzi",
+    "ADMIN_REJECTED": "Ukaguzi: bado",
+    "ADMIN_OVERRIDE": "Limebadilishwa na Fikisha (kwa mkono)"
+  },
+  "admin": {
+    "title": "Badilisha daraja",
+    "proposal": "Fikisha inapendekeza {{from}} → {{to}}.",
+    "confirm": "Thibitisha kupandishwa",
+    "reject": "Bado",
+    "confirmTitle": "Thibitisha daraja lililopendekezwa",
+    "rejectTitle": "Kataa daraja lililopendekezwa",
+    "confirmRestate": "Mpandishe {{name}} hadi {{to}}",
+    "rejectRestate": "Mbakishe {{name}} chini ya {{to}} kwa sasa (halitapendekezwa tena kwa siku 30)",
+    "changeTo": "Badilisha kuwa",
+    "choose": "Chagua daraja",
+    "change": "Badilisha daraja…",
+    "promoteTitle": "Mpandishe mhudumu",
+    "demoteTitle": "Mshushe mhudumu",
+    "setRestate": "Badilisha {{name}} kutoka {{from}} hadi {{to}} (linarekodiwa kama badiliko la mkono)",
+    "promote": "Pandisha",
+    "demote": "Shusha",
+    "hint": "Kushushwa kunahusu kazi mpya; kazi zilizokwisha kupewa zinabaki na dereva wake."
+  },
+  "reviews": { "title": "Ukaguzi wa madaraja" }
+}

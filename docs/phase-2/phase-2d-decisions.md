@@ -1612,6 +1612,82 @@ delivery; recipient close-off kept and scheduler gone; Ops awaiting-sender
 filter. Updated: pickup (photo alone refused), delivery (photo required),
 sweeps (retired), engine chain. Frontend `CloseOffCards.test.tsx` (4).
 
+## ADR-2D-52 — Operator tiers replace the interim trust rule — CONFIRMED (founder approval 2026-10-20, TD-1..TD-6)
+
+Recorded in `docs/operator-tiers-plan.md`. Supersedes ADR-2D-05 Option b
+and founder decision 12 (2026-10-14); changes decision 13 (Restricted is now
+used) and `trust-architecture.md` §3 ("no set level action").
+
+**Module `fikisha.trust`.**
+- `trust_level_state` (one per operator; L1 / L2 / L3 / RESTRICTED) and
+  append-only `trust_level_change` (migration `trust/0001`, trigger `0002`):
+  from, to, trigger, status, reason, who, the decision's proposal
+  (`decides`, one decision per proposal by a unique constraint), criteria
+  snapshot, evidence job / incident ids, config version.
+- **No state row means L1**, the tier every verified operator had under the
+  interim rule, so nobody gained or lost access on the day it shipped.
+- **Effective tier** = the stored tier, but L0 while the verification floor
+  (config `verification_requirements` for operators) isn't met.
+- **Eligibility** (`jobs.eligibility.driver_trust_level`) reads the
+  effective tier; RESTRICTED covers STANDARD only. `TrustLevel` gains
+  `RESTRICTED`, and `assignment.driver_trust_level` / `job.required_trust_level`
+  widen to 12 characters (migration `jobs/0016`). The staff override reason
+  at assignment is unchanged.
+
+**Progress (TD-3).** Criteria per `trust-architecture.md` §1, pilot values
+in config `trust_tiers` (code defaults for a deployment seeded earlier):
+completed jobs as driver, days since the first completed job, no unresolved
+incident (L2) / no unresolved loss, damage, missing-goods or misconduct
+incident (L3), clean ELEVATED-or-above jobs (L3), Good Conduct verified, no
+late-cancellation flag (3 in 30 days). Ratings and at-fault findings are
+`NOT_MEASURED`: shown, never blocking. A "Not paid" incident never counts
+against the operator. Sources are public reads: `jobs.driver_record`,
+`incidents.trust_facts`, `verification.services`.
+
+**Changes (TD-1).**
+- `evaluate` writes a `PROPOSED` change when every measured criterion for
+  the next tier is met. It runs after a job completes (on commit; a failure
+  is logged and never undoes the completion) and nightly (beat 03:15). It
+  never applies anything. A rejected proposal isn't re-made for
+  `reproposal_cooldown_days` (30).
+- A Platform Admin confirms or rejects a proposal, or changes the tier
+  directly (`ADMIN_OVERRIDE`, shown as manual).
+- Each needs `trust.change.apply` (Platform Admin `"*"` only), a reason of
+  at least 10 characters and a fresh step-up. Each writes the change and an
+  audit row in one transaction, with an outbox `TrustLevelChanged` on apply.
+- An admin can't change their own operator profile's tier. A proposal made
+  from an earlier tier is stale. Confirming needs current verification.
+
+**Who sees it (TD-6).** `GET /operators/me/tier`; `GET /operators/<id>/tier`
+for the operator or staff holding `operator.read` (staff also see who made
+each change); `GET /admin/tier-proposals` (staff);
+`POST /admin/operators/<id>/tier {level, reason}` and
+`POST /admin/tier-proposals/<id>/decision {decision, reason}` (Platform
+Admin). A group manager sees each driver's tier on the driver-pool screen.
+Businesses see verification facts only.
+
+**Not built (TD-5):** automatic demotion after an at-fault incident and
+rating-based regression, both waiting for ratings and an at-fault finding.
+A demotion affects new assignments only.
+
+**Frontend.** "Your tier" card on operator Home (compact) and the Operator
+profile: the tier, the job values it allows, the checklist toward the next
+tier, the history with reasons. A staff panel on the applicant page and the
+Users & organizations operator page, with Platform Admin confirm / reject
+and promote / demote. "Tier reviews" on Control. Tier labels on the driver
+pool. EN + SW (`trust` namespace; Swahili needs native review).
+
+**Tests:** `trust/tests/test_tiers.py` (19): L1 with no record, the L0
+floor, lapsed verification, progress figures, incidents and Not paid,
+late-cancellation flag, clean ELEVATED jobs, propose once, confirm, reject
+and cooldown, stale proposal after a manual change, Restricted and back,
+refusals (no step-up, short reason, same tier, Ops, own profile),
+append-only, ELEVATED assignment for an L2 driver, proposal on completion,
+the nightly task. `trust/tests/test_tier_api.py` (6): own read, IDOR (other
+operator, a business user), Ops read-only, self-promotion refused, admin
+promote / demote, proposal decision and a second decision refused.
+Frontend `Tiers.test.tsx` (7).
+
 ## Self-caught defects fixed during implementation
 
 Every one of these was found by the implementation's own review or test

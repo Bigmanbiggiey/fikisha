@@ -9,6 +9,7 @@ import { Field } from '@/components/Field';
 import { Input } from '@/components/Input';
 import { PageLoader } from '@/components/PageLoader';
 import { StatusBadge } from '@/components/StatusBadge';
+import { MyTierCard } from '@/features/trust/MyTierCard';
 import { VerificationPanel } from '@/features/verification/VerificationPanel';
 import { ApiError } from '@/services/problem';
 import { localizeError } from '@/services/errorMessage';
@@ -62,6 +63,7 @@ export function OperatorProfilePage(): JSX.Element {
             <p className="mt-1 text-body-sm text-fg-muted">{displayPhone(profile.data.user_phone)}</p>
             <Alert tone="success">{t('org:operator.haveProfile')}</Alert>
           </Card>
+          <MyTierCard />
           <VerificationPanel subjectType="OPERATOR" subjectId={profile.data.id} />
         </>
       ) : missing ? (

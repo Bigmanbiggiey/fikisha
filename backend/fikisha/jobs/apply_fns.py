@@ -52,8 +52,10 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Any
 
+from django.db import transaction
 from django.db.models import Max
 
+from fikisha.common.logging_setup import get_logger
 from fikisha.jobs import commission as commission_service
 from fikisha.jobs import eligibility
 from fikisha.jobs.constants import (
@@ -81,6 +83,8 @@ from fikisha.jobs.models import (
     ProofOfPickup,
 )
 from fikisha.jobs.selectors import current_config_version
+
+log = get_logger("fikisha.jobs.apply")
 
 ApplyFn = Callable[[Any, Any, dict[str, Any]], None]
 
@@ -290,7 +294,7 @@ def assign(job: Any, actor: Any, ctx: dict[str, Any]) -> None:
         assigned_by_user=_actor_user(actor),
         reassigned_from_id=ctx.get("reassigned_from_id"),
         admin_override_reason=(ctx.get("admin_override_reason") or "").strip(),
-        driver_trust_level=eligibility.interim_driver_trust_level(driver) or TrustLevel.L1,
+        driver_trust_level=eligibility.driver_trust_level(driver) or TrustLevel.L1,
         config_version=current_config_version(),
     )
     job.assignment = assignment
@@ -424,6 +428,21 @@ def complete(job: Any, actor: Any, ctx: dict[str, Any]) -> None:
     resolved back to ``COMPLETED``, Step 8 ADR-2D-20) already has its record
     from the first pass and gets no second one (plan §19 Step 9 brief §18-19)."""
     commission_service.create_commission_record_locked(job=job, actor=actor)
+    driver_id = getattr(job.assignment, "assigned_driver_profile_id", None)
+    if driver_id is not None:
+        transaction.on_commit(lambda: _propose_tier(driver_id))
+
+
+def _propose_tier(driver_id: Any) -> None:
+    """After a completion commits: propose the driver's next tier if it just
+    became due (operator tiers, ADR-2D-52). Proposes only; a failure here is
+    logged and never undoes the completion."""
+    from fikisha.trust import services as trust
+
+    try:
+        trust.evaluate_operator_id(driver_id)
+    except Exception:
+        log.exception("trust.evaluate_after_completion_failed", operator_id=str(driver_id))
 
 
 # Dispute freeze / resolution: the job-side effect is exactly the status write
