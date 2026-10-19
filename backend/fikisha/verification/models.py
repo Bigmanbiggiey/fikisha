@@ -22,6 +22,10 @@ class SubjectType(models.TextChoices):
     OPERATOR = "OPERATOR", "Operator"
     VEHICLE = "VEHICLE", "Vehicle"
     BASE = "BASE", "Operating location"
+    # Organisations (assessment 2026-10-19 D-1 / D-6): approving the record sets
+    # the organisation's own verification_status flag.
+    BUSINESS = "BUSINESS", "Business"
+    GROUP = "GROUP", "Operator group"
 
 
 class Domain(models.TextChoices):
@@ -32,6 +36,8 @@ class Domain(models.TextChoices):
     HEAVY_CLASS_COMPLIANCE = "HEAVY_CLASS_COMPLIANCE", "Heavy-class compliance"
     ASSOCIATION = "ASSOCIATION", "Vehicle / operator association"
     BASE = "BASE", "Operating base"
+    BUSINESS = "BUSINESS", "Business details"
+    GROUP = "GROUP", "Group details"
     DOCUMENT = "DOCUMENT", "Supporting document"
     HISTORY = "HISTORY", "Platform history"  # derived, feeds trust — not submitted in 2C
 
@@ -65,7 +71,30 @@ VALID_DOMAINS_BY_SUBJECT: dict[str, set[str]] = {
         Domain.DOCUMENT,
     },
     SubjectType.BASE: {Domain.BASE, Domain.DOCUMENT},
+    SubjectType.BUSINESS: {Domain.BUSINESS, Domain.DOCUMENT},
+    SubjectType.GROUP: {Domain.GROUP, Domain.DOCUMENT},
 }
+
+# Domains a subject may submit with no document attached: the reviewer checks
+# the organisation's own details (D-1: documents optional).
+EVIDENCE_OPTIONAL_DOMAINS = {Domain.BUSINESS, Domain.GROUP}
+
+SUBJECT_FIELDS = (
+    "subject_operator",
+    "subject_vehicle",
+    "subject_base",
+    "subject_business",
+    "subject_group",
+)
+
+
+def _exactly_one_subject() -> models.Q:
+    q = models.Q()
+    for field in SUBJECT_FIELDS:
+        q |= models.Q(
+            **{f"{f}__isnull": f != field for f in SUBJECT_FIELDS},
+        )
+    return q
 
 
 class VerificationRecord(TimestampedModel):
@@ -86,6 +115,20 @@ class VerificationRecord(TimestampedModel):
     )
     subject_base = models.ForeignKey(
         "operators.OperatingBase",
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+        related_name="verification_records",
+    )
+    subject_business = models.ForeignKey(
+        "business.BusinessAccount",
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+        related_name="verification_records",
+    )
+    subject_group = models.ForeignKey(
+        "groups.OperatorGroup",
         null=True,
         blank=True,
         on_delete=models.CASCADE,
@@ -114,23 +157,7 @@ class VerificationRecord(TimestampedModel):
         db_table = "verification_record"
         constraints = [
             models.CheckConstraint(
-                condition=(
-                    models.Q(
-                        subject_operator__isnull=False,
-                        subject_vehicle__isnull=True,
-                        subject_base__isnull=True,
-                    )
-                    | models.Q(
-                        subject_operator__isnull=True,
-                        subject_vehicle__isnull=False,
-                        subject_base__isnull=True,
-                    )
-                    | models.Q(
-                        subject_operator__isnull=True,
-                        subject_vehicle__isnull=True,
-                        subject_base__isnull=False,
-                    )
-                ),
+                condition=_exactly_one_subject(),
                 name="verification_record_exactly_one_subject",
             ),
             models.UniqueConstraint(
@@ -148,6 +175,16 @@ class VerificationRecord(TimestampedModel):
                 condition=models.Q(subject_base__isnull=False),
                 name="uniq_base_domain",
             ),
+            models.UniqueConstraint(
+                fields=["subject_business", "domain"],
+                condition=models.Q(subject_business__isnull=False),
+                name="uniq_business_domain",
+            ),
+            models.UniqueConstraint(
+                fields=["subject_group", "domain"],
+                condition=models.Q(subject_group__isnull=False),
+                name="uniq_group_domain",
+            ),
         ]
         indexes = [
             models.Index(fields=["state"]),
@@ -160,7 +197,13 @@ class VerificationRecord(TimestampedModel):
 
     @property
     def subject_id(self) -> object:
-        return self.subject_operator_id or self.subject_vehicle_id or self.subject_base_id
+        return (
+            self.subject_operator_id
+            or self.subject_vehicle_id
+            or self.subject_base_id
+            or self.subject_business_id
+            or self.subject_group_id
+        )
 
     def effective_state(self, *, now: Any = None) -> str:
         """Deterministic current state — folds expiry in without a sweep."""
@@ -213,6 +256,8 @@ class EvidenceKind(models.TextChoices):
     VEHICLE_PHOTO = "VEHICLE_PHOTO", "Vehicle photo"
     PLATE_PHOTO = "PLATE_PHOTO", "Number-plate photo"
     BASE_PHOTO = "BASE_PHOTO", "Operating-location photo"
+    BUSINESS_REGISTRATION_CERT = "BUSINESS_REGISTRATION_CERT", "Business registration certificate"
+    KRA_PIN_CERT = "KRA_PIN_CERT", "KRA PIN certificate"
     OTHER = "OTHER", "Other document"
 
 

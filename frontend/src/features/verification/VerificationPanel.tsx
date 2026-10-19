@@ -17,9 +17,15 @@ import { EVIDENCE_KINDS, verificationApi, type SubjectType } from './verificatio
 export function VerificationPanel({
   subjectType,
   subjectId,
+  kinds = EVIDENCE_KINDS,
+  documentsOptional = false,
 }: {
   subjectType: SubjectType;
   subjectId: string;
+  /** the document types offered (default: every kind) */
+  kinds?: readonly string[];
+  /** a business or group may submit its details with no document (D-1) */
+  documentsOptional?: boolean;
 }): JSX.Element {
   const { t } = useTranslation(['org', 'errors']);
   const qc = useQueryClient();
@@ -31,15 +37,15 @@ export function VerificationPanel({
   });
 
   const [openDomain, setOpenDomain] = useState<string | null>(null);
-  const [kind, setKind] = useState<string>(EVIDENCE_KINDS[0]);
+  const [kind, setKind] = useState<string>(kinds[0] ?? 'OTHER');
   const [file, setFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const submit = useMutation({
     mutationFn: async (domain: string) => {
-      if (!file) throw new Error('file required');
+      if (!file && !documentsOptional) throw new Error('file required');
       const rec = await verificationApi.createRecord(subjectType, subjectId, domain);
-      await verificationApi.addEvidence(rec.id, file, kind);
+      if (file) await verificationApi.addEvidence(rec.id, file, kind);
       return verificationApi.submit(rec.id);
     },
     onSuccess: () => {
@@ -85,7 +91,7 @@ export function VerificationPanel({
                 className="mt-2 flex flex-col gap-2 rounded-md bg-surface-sunken p-3 md:flex-row md:items-end"
                 onSubmit={(e: FormEvent) => {
                   e.preventDefault();
-                  if (file) submit.mutate(r.domain);
+                  if (file || documentsOptional) submit.mutate(r.domain);
                 }}
               >
                 <label className="text-caption">
@@ -97,7 +103,7 @@ export function VerificationPanel({
                     value={kind}
                     onChange={(e) => setKind(e.target.value)}
                   >
-                    {EVIDENCE_KINDS.map((k) => (
+                    {kinds.map((k) => (
                       <option key={k} value={k}>
                         {k}
                       </option>
@@ -115,8 +121,8 @@ export function VerificationPanel({
                     className="text-body-sm text-fg-secondary file:mr-2 file:min-h-target file:rounded-md file:border file:border-line-strong file:bg-surface-card file:px-3 file:text-body-sm"
                   />
                 </label>
-                <Button type="submit" loading={submit.isPending} disabled={!file}>
-                  {t('org:common.add')}
+                <Button type="submit" loading={submit.isPending} disabled={!file && !documentsOptional}>
+                  {documentsOptional && !file ? t('org:verification.submitDetails') : t('org:common.add')}
                 </Button>
               </form>
             )}

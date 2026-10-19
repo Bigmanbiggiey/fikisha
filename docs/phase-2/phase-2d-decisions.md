@@ -1258,6 +1258,69 @@ does not yet reject a request without it.
   and the business's click sent `If-Match: "0"`, got 412, showed the
   message and refreshed to Requested.
 
+## ADR-2D-45 — Business and group verification — CONFIRMED (founder approval 2026-10-19, D-1 / D-6)
+
+From the founder's assessment (`docs/assessment-2026-10-19-plan.md`,
+finding F-1): `DRAFT → REQUESTED` has always required a VERIFIED business
+(`BusinessVerifiedWithLocation`), but nothing set the flag, so no real
+business could send a job. Groups had the same unused flag.
+
+**Backend.**
+- `verification` gains two subjects, `BUSINESS` and `GROUP`
+  (`subject_business` / `subject_group`), with domains `BUSINESS` /
+  `GROUP` (plus `DOCUMENT`) and two document kinds
+  (`BUSINESS_REGISTRATION_CERT`, `KRA_PIN_CERT`). Migration
+  `verification/0002` widens the exactly-one-subject check and adds the
+  per-subject unique constraints.
+- **Documents are optional** for those two domains: the details record may
+  be submitted with none (`EVIDENCE_OPTIONAL_DOMAINS`).
+- **Registering is submitting.** `business.create_business` and
+  `groups.create_group` submit the details record in the same transaction,
+  as the creator, so a reviewer can never approve their own organisation
+  (`reviewer_is_submitter`).
+- **A reviewer's decision sets the flag.** Approving the details record
+  sets `verification_status = VERIFIED`; rejecting it sets `UNVERIFIED`.
+  The verification module calls `business.services.set_verification_status`
+  / `groups.services.set_verification_status`; only the owning module
+  writes its flag, audited (`business.verification_status.changed` /
+  `group.verification_status.changed`), in the decision's transaction.
+- Approving a business with **no active location** is refused
+  (`422 business_has_no_location`), the "≥ 1 confirmed location" of
+  `verification-architecture.md` §7.
+- Subject owner: the business **OWNER**; a group **OWNER or MANAGER**.
+  Dispatchers, viewers and drivers neither read nor submit.
+- Config: two mandatory rules in `verification_requirements`. A live config
+  that predates them takes the shipped default rules for any subject type
+  it does not name, until an admin applies one that does.
+
+**Frontend.** After registering, a pop-up says the profile was submitted for
+verification. Business Home, the create-job page and the business page show
+where verification stands; an unverified business sees why on the create-job
+page instead of the form. The business page (owner) and group page
+(owner/manager) carry the verification panel, with documents optional.
+
+**Deviation from `verification-architecture.md` §7, documented:** §7
+describes "a single flag set by an admin, no per-domain records". This
+build keeps the single flag as the thing the job guard checks, but sets it
+through a verification record.
+- **Why:** the founder asked for the business's submitted data, documents
+  and decision history in the verification queue, next to operators (D-1).
+- **Why it's safe:** the job guard, the flag's two values and the absence
+  of business trust tiers are unchanged; the record only adds the history
+  and the reviewer rules every other subject already has.
+
+**Not done here:** existing businesses keep their current flag and have no
+record until the owner presses "Submit for verification". Documents can be
+added to a record already awaiting review only after a reviewer asks for
+more information (evidence stays frozen during review).
+
+**Tests:** `verification/tests/test_organisation_verification.py` (9):
+registration submits; the owner sees it as mandatory; approval sets the
+flag and is audited; no-location approval refused; reject after approval
+unverifies; documents frozen during review; a stranger can neither read nor
+submit (IDOR); the owner cannot review their own business; group create →
+approve. Frontend: the pop-up, and the unverified create-job state.
+
 ## Self-caught defects fixed during implementation
 
 Every one of these was found by the implementation's own review or test

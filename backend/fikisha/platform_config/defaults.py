@@ -69,6 +69,8 @@ DEFAULT_CONFIG: dict[str, Any] = {
             "heavy_only": True,
         },
         {"subject_type": "BASE", "domain": "BASE", "mandatory": True},
+        {"subject_type": "BUSINESS", "domain": "BUSINESS", "mandatory": True},
+        {"subject_type": "GROUP", "domain": "GROUP", "mandatory": True},
     ],
     "cargo_categories": [
         "GENERAL",

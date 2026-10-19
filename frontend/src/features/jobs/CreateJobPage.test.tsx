@@ -14,6 +14,7 @@ const getMyOperator = vi.fn();
 const listGroups = vi.fn();
 const reference = vi.fn();
 const listLocations = vi.fn();
+const getBusiness = vi.fn();
 
 vi.mock('./jobsApi', () => ({
   jobsApi: {
@@ -27,6 +28,7 @@ vi.mock('@/features/org/orgApi', () => ({
     getMyOperator: (...a: unknown[]) => getMyOperator(...a),
     listGroups: (...a: unknown[]) => listGroups(...a),
     listLocations: (...a: unknown[]) => listLocations(...a),
+    getBusiness: (...a: unknown[]) => getBusiness(...a),
   },
 }));
 vi.mock('@/features/diagnostics/diagnosticsApi', () => ({
@@ -70,6 +72,7 @@ describe('CreateJobPage', () => {
     );
     listGroups.mockResolvedValue({ data: [], page: { next_cursor: null, prev_cursor: null } });
     listLocations.mockResolvedValue({ data: [] });
+    getBusiness.mockResolvedValue({ id: 'b1', verification_status: 'VERIFIED' });
     reference.mockResolvedValue({
       locales: { supported: ['en', 'sw'], default: 'en', operator_default: 'sw' },
       config_version: 1,
@@ -135,6 +138,14 @@ describe('CreateJobPage', () => {
     // Eight steps of simulated typing: ~4.5 s alone, over the 5 s default
     // under full-suite load (intermittent timeout seen 2026-09-28).
   }, 15_000);
+
+  it('tells an unverified business why it cannot request transport yet', async () => {
+    getBusiness.mockResolvedValue({ id: 'b1', verification_status: 'UNVERIFIED' });
+    renderWithProviders(<CreateJobPage />, { route: '/jobs/new' });
+    expect(await screen.findByText('Your business is not verified')).toBeInTheDocument();
+    expect(screen.queryByText('Step 1 of 8')).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Open my business' })).toHaveAttribute('href', '/businesses/b1');
+  });
 
   it('picks up from a saved business location by default and sends its id', async () => {
     listLocations.mockResolvedValue({

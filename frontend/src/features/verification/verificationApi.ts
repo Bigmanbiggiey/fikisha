@@ -1,7 +1,7 @@
 import { apiRequest, fetchBlob } from '@/services/apiClient';
 import type { Paged } from '@/features/org/types';
 
-export type SubjectType = 'OPERATOR' | 'VEHICLE' | 'BASE';
+export type SubjectType = 'OPERATOR' | 'VEHICLE' | 'BASE' | 'BUSINESS' | 'GROUP';
 
 export interface VerificationDecisionRow {
   id: string;
@@ -64,6 +64,15 @@ export const EVIDENCE_KINDS = [
   'VEHICLE_PHOTO',
   'PLATE_PHOTO',
   'BASE_PHOTO',
+  'BUSINESS_REGISTRATION_CERT',
+  'KRA_PIN_CERT',
+  'OTHER',
+] as const;
+
+/** What a business or group may attach (all optional, D-1). */
+export const ORGANISATION_EVIDENCE_KINDS = [
+  'BUSINESS_REGISTRATION_CERT',
+  'KRA_PIN_CERT',
   'OTHER',
 ] as const;
 

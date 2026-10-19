@@ -18,8 +18,15 @@ from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from fikisha.business.models import (
+    BusinessAccount,
+    BusinessMembership,
+    BusinessRole,
+    MembershipStatus,
+)
 from fikisha.common.api import OrgApiView, paginated
 from fikisha.common.exceptions import AuthorizationError
+from fikisha.groups.models import GroupMemberRole, OperatorGroup
 from fikisha.identity.authz.actors import actor_from_request
 from fikisha.identity.authz.step_up import require_step_up_for_staff_pii
 from fikisha.operators.models import OperatingBase, OperatorProfile
@@ -47,6 +54,8 @@ _SUBJECT_MODEL: dict[str, Any] = {
     str(SubjectType.OPERATOR): OperatorProfile,
     str(SubjectType.VEHICLE): Vehicle,
     str(SubjectType.BASE): OperatingBase,
+    str(SubjectType.BUSINESS): BusinessAccount,
+    str(SubjectType.GROUP): OperatorGroup,
 }
 
 
@@ -71,6 +80,18 @@ def _owned_records_qs(request: Request) -> Any:
         Vehicle.objects.filter(owner_operator_id__in=profile_ids).values_list("id", flat=True)
     ) + list(Vehicle.objects.filter(owner_group_id__in=group_ids).values_list("id", flat=True))
     base_ids = list(OperatingBase.objects.filter(created_by=user).values_list("id", flat=True))
+    business_ids = list(
+        BusinessMembership.objects.filter(
+            user=user, role=BusinessRole.OWNER, status=MembershipStatus.ACTIVE
+        ).values_list("business_id", flat=True)
+    )
+    managed_group_ids = list(
+        GroupMembership.objects.filter(
+            operator__user=user,
+            status=GroupMembershipStatus.ACTIVE,
+            role__in=[GroupMemberRole.OWNER, GroupMemberRole.MANAGER],
+        ).values_list("group_id", flat=True)
+    )
 
     from django.db.models import Q
 
@@ -78,6 +99,8 @@ def _owned_records_qs(request: Request) -> Any:
         Q(subject_operator_id__in=profile_ids)
         | Q(subject_vehicle_id__in=vehicle_ids)
         | Q(subject_base_id__in=base_ids)
+        | Q(subject_business_id__in=business_ids)
+        | Q(subject_group_id__in=managed_group_ids)
     ).order_by("-created_at")
 
 
@@ -304,4 +327,8 @@ def _record_subject(record: VerificationRecord) -> Any:
         return OperatorProfile.objects.get(pk=record.subject_operator_id)
     if record.subject_vehicle_id:
         return Vehicle.objects.select_related("vehicle_class").get(pk=record.subject_vehicle_id)
+    if record.subject_business_id:
+        return BusinessAccount.objects.get(pk=record.subject_business_id)
+    if record.subject_group_id:
+        return OperatorGroup.objects.get(pk=record.subject_group_id)
     return OperatingBase.objects.get(pk=record.subject_base_id)  # type: ignore[misc]

@@ -11,6 +11,7 @@ import { Input } from '@/components/Input';
 import { PageLoader } from '@/components/PageLoader';
 import { Select } from '@/components/Select';
 import { diagnosticsApi } from '@/features/diagnostics/diagnosticsApi';
+import { BusinessVerificationBanner } from '@/features/org/BusinessVerificationBanner';
 import { orgApi } from '@/features/org/orgApi';
 import type { BusinessLocation } from '@/features/org/types';
 import { localizeError } from '@/services/errorMessage';
@@ -173,6 +174,13 @@ export function CreateJobPage(): JSX.Element {
     queryFn: () => orgApi.listLocations(businessId!),
     enabled: Boolean(businessId),
   });
+  // A job can only be sent by a verified business (`BusinessVerifiedWithLocation`);
+  // say so up front instead of failing at "Send request" (D-1).
+  const business = useQuery({
+    queryKey: ['business', businessId],
+    queryFn: () => orgApi.getBusiness(businessId!),
+    enabled: Boolean(businessId),
+  });
   const savedLocations = locations.data?.data ?? [];
   const firstLocationId = savedLocations[0]?.id;
   const [pickupTouched, setPickupTouched] = useState(false);
@@ -219,6 +227,15 @@ export function CreateJobPage(): JSX.Element {
   if (businessLoading) return <PageLoader />;
   if (!businessId) {
     return <Alert tone="warning">{t('jobs:home.noBusinessBody')}</Alert>;
+  }
+  if (business.isLoading) return <PageLoader />;
+  if (business.data && business.data.verification_status !== 'VERIFIED') {
+    return (
+      <div className="mx-auto max-w-xl space-y-5">
+        <h1 className="text-h1 text-fg">{t('jobs:create.title')}</h1>
+        <BusinessVerificationBanner businessId={businessId} />
+      </div>
+    );
   }
 
   return (

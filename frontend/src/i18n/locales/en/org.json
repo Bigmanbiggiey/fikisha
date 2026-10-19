@@ -47,7 +47,8 @@
     "note": "Note",
     "queueEmpty": "Nothing awaiting review.",
     "noRecords": "No verification records yet.",
-    "expiresAt": "Expires"
+    "expiresAt": "Expires",
+    "submitDetails": "Submit for verification"
   },
   "common": {
     "create": "Create",
@@ -84,7 +85,11 @@
     "address": "Address",
     "zone": "Zone",
     "mainLocationNote": "A business can have exactly one MAIN location.",
-    "empty": "You are not a member of any business yet."
+    "empty": "You are not a member of any business yet.",
+    "submittedTitle": "Profile submitted for verification",
+    "submittedBody": "Your business profile has been submitted for verification. While you wait, add your pickup locations and, if you have them, your business registration certificate or KRA PIN. You can request transport once Fikisha has verified your business.",
+    "openBusiness": "Open my business",
+    "later": "Later"
   },
   "operator": {
     "title": "Operator profile",
@@ -117,5 +122,17 @@
     "landmark": "Landmark",
     "zone": "Zone",
     "empty": "No operating locations yet."
+  },
+  "businessVerification": {
+    "pendingTitle": "Your business is being verified",
+    "pendingBody": "Fikisha is checking your business details. You can request transport once it is verified.",
+    "infoRequestedTitle": "Fikisha needs more information",
+    "infoRequestedBody": "A reviewer asked for more information before verifying your business. Open your business to see the note and send it.",
+    "rejectedTitle": "Your business was not verified",
+    "rejectedBody": "Open your business to see why, correct your details and submit it again.",
+    "notSubmittedTitle": "Your business is not verified",
+    "notSubmittedBody": "Submit your business for verification. You can request transport once it is verified.",
+    "open": "Open my business",
+    "needsLocation": "Add at least one location: a business needs one to be verified."
   }
 }

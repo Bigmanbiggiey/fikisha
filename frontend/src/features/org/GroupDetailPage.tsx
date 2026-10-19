@@ -12,6 +12,8 @@ import { Input } from '@/components/Input';
 import { PageLoader } from '@/components/PageLoader';
 import { StatusBadge } from '@/components/StatusBadge';
 import { Select } from '@/components/Select';
+import { ORGANISATION_EVIDENCE_KINDS } from '@/features/verification/verificationApi';
+import { VerificationPanel } from '@/features/verification/VerificationPanel';
 import { localizeError } from '@/services/errorMessage';
 
 import { orgApi } from './orgApi';
@@ -154,6 +156,17 @@ export function GroupDetailPage(): JSX.Element {
           </div>
         )}
       </Card>
+
+      {/* Creating a group submits its details; an owner or manager resubmits
+          or adds documents here (D-6). */}
+      {canManage && (
+        <VerificationPanel
+          subjectType="GROUP"
+          subjectId={groupId}
+          kinds={ORGANISATION_EVIDENCE_KINDS}
+          documentsOptional
+        />
+      )}
     </div>
   );
 }

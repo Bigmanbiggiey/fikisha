@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 import { useAuth } from '@/features/auth/useAuth';
 import { Alert } from '@/components/Alert';
@@ -11,6 +11,7 @@ import { EmptyState } from '@/components/EmptyState';
 import { ErrorState } from '@/components/ErrorState';
 import { Field } from '@/components/Field';
 import { Input } from '@/components/Input';
+import { Modal } from '@/components/Modal';
 import { PageLoader } from '@/components/PageLoader';
 import { StatusBadge } from '@/components/StatusBadge';
 import { localizeError } from '@/services/errorMessage';
@@ -23,14 +24,18 @@ export function BusinessesPage(): JSX.Element {
   const qc = useQueryClient();
   const [tradingName, setTradingName] = useState('');
   const [formError, setFormError] = useState<string | null>(null);
+  // Registering submits the business for verification (D-1): say so.
+  const [submittedId, setSubmittedId] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   const list = useQuery({ queryKey: ['businesses', user?.id], queryFn: orgApi.listBusinesses, retry: false });
 
   const create = useMutation({
     mutationFn: () => orgApi.createBusiness({ trading_name: tradingName.trim() }),
-    onSuccess: () => {
+    onSuccess: (created) => {
       setTradingName('');
       setFormError(null);
+      setSubmittedId(created.id);
       void qc.invalidateQueries({ queryKey: ['businesses'] });
     },
     onError: (err) => setFormError(localizeError(err, t)),
@@ -100,6 +105,24 @@ export function BusinessesPage(): JSX.Element {
       ) : (
         <EmptyState title={t('org:business.empty')} />
       )}
+
+      <Modal
+        open={submittedId !== null}
+        onClose={() => setSubmittedId(null)}
+        title={t('org:business.submittedTitle')}
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setSubmittedId(null)}>
+              {t('org:business.later')}
+            </Button>
+            <Button onClick={() => submittedId && navigate(`/businesses/${submittedId}`)}>
+              {t('org:business.openBusiness')}
+            </Button>
+          </>
+        }
+      >
+        <p className="text-body text-fg">{t('org:business.submittedBody')}</p>
+      </Modal>
     </div>
   );
 }

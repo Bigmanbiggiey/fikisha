@@ -47,7 +47,8 @@
     "note": "Dokezo",
     "queueEmpty": "Hakuna kinachosubiri ukaguzi.",
     "noRecords": "Hakuna rekodi za uthibitishaji bado.",
-    "expiresAt": "Inaisha"
+    "expiresAt": "Inaisha",
+    "submitDetails": "Tuma kwa uthibitisho"
   },
   "common": {
     "create": "Unda",
@@ -84,7 +85,11 @@
     "address": "Anwani",
     "zone": "Eneo",
     "mainLocationNote": "Biashara inaweza kuwa na kituo kimoja tu cha MSINGI.",
-    "empty": "Bado hujawa mwanachama wa biashara yoyote."
+    "empty": "Bado hujawa mwanachama wa biashara yoyote.",
+    "submittedTitle": "Wasifu umetumwa kwa uthibitisho",
+    "submittedBody": "Wasifu wa biashara yako umetumwa kwa uthibitisho. Unaposubiri, ongeza maeneo yako ya kuchukulia mizigo na, ikiwa unayo, cheti cha usajili wa biashara au KRA PIN. Utaweza kuomba usafiri Fikisha itakapothibitisha biashara yako.",
+    "openBusiness": "Fungua biashara yangu",
+    "later": "Baadaye"
   },
   "operator": {
     "title": "Wasifu wa opereta",
@@ -117,5 +122,17 @@
     "landmark": "Alama ya eneo",
     "zone": "Eneo",
     "empty": "Hakuna vituo vya kazi bado."
+  },
+  "businessVerification": {
+    "pendingTitle": "Biashara yako inathibitishwa",
+    "pendingBody": "Fikisha inakagua maelezo ya biashara yako. Utaweza kuomba usafiri itakapothibitishwa.",
+    "infoRequestedTitle": "Fikisha inahitaji maelezo zaidi",
+    "infoRequestedBody": "Mkaguzi ameomba maelezo zaidi kabla ya kuthibitisha biashara yako. Fungua biashara yako uone ujumbe na uyatume.",
+    "rejectedTitle": "Biashara yako haikuthibitishwa",
+    "rejectedBody": "Fungua biashara yako uone sababu, sahihisha maelezo yako na uitume tena.",
+    "notSubmittedTitle": "Biashara yako haijathibitishwa",
+    "notSubmittedBody": "Tuma biashara yako kwa uthibitisho. Utaweza kuomba usafiri itakapothibitishwa.",
+    "open": "Fungua biashara yangu",
+    "needsLocation": "Ongeza angalau eneo moja: biashara inahitaji eneo moja ili kuthibitishwa."
   }
 }
