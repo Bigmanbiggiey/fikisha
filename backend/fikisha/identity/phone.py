@@ -1,8 +1,17 @@
 """Phone-number normalisation + validation.
 
-Phase 2A keeps this permissive-but-strict: accept common local forms, store
-E.164. Kenya (+254) is the default country for a bare ``07…`` / ``01…`` number
-since the pilot is Kitengela.
+One rule for every phone Fikisha takes (founder assessment 2026-10-20 L-3,
+LD-2): a Kenyan mobile or landline-style number written as ``07…`` or ``01…``,
+or as ``+254…``, where ``+254`` stands for the leading ``0``. After that
+conversion it must be exactly 10 digits (``0`` + 9). Anything else is refused,
+including a bare ``254…`` and foreign numbers.
+
+    0712345678     -> +254712345678   (stored)  /  0712345678  (shown)
+    +254100350768  -> +254100350768             /  0100350768
+    +25472345689   -> refused: 072345689 is 9 digits
+
+Stored in E.164 (``+254…``): logins and SMS providers need it. Shown in the
+national form (``national()``).
 """
 
 from __future__ import annotations
@@ -11,33 +20,39 @@ import re
 
 from django.core.exceptions import ValidationError
 
-_E164 = re.compile(r"^\+[1-9]\d{7,14}$")
-_DEFAULT_CC = "254"
+_NATIONAL = re.compile(r"^0[17]\d{8}$")
+_SEPARATORS = re.compile(r"[\s\-().]")
+
+INVALID_MESSAGE = (
+    "Enter a Kenyan number: 07… or 01… (10 digits), or +254 followed by the same "
+    "number without its first 0."
+)
+
+
+def _national(raw: str) -> str | None:
+    cleaned = _SEPARATORS.sub("", (raw or "").strip())
+    if cleaned.startswith("+254"):
+        cleaned = "0" + cleaned[4:]
+    return cleaned if _NATIONAL.match(cleaned) else None
 
 
 def normalize_phone(raw: str) -> str:
-    if not raw:
+    """The stored (E.164) form of a valid Kenyan number, or ``ValidationError``."""
+    if not (raw or "").strip():
         raise ValidationError("Phone number is required.", code="phone.required")
-    cleaned = re.sub(r"[\s\-().]", "", raw.strip())
+    national = _national(raw)
+    if national is None:
+        raise ValidationError(INVALID_MESSAGE, code="phone.invalid")
+    return "+254" + national[1:]
 
-    if cleaned.startswith("+"):
-        candidate = cleaned
-    elif cleaned.startswith("00"):
-        candidate = "+" + cleaned[2:]
-    elif cleaned.startswith("0") and len(cleaned) >= 9:
-        candidate = "+" + _DEFAULT_CC + cleaned[1:]
-    elif cleaned.startswith(_DEFAULT_CC):
-        candidate = "+" + cleaned
-    elif cleaned.isdigit() and 9 <= len(cleaned) <= 10:
-        candidate = "+" + _DEFAULT_CC + cleaned.lstrip("0")
-    else:
-        candidate = "+" + cleaned if cleaned.isdigit() else cleaned
 
-    if not _E164.match(candidate):
-        raise ValidationError(
-            "Enter a valid phone number in international format.", code="phone.invalid"
-        )
-    return candidate
+def national(phone: str) -> str:
+    """``+254712345678`` -> ``0712345678``; anything else returned unchanged."""
+    return "0" + phone[4:] if phone.startswith("+254") and len(phone) == 13 else phone
+
+
+def is_valid_phone(raw: str) -> bool:
+    return _national(raw) is not None
 
 
 def mask_phone(phone: str) -> str:

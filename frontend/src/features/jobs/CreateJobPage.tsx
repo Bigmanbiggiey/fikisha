@@ -10,6 +10,7 @@ import { Field } from '@/components/Field';
 import { Input } from '@/components/Input';
 import { OptionRows } from '@/components/OptionRow';
 import { PageLoader } from '@/components/PageLoader';
+import { PhoneInput } from '@/components/PhoneInput';
 import { Select } from '@/components/Select';
 import { diagnosticsApi } from '@/features/diagnostics/diagnosticsApi';
 import { BusinessVerificationBanner } from '@/features/org/BusinessVerificationBanner';
@@ -18,6 +19,7 @@ import { fromApi, mapConfigured, toApi, type LatLng } from '@/features/maps/mapC
 import { orgApi } from '@/features/org/orgApi';
 import type { BusinessLocation } from '@/features/org/types';
 import { localizeError } from '@/services/errorMessage';
+import { isOptionalPhoneOk } from '@/services/phone';
 
 import { CargoCategorySelect } from './CargoCategorySelect';
 import { useCargoCategoryLabel } from './cargoCategoryLabel';
@@ -140,7 +142,7 @@ function buildBody(d: Draft): JobCreateBody {
 }
 
 function step1Valid(d: Draft): boolean {
-  return Boolean(d.pickupLocationId) || d.pickupAddress.trim().length > 0;
+  return (Boolean(d.pickupLocationId) || d.pickupAddress.trim().length > 0) && isOptionalPhoneOk(d.pickupContactPhone);
 }
 
 function locationLabel(l: BusinessLocation): string {
@@ -149,6 +151,7 @@ function locationLabel(l: BusinessLocation): string {
 function step2Valid(d: Draft): boolean {
   return (
     d.recipientName.trim().length > 0 &&
+    isOptionalPhoneOk(d.recipientPhone) &&
     (d.destinationMode === 'pin' ? d.destinationPin !== null : d.destinationAddress.trim().length > 0)
   );
 }
@@ -321,12 +324,7 @@ export function CreateJobPage(): JSX.Element {
               hint={draft.pickupLocationId ? t('jobs:create.pickup.contactOverrideHint') : undefined}
             >
               {(p) => (
-                <Input
-                  {...p}
-                  type="tel"
-                  value={draft.pickupContactPhone}
-                  onChange={(e) => patch({ pickupContactPhone: e.target.value })}
-                />
+                <PhoneInput {...p} value={draft.pickupContactPhone} onChange={(v) => patch({ pickupContactPhone: v })} />
               )}
             </Field>
           </fieldset>
@@ -388,12 +386,7 @@ export function CreateJobPage(): JSX.Element {
             </Field>
             <Field label={t('jobs:create.destination.recipientPhone')} hint={t('jobs:create.destination.phoneHint')}>
               {(p) => (
-                <Input
-                  {...p}
-                  type="tel"
-                  value={draft.recipientPhone}
-                  onChange={(e) => patch({ recipientPhone: e.target.value })}
-                />
+                <PhoneInput {...p} value={draft.recipientPhone} onChange={(v) => patch({ recipientPhone: v })} />
               )}
             </Field>
           </fieldset>

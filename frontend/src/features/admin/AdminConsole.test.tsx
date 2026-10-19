@@ -127,7 +127,7 @@ describe('directory detail', () => {
     expect(screen.queryByText('+254712345678')).not.toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', { name: 'Show full number' }));
-    expect(await screen.findByRole('link', { name: '+254712345678' })).toHaveAttribute(
+    expect(await screen.findByRole('link', { name: '0712345678' })).toHaveAttribute(
       'href',
       'tel:+254712345678',
     );

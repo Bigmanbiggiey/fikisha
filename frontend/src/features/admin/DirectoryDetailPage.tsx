@@ -11,6 +11,7 @@ import { JobStatusChip } from '@/components/JobStatusChip';
 import { PageLoader } from '@/components/PageLoader';
 import type { JobState } from '@/design/tokens';
 import { localizeError } from '@/services/errorMessage';
+import { displayPhone } from '@/services/phone';
 import { formatDateTime } from '@/services/datetime';
 
 import { AccountStateBadge } from './AccountStateBadge';
@@ -108,7 +109,7 @@ export function DirectoryDetailPage(): JSX.Element {
         <h2 className="text-h3 text-fg">{t('admin:detail.contact')}</h2>
         {reveal.data ? (
           <p className="text-body text-fg">
-            {reveal.data.name} · <a href={`tel:${reveal.data.phone}`} className="fk-numeric underline">{reveal.data.phone}</a>
+            {reveal.data.name} · <a href={`tel:${reveal.data.phone}`} className="fk-numeric underline">{displayPhone(reveal.data.phone)}</a>
           </p>
         ) : (
           <div className="flex flex-wrap items-center gap-3">

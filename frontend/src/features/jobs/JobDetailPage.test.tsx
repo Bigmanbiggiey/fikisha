@@ -676,7 +676,7 @@ describe('JobDetailPage', () => {
 
       await user.click(await screen.findByRole('button', { name: 'Show contact details' }));
       expect(revealContacts).toHaveBeenCalledTimes(1);
-      expect(await screen.findByRole('link', { name: '+254700900001' })).toHaveAttribute('href', 'tel:+254700900001');
+      expect(await screen.findByRole('link', { name: '0700900001' })).toHaveAttribute('href', 'tel:+254700900001');
     });
   });
 });

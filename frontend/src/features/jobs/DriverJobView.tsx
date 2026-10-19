@@ -11,6 +11,7 @@ import { cn } from '@/components/cn';
 import { Icon } from '@/design/Icon';
 import { vehiclesApi } from '@/features/vehicles/vehiclesApi';
 import { JobMap } from '@/features/maps/JobMap';
+import { displayPhone } from '@/services/phone';
 
 import { mapsHref, telHref, whatsappHref } from './contactLinks';
 import { jobReference } from './jobHelpers';
@@ -174,7 +175,7 @@ function ContactCard({
       <p className="mt-1 text-body text-fg">
         {name || <span className="text-fg-muted">{t('jobs:driver.noName')}</span>}
         {phone ? (
-          <span className="fk-numeric select-text text-fg-secondary"> · {phone}</span>
+          <span className="fk-numeric select-text text-fg-secondary"> · {displayPhone(phone)}</span>
         ) : (
           <span className="text-fg-muted"> · {t('jobs:driver.noPhone')}</span>
         )}

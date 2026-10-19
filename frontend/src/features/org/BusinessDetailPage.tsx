@@ -8,13 +8,14 @@ import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { ErrorState } from '@/components/ErrorState';
 import { Field } from '@/components/Field';
-import { Input } from '@/components/Input';
 import { PageLoader } from '@/components/PageLoader';
+import { PhoneInput } from '@/components/PhoneInput';
 import { StatusBadge } from '@/components/StatusBadge';
 import { Select } from '@/components/Select';
 import { ORGANISATION_EVIDENCE_KINDS } from '@/features/verification/verificationApi';
 import { VerificationPanel } from '@/features/verification/VerificationPanel';
 import { localizeError } from '@/services/errorMessage';
+import { displayPhone, isValidKenyanPhone } from '@/services/phone';
 
 import { BusinessLocationsCard } from './BusinessLocationsCard';
 import { BusinessVerificationBanner } from './BusinessVerificationBanner';
@@ -107,22 +108,27 @@ export function BusinessDetailPage(): JSX.Element {
             className="mt-4 flex flex-col gap-3 border-t border-line pt-4 md:flex-row md:items-end"
             onSubmit={(e: FormEvent) => {
               e.preventDefault();
-              if (contactPhone.trim()) saveProfile.mutate();
+              if (isValidKenyanPhone(contactPhone)) saveProfile.mutate();
             }}
           >
             <div className="flex-1">
               <Field label={t('org:business.contactPhone')}>
                 {({ id }) => (
-                  <Input
+                  <PhoneInput
                     id={id}
                     value={contactPhone}
-                    onChange={(e) => setContactPhone(e.target.value)}
-                    placeholder={biz.data.contact_phone}
+                    onChange={setContactPhone}
+                    placeholder={displayPhone(biz.data.contact_phone)}
                   />
                 )}
               </Field>
             </div>
-            <Button type="submit" variant="secondary" loading={saveProfile.isPending}>
+            <Button
+              type="submit"
+              variant="secondary"
+              loading={saveProfile.isPending}
+              disabled={!isValidKenyanPhone(contactPhone)}
+            >
               {t('org:common.save')}
             </Button>
           </form>
@@ -134,7 +140,7 @@ export function BusinessDetailPage(): JSX.Element {
         <ul className="mt-2 divide-y divide-line text-body-sm">
           {(members.data?.data ?? []).map((m) => (
             <li key={m.id} className="flex items-center justify-between py-2">
-              <span>{m.user_display_name || m.user_phone}</span>
+              <span>{m.user_display_name || displayPhone(m.user_phone)}</span>
               <span className="flex items-center gap-2">
                 <StatusBadge tone="brand" label={m.role} />
                 <StatusBadge
@@ -167,17 +173,13 @@ export function BusinessDetailPage(): JSX.Element {
             className="mt-3 flex flex-col gap-2 md:flex-row md:items-end"
             onSubmit={(e: FormEvent) => {
               e.preventDefault();
-              if (memberPhone.trim()) addMember.mutate();
+              if (isValidKenyanPhone(memberPhone)) addMember.mutate();
             }}
           >
             <div className="flex-1">
               <Field label={t('org:business.memberPhone')}>
                 {({ id }) => (
-                  <Input
-                    id={id}
-                    value={memberPhone}
-                    onChange={(e) => setMemberPhone(e.target.value)}
-                  />
+                  <PhoneInput id={id} value={memberPhone} onChange={setMemberPhone} />
                 )}
               </Field>
             </div>
@@ -193,7 +195,7 @@ export function BusinessDetailPage(): JSX.Element {
                 </option>
               ))}
             </Select>
-            <Button type="submit" loading={addMember.isPending}>
+            <Button type="submit" loading={addMember.isPending} disabled={!isValidKenyanPhone(memberPhone)}>
               {t('org:common.add')}
             </Button>
           </form>

@@ -13,6 +13,7 @@ import { jobReference } from '@/features/jobs/jobHelpers';
 import { jobsApi } from '@/features/jobs/jobsApi';
 import type { Job } from '@/features/jobs/types';
 import { localizeError } from '@/services/errorMessage';
+import { displayPhone } from '@/services/phone';
 import { formatDateTime } from '@/services/datetime';
 
 import { notesQueryKey, opsApi } from './opsApi';
@@ -259,7 +260,7 @@ function ContactList({ contacts }: { contacts: RevealedContacts }): JSX.Element 
                 <>
                   {' · '}
                   <a href={`tel:${c.phone}`} className="text-action-secondary-text underline">
-                    {c.phone}
+                    {displayPhone(c.phone)}
                   </a>
                   {' · '}
                   <a

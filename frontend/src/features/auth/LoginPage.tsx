@@ -7,6 +7,8 @@ import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { Field } from '@/components/Field';
 import { Input } from '@/components/Input';
+import { PhoneInput } from '@/components/PhoneInput';
+import { isValidKenyanPhone, kenyanNational } from '@/services/phone';
 import { localizeError } from '@/services/errorMessage';
 import { LanguageSwitcher } from '@/shell/LanguageSwitcher';
 
@@ -86,26 +88,23 @@ export function LoginPage(): JSX.Element {
           <form className="mt-5 space-y-4" onSubmit={onRequestCode}>
             <Field label={t('auth:login.phoneLabel')}>
               {({ id }) => (
-                <Input
+                <PhoneInput
                   id={id}
-                  type="tel"
-                  inputMode="tel"
-                  autoComplete="tel"
                   required
                   placeholder={t('auth:login.phonePlaceholder')}
                   value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
+                  onChange={setPhone}
                 />
               )}
             </Field>
-            <Button type="submit" fullWidth loading={busy}>
+            <Button type="submit" fullWidth loading={busy} disabled={!isValidKenyanPhone(phone)}>
               {t('auth:login.requestCode')}
             </Button>
           </form>
         ) : (
           <form className="mt-5 space-y-4" onSubmit={onVerify}>
             <p className="text-body-sm text-fg-secondary">
-              {t('auth:login.codeSentTo', { phone: phone.trim() })}
+              {t('auth:login.codeSentTo', { phone: kenyanNational(phone) ?? phone.trim() })}
             </p>
             {devCode && (
               <Alert tone="warning">{t('auth:login.devCodeNotice', { code: devCode })}</Alert>

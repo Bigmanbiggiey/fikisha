@@ -12,6 +12,7 @@ import { StatusBadge } from '@/components/StatusBadge';
 import { VerificationPanel } from '@/features/verification/VerificationPanel';
 import { ApiError } from '@/services/problem';
 import { localizeError } from '@/services/errorMessage';
+import { displayPhone } from '@/services/phone';
 
 import { orgApi } from './orgApi';
 
@@ -58,7 +59,7 @@ export function OperatorProfilePage(): JSX.Element {
                 label={profile.data.status}
               />
             </div>
-            <p className="mt-1 text-body-sm text-fg-muted">{profile.data.user_phone}</p>
+            <p className="mt-1 text-body-sm text-fg-muted">{displayPhone(profile.data.user_phone)}</p>
             <Alert tone="success">{t('org:operator.haveProfile')}</Alert>
           </Card>
           <VerificationPanel subjectType="OPERATOR" subjectId={profile.data.id} />

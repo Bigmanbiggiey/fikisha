@@ -8,6 +8,7 @@ from typing import Any
 
 from rest_framework import serializers
 
+from fikisha.identity.phone_field import KenyanPhoneField
 from fikisha.jobs.constants import CancellationReason, HighValueDecision, RecipientIssueCategory
 
 
@@ -18,7 +19,7 @@ class LocationWriteSerializer(serializers.Serializer[dict[str, Any]]):
     lat = serializers.DecimalField(max_digits=9, decimal_places=6, required=False, allow_null=True)
     lng = serializers.DecimalField(max_digits=9, decimal_places=6, required=False, allow_null=True)
     contact_name = serializers.CharField(max_length=120, required=False, allow_blank=True)
-    contact_phone = serializers.CharField(max_length=32, required=False, allow_blank=True)
+    contact_phone = KenyanPhoneField(required=False, allow_blank=True)
     notes = serializers.CharField(max_length=2000, required=False, allow_blank=True)
 
 
@@ -51,7 +52,7 @@ class JobCreateSerializer(serializers.Serializer[dict[str, Any]]):
     cargo = CargoWriteSerializer()
     vehicle_requirement = VehicleRequirementWriteSerializer(required=False)
     recipient_name = serializers.CharField(max_length=120, required=False, allow_blank=True)
-    recipient_phone = serializers.CharField(max_length=32, required=False, allow_blank=True)
+    recipient_phone = KenyanPhoneField(required=False, allow_blank=True)
     delivery_requirements = serializers.CharField(max_length=4000, required=False, allow_blank=True)
     delivery_flags = serializers.ListField(child=serializers.CharField(), required=False)
     proposed_price_kes = serializers.IntegerField(required=False, allow_null=True, min_value=1)
