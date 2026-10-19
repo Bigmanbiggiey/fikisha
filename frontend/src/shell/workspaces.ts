@@ -35,4 +35,7 @@ export interface Workspace {
   /** DRIVER only: the group's assignment mode. A group driver sees
    * available work only in `DRIVER_ACCEPTS` (IA §4.3, §7). */
   assignmentMode?: string;
+  /** OPERATOR only: the operator profile's status. `PENDING` means not yet
+   * approved by Fikisha (assessment 2026-10-19 D-2). */
+  status?: string;
 }

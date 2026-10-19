@@ -204,7 +204,8 @@ def intervene(
     _require(actor, "admin.account.intervene")
     if account_type not in _SUSPENDABLE:
         raise InvalidIntervention("Unknown account type.")
-    if action not in InterventionAction.values:
+    # APPROVE has its own path and permission (approve_operator).
+    if action not in InterventionAction.values or action == InterventionAction.APPROVE:
         raise InvalidIntervention("Unknown action.")
     reason = (reason or "").strip()
     if len(reason) < REASON_MIN_LENGTH:
@@ -254,6 +255,57 @@ def intervene(
             source_channel="ADMIN_UI",
         )
     return {"id": str(row.id), "before_state": before, "after_state": after}
+
+
+# ─── Operator approval (assessment 2026-10-19 D-2) ──────────────────────
+def approve_operator(*, actor: Any, operator_id: Any, note: str = "") -> dict[str, Any]:
+    """Approve a new operator: ``PENDING → ACTIVE``. Until then the operator
+    gets no work and cannot negotiate (D-3). Explicit and audited, never
+    automatic: verification records facts and decides nothing.
+
+    Held by the verification reviewers (``verification.decide``: Operations
+    Officer and Platform Admin), who are the ones reading the operator's
+    records. A reviewer cannot approve their own operator profile."""
+    _require(actor, "verification.decide")
+    user = _user(actor)
+    with transaction.atomic():
+        # Locked before the state check, so two reviewers cannot both approve.
+        row = (
+            operators_directory.queryset()
+            .select_for_update(of=("self",))
+            .filter(id=operator_id)
+            .first()
+        )
+        if row is None:
+            from rest_framework.exceptions import NotFound
+
+            raise NotFound("No such operator.")
+        if str(row.user_id) == str(getattr(user, "id", "")):
+            raise InterventionNotAllowed("You can't approve your own operator profile.")
+        current = operators_directory.row(row)["state"]
+        if current != "PENDING":
+            raise InterventionNotAllowed(f"An operator who is {current} can't be approved.")
+        before, after = operators_directory.set_state(operator_id, "ACTIVE")
+        reason = (note or "").strip() or "Approved after verification review."
+        record = AdminIntervention.objects.create(
+            account_type=AccountType.OPERATOR,
+            account_id=operator_id,
+            action=InterventionAction.APPROVE,
+            admin=user,
+            reason=reason,
+            before_state=before,
+            after_state=after,
+        )
+        audit.record(
+            actor=actor,
+            action="admin.account.approve",
+            entity_type="operator",
+            entity_id=operator_id,
+            before={"state": before},
+            after={"state": after, "reason": reason, "intervention_id": str(record.id)},
+            source_channel="ADMIN_UI",
+        )
+    return {"id": str(record.id), "before_state": before, "after_state": after}
 
 
 # ─── Configuration (§19.3, D-3) ─────────────────────────────────────────

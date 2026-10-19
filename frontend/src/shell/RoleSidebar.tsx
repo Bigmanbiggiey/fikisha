@@ -20,8 +20,8 @@ import { RoleSwitch } from './RoleSwitch';
 export function RoleSidebar(): JSX.Element | null {
   const { t } = useTranslation(['common', 'org']);
   const { pathname } = useLocation();
-  const { loading, role } = useActiveRole();
-  const nav = navFor(role);
+  const { loading, role, operatorPending } = useActiveRole();
+  const nav = navFor(role, operatorPending);
   const unread = useUnreadMessages(!loading && nav.primary.some((i) => i.badge === 'messages'));
   if (loading) return null;
 

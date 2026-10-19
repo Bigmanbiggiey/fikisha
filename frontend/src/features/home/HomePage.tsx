@@ -10,7 +10,9 @@ import { useAuth } from '@/features/auth/useAuth';
 import { BusinessHomePage } from '@/features/jobs/BusinessHomePage';
 import { OperatorHomePage } from '@/features/jobs/OperatorHomePage';
 import { OpsHomePage } from '@/features/ops/OpsHomePage';
+import { PendingOperatorHome } from '@/features/org/PendingOperatorHome';
 import { useActiveRole } from '@/shell/activeRole';
+import { OPERATOR_SIDE_ROLES } from '@/shell/navConfig';
 import { useWorkspaces } from '@/shell/useWorkspaces';
 
 /**
@@ -25,8 +27,13 @@ import { useWorkspaces } from '@/shell/useWorkspaces';
  */
 export function HomePage(): JSX.Element {
   const { loading: workspacesLoading, workspaces } = useWorkspaces();
-  const { loading, role } = useActiveRole();
+  const { loading, role, operatorPending } = useActiveRole();
   if (loading || workspacesLoading) return <PageLoader />;
+  // Not approved yet (D-2): the operator-side Home is their checklist.
+  const operatorId = workspaces.find((w) => w.kind === 'OPERATOR')?.id;
+  if (operatorPending && operatorId && role && OPERATOR_SIDE_ROLES.has(role)) {
+    return <PendingOperatorHome operatorId={operatorId} />;
+  }
   switch (role) {
     case 'BUSINESS':
       return <BusinessHomePage />;

@@ -134,5 +134,21 @@
     "notSubmittedBody": "Submit your business for verification. You can request transport once it is verified.",
     "open": "Open my business",
     "needsLocation": "Add at least one location: a business needs one to be verified."
+  },
+  "operatorApproval": {
+    "title": "Getting approved",
+    "waitingTitle": "Your operator account is waiting for approval",
+    "waitingBody": "Complete the steps below. A Fikisha reviewer checks them and approves your account; work, jobs and messages open after that.",
+    "checklist": "What we need",
+    "profile": "Operator profile",
+    "vehicle": "At least one vehicle",
+    "review": "Fikisha reviews and approves your account",
+    "done": "Done",
+    "todo": "To do",
+    "domain": {
+      "IDENTITY": "Identity (national ID or passport)",
+      "LICENCE": "Driving licence",
+      "GOOD_CONDUCT": "Certificate of Good Conduct"
+    }
   }
 }

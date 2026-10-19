@@ -30,9 +30,9 @@ export function TopBar(): JSX.Element {
   const online = useOnline();
   const navigate = useNavigate();
   const { pathname } = useLocation();
-  const { loading, role } = useActiveRole();
+  const { loading, role, operatorPending } = useActiveRole();
 
-  const nav = status === 'authenticated' && !loading ? navFor(role) : null;
+  const nav = status === 'authenticated' && !loading ? navFor(role, operatorPending) : null;
   const inline: NavItem[] = nav
     ? [
         ...nav.primary,

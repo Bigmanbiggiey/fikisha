@@ -85,6 +85,7 @@ export function useWorkspaces(): WorkspacesState {
       kind: 'OPERATOR',
       id: operator.data.id,
       label: operator.data.display_name || operator.data.full_name,
+      status: operator.data.status,
     });
   }
   for (const group of groups.data?.data ?? []) {

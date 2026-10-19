@@ -136,6 +136,27 @@ class InterventionsView(OrgApiView):
         return Response(result, status=201)
 
 
+class _ApproveOperatorSerializer(serializers.Serializer):
+    note = serializers.CharField(max_length=2000, allow_blank=True, required=False)
+
+
+class ApproveOperatorView(OrgApiView):
+    """``POST /admin/operators/<id>/approve`` — a verification reviewer
+    approves a new operator, ``PENDING → ACTIVE`` (assessment 2026-10-19 D-2)."""
+
+    action_post = "verification.decide"
+
+    def post(self, request: Request, operator_id: uuid.UUID) -> Response:
+        s = _ApproveOperatorSerializer(data=request.data)
+        s.is_valid(raise_exception=True)
+        result = services.approve_operator(
+            actor=self.actor(request),
+            operator_id=operator_id,
+            note=s.validated_data.get("note", ""),
+        )
+        return Response(result, status=201)
+
+
 class _ConfigChangeSerializer(serializers.Serializer):
     changes = serializers.DictField()
     rationale = serializers.CharField(max_length=2000, allow_blank=True, required=False)

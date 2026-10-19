@@ -46,9 +46,13 @@ def open_jobs_for(actor: Any, *, value_band: str | None = None) -> Any:
     if driver is None:
         return Job.objects.none()
     # Suspended, restricted or offboarded operators see no new work
-    # (Increment 9 D-2, ADR-2D-38; the same set operator_eligible_for_job
-    # refuses at negotiate time).
-    if not driver.is_operational or driver.status == OperatorStatus.RESTRICTED:
+    # (Increment 9 D-2, ADR-2D-38), nor does one Fikisha has not approved yet
+    # (assessment 2026-10-19 D-3). The same set operator_eligible_for_job
+    # refuses at negotiate time.
+    if not driver.is_operational or driver.status in {
+        OperatorStatus.RESTRICTED,
+        OperatorStatus.PENDING,
+    }:
         return Job.objects.none()
 
     vehicle_class_codes = list(

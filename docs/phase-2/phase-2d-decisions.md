@@ -1321,6 +1321,47 @@ unverifies; documents frozen during review; a stranger can neither read nor
 submit (IDOR); the owner cannot review their own business; group create →
 approve. Frontend: the pop-up, and the unverified create-job state.
 
+## ADR-2D-46 — Operator approval and the pending lock-out — CONFIRMED (founder approval 2026-10-19, D-2 / D-3)
+
+From the founder's assessment (finding F-2): operators start `PENDING` and
+nothing ever moved them to `ACTIVE`, while `PENDING` already counted as
+operational, so a brand-new operator saw Work.
+
+**Backend.**
+- `POST /admin/operators/<id>/approve {note?}` →
+  `admin_console.services.approve_operator`: `PENDING → ACTIVE`, one
+  append-only `admin_intervention` row (new action `APPROVE`, migration
+  `admin_console/0003`) and an `admin.account.approve` audit entry, in one
+  transaction with the row locked.
+- **Who:** the verification reviewers (`verification.decide`: Operations
+  Officer and Platform Admin), since they read the operator's records. No
+  step-up: like a verification decision, it is routine review work.
+- A reviewer cannot approve their own operator profile. Only a `PENDING`
+  operator can be approved (409 otherwise). `APPROVE` cannot be sent
+  through `/admin/interventions`.
+- **Never automatic.** Approval does not require or follow from records
+  reaching `VERIFIED`; the reviewer decides (verification records facts).
+  Job eligibility still applies its own verification and trust checks.
+- **Lock-out (D-3):** work discovery returns nothing to a `PENDING`
+  operator; `OperatorEligibleForJob` refuses their offers
+  (`operator_not_approved`); `DriverAssignmentAllowed` refuses a `PENDING`
+  group member as the driver, so a group cannot hand work to someone
+  Fikisha has not approved.
+
+**Frontend.** A `PENDING` operator, while working as Operator, Driver or
+Group Manager, sees Home, Operator, Vehicles and Operating locations only.
+Home is a checklist (profile, each mandatory verification and its state, a
+vehicle, Fikisha's review). Work, jobs, messages, groups and statements
+redirect Home (`RequireApprovedOperator`). The same person working as a
+Business keeps their business screens. The Approve button is on the
+applicant page of the verification queue (ADR-2D-47).
+
+**Tests:** `admin_console/tests/test_operator_approval.py` (8): approve
+with intervention row and audit; only `PENDING`; non-reviewer 403; no
+self-approval; no back door via interventions; no work while pending
+(then visible once approved); offers refused; assignment refused. Frontend:
+the pending tab bars (`RoleNav.test`), the route guard (3).
+
 ## Self-caught defects fixed during implementation
 
 Every one of these was found by the implementation's own review or test

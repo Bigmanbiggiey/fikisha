@@ -19,6 +19,11 @@ urlpatterns = [
         name="directory-contact",
     ),
     path("admin/interventions", views.InterventionsView.as_view(), name="interventions"),
+    path(
+        "admin/operators/<uuid:operator_id>/approve",
+        views.ApproveOperatorView.as_view(),
+        name="approve-operator",
+    ),
     path("admin/config", views.ConfigView.as_view(), name="config"),
     path("admin/config/preview", views.ConfigPreviewView.as_view(), name="config-preview"),
     path("admin/commission", views.CommissionLedgerView.as_view(), name="commission"),

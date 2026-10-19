@@ -134,5 +134,21 @@
     "notSubmittedBody": "Tuma biashara yako kwa uthibitisho. Utaweza kuomba usafiri itakapothibitishwa.",
     "open": "Fungua biashara yangu",
     "needsLocation": "Ongeza angalau eneo moja: biashara inahitaji eneo moja ili kuthibitishwa."
+  },
+  "operatorApproval": {
+    "title": "Kuidhinishwa",
+    "waitingTitle": "Akaunti yako ya mwendeshaji inasubiri kuidhinishwa",
+    "waitingBody": "Kamilisha hatua zilizo hapa chini. Mkaguzi wa Fikisha atazikagua na kuidhinisha akaunti yako; kazi, safari na ujumbe zitafunguka baada ya hapo.",
+    "checklist": "Tunachohitaji",
+    "profile": "Wasifu wa mwendeshaji",
+    "vehicle": "Angalau gari moja",
+    "review": "Fikisha inakagua na kuidhinisha akaunti yako",
+    "done": "Imekamilika",
+    "todo": "Bado",
+    "domain": {
+      "IDENTITY": "Utambulisho (kitambulisho au pasipoti)",
+      "LICENCE": "Leseni ya udereva",
+      "GOOD_CONDUCT": "Cheti cha Maadili Mema"
+    }
   }
 }

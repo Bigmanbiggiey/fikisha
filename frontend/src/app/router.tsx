@@ -52,6 +52,7 @@ import { VehiclesPage } from '@/features/vehicles/VehiclesPage';
 import { VerificationQueuePage } from '@/features/verification/VerificationQueuePage';
 import { VerificationRecordPage } from '@/features/verification/VerificationRecordPage';
 import { AppShell } from '@/shell/AppShell';
+import { RequireApprovedOperator } from '@/shell/RequireApprovedOperator';
 
 /**
  * `/` is public (the landing page for a signed-out or first-time visitor —
@@ -80,9 +81,7 @@ export function AppRoutes(): JSX.Element {
           }
         >
           <Route path="home" element={<HomePage />} />
-          <Route path="current-job" element={<CurrentJobPage />} />
           <Route path="more" element={<MorePage />} />
-          <Route path="messages" element={<MessagesPage />} />
           <Route path="jobs" element={<JobsListPage />} />
           <Route path="jobs/new" element={<CreateJobPage />} />
           <Route path="jobs/:jobId" element={<JobDetailPage />} />
@@ -95,17 +94,28 @@ export function AppRoutes(): JSX.Element {
           <Route path="jobs/:jobId/report-issue" element={<IncidentReportPage />} />
           <Route path="incidents/:incidentId" element={<IncidentDetailPage />} />
           <Route path="disputes/:disputeId" element={<DisputeDetailPage />} />
-          <Route path="work" element={<WorkListPage />} />
-          <Route path="work/:jobId" element={<JobOpportunityPage />} />
-          <Route path="my-jobs" element={<MyJobsPage />} />
-          {/* Commission & Statements S-2: a payee's weekly statements. */}
-          <Route path="statements" element={<StatementsPage />} />
-          <Route path="statements/:statementId" element={<StatementDetailPage />} />
+          {/* Open to an operator only once Fikisha has approved them (D-2). */}
+          <Route
+            element={
+              <RequireApprovedOperator>
+                <Outlet />
+              </RequireApprovedOperator>
+            }
+          >
+            <Route path="current-job" element={<CurrentJobPage />} />
+            <Route path="messages" element={<MessagesPage />} />
+            <Route path="work" element={<WorkListPage />} />
+            <Route path="work/:jobId" element={<JobOpportunityPage />} />
+            <Route path="my-jobs" element={<MyJobsPage />} />
+            {/* Commission & Statements S-2: a payee's weekly statements. */}
+            <Route path="statements" element={<StatementsPage />} />
+            <Route path="statements/:statementId" element={<StatementDetailPage />} />
+            <Route path="groups" element={<GroupsPage />} />
+            <Route path="groups/:groupId" element={<GroupDetailPage />} />
+          </Route>
           <Route path="businesses" element={<BusinessesPage />} />
           <Route path="businesses/:businessId" element={<BusinessDetailPage />} />
           <Route path="operator" element={<OperatorProfilePage />} />
-          <Route path="groups" element={<GroupsPage />} />
-          <Route path="groups/:groupId" element={<GroupDetailPage />} />
           <Route path="operating-locations" element={<OperatingLocationsPage />} />
           <Route path="vehicles" element={<VehiclesPage />} />
           <Route path="vehicles/:vehicleId" element={<VehicleDetailPage />} />
