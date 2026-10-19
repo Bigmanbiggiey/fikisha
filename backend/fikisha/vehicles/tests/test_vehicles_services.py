@@ -48,6 +48,31 @@ def test_update_fields_and_class_and_registration(user: Any, vehicle: Any) -> No
     assert again.registration_normalized == "KBB2B"
 
 
+def test_registration_is_stored_in_capitals(user: Any) -> None:
+    prof = op_services.create_profile(actor=_actor(user), full_name="Op")
+    v = services.register_vehicle(
+        actor=_actor(user),
+        owner_operator=prof,
+        vehicle_class_code="PICKUP",
+        registration="  kda   123a ",
+        capacity_value=Decimal("500"),
+    )
+    v.refresh_from_db()
+    assert v.registration == "KDA 123A"
+    assert v.registration_normalized == "KDA123A"
+
+
+def test_update_case_only_change_is_saved(user: Any, vehicle: Any) -> None:
+    vehicle.registration = "kaa 1a"
+    vehicle.save()
+    vehicle.refresh_from_db()
+    assert vehicle.registration == "KAA 1A"
+    updated = services.update_vehicle(
+        actor=_actor(user), vehicle=vehicle, patch={"registration": "kaa  1a"}
+    )
+    assert updated.registration == "KAA 1A"
+
+
 def test_update_noop_returns_same(user: Any, vehicle: Any) -> None:
     same = services.update_vehicle(actor=_actor(user), vehicle=vehicle, patch={})
     assert same.pk == vehicle.pk
