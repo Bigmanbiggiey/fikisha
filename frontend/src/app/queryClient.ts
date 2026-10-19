@@ -29,5 +29,34 @@ export function createQueryClient(): QueryClient {
       mutations: { retry: false },
     },
   });
+  // Live progress (assessment 2026-10-20 L-1, LD-1): every screen showing a
+  // job, its offers, incidents, the recipient link, messages or the Ops
+  // monitor re-checks about every 10 s while the tab is visible, and at once
+  // when the person comes back to the tab or the device reconnects, so
+  // nobody has to refresh to see where a job stands. Background tabs don't
+  // poll. A refresh never touches what someone is typing (drafts are local).
+  for (const prefix of LIVE_QUERY_PREFIXES) client.setQueryDefaults(prefix, LIVE_QUERY_OPTIONS);
   return client;
 }
+
+export const LIVE_REFRESH_MS = 10_000;
+
+export const LIVE_QUERY_OPTIONS = {
+  staleTime: 0,
+  refetchInterval: LIVE_REFRESH_MS,
+  refetchIntervalInBackground: false,
+  refetchOnWindowFocus: true,
+  refetchOnReconnect: true,
+} as const;
+
+export const LIVE_QUERY_PREFIXES: readonly (readonly string[])[] = [
+  ['jobs'],
+  ['negotiation'],
+  ['disputes'],
+  ['disputes-detail'],
+  ['incidents'],
+  ['job-events'],
+  ['recipient'],
+  ['messages'],
+  ['ops', 'monitor'],
+];
