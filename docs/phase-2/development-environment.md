@@ -67,6 +67,26 @@ celery -A config worker -l info -Q default
 celery -A config beat   -l info
 ```
 
+> **Set these before `runserver`.** Settings read only real environment
+> variables (no dotenv file is loaded). Without them the backend falls back to
+> `localhost:5432` / password `fikisha`. If another project's Postgres owns
+> 5432, you get `password authentication failed for user "fikisha"` instead of
+> a clear "not running" error. Also stop the compose `backend` container first
+> (`docker stop fikisha-backend-1`), since it already holds port 8000.
+
+**PowerShell (Windows).** Keep the values in a git-ignored `backend/.env.local`
+(same variables as above, `NAME=value` per line) and load it into the current
+shell:
+
+```powershell
+cd backend
+Get-Content .env.local | Where-Object { $_ -match '^\s*[^#\s][^=]*=' } | ForEach-Object {
+    $name, $value = $_ -split '=', 2
+    Set-Item "env:$($name.Trim())" $value.Trim()
+}
+python manage.py runserver 0.0.0.0:8000
+```
+
 ### Frontend
 
 ```bash
