@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 import { Alert } from '@/components/Alert';
 import { Button } from '@/components/Button';
@@ -12,6 +12,8 @@ import { PageLoader } from '@/components/PageLoader';
 import { Select } from '@/components/Select';
 import { diagnosticsApi } from '@/features/diagnostics/diagnosticsApi';
 import { BusinessVerificationBanner } from '@/features/org/BusinessVerificationBanner';
+import { LocationPicker } from '@/features/maps/LocationPicker';
+import { fromApi, mapConfigured, toApi, type LatLng } from '@/features/maps/mapConfig';
 import { orgApi } from '@/features/org/orgApi';
 import type { BusinessLocation } from '@/features/org/types';
 import { localizeError } from '@/services/errorMessage';
@@ -47,6 +49,10 @@ interface Draft {
   pickupAddress: string;
   pickupContactPhone: string;
   destinationAddress: string;
+  /** the destination's map pin (maps M-3) */
+  destinationPin: LatLng | null;
+  /** a pin is required while the map can load (MD-3) */
+  destinationPinRequired: boolean;
   recipientName: string;
   recipientPhone: string;
   cargoDescription: string;
@@ -71,6 +77,8 @@ const EMPTY_DRAFT: Draft = {
   pickupAddress: '',
   pickupContactPhone: '',
   destinationAddress: '',
+  destinationPin: null,
+  destinationPinRequired: mapConfigured(),
   recipientName: '',
   recipientPhone: '',
   cargoDescription: '',
@@ -103,6 +111,7 @@ function buildBody(d: Draft): JobCreateBody {
       : { address_text: d.pickupAddress.trim(), contact_phone: d.pickupContactPhone.trim() },
     destination_location: {
       address_text: d.destinationAddress.trim(),
+      ...(d.destinationPin ? toApi(d.destinationPin) : {}),
       contact_name: d.recipientName.trim(),
       contact_phone: d.recipientPhone.trim(),
     },
@@ -134,7 +143,11 @@ function locationLabel(l: BusinessLocation): string {
   return l.address_text ? `${l.label} — ${l.address_text}` : l.label;
 }
 function step2Valid(d: Draft): boolean {
-  return d.destinationAddress.trim().length > 0 && d.recipientName.trim().length > 0;
+  return (
+    d.destinationAddress.trim().length > 0 &&
+    d.recipientName.trim().length > 0 &&
+    (!d.destinationPinRequired || d.destinationPin !== null)
+  );
 }
 function step3Valid(d: Draft): boolean {
   return d.cargoDescription.trim().length > 0;
@@ -196,6 +209,7 @@ export function CreateJobPage(): JSX.Element {
   function patch(fields: Partial<Draft>): void {
     setDraft((d) => ({ ...d, ...fields }));
   }
+  const setDestinationPin = useCallback((p: LatLng) => setDraft((d) => ({ ...d, destinationPin: p })), []);
   const setCargoCategory = useCallback((code: string) => setDraft((d) => ({ ...d, cargoCategory: code })), []);
   const categoryLabel = useCargoCategoryLabel();
 
@@ -291,6 +305,14 @@ export function CreateJobPage(): JSX.Element {
                 )}
               </Field>
             )}
+            {pickedLocation && !fromApi(pickedLocation) && mapConfigured() && (
+              <Alert tone="warning">
+                {t('jobs:create.pickup.noPin')}{' '}
+                <Link to={`/businesses/${businessId}`} className="font-semibold underline">
+                  {t('jobs:create.pickup.addPin')}
+                </Link>
+              </Alert>
+            )}
             <Field
               label={t('jobs:create.pickup.contactPhone')}
               hint={draft.pickupLocationId ? t('jobs:create.pickup.contactOverrideHint') : undefined}
@@ -310,6 +332,13 @@ export function CreateJobPage(): JSX.Element {
         {step === 1 && (
           <fieldset className="space-y-3">
             <legend className="text-h3 text-fg">{t('jobs:create.steps.destination')}</legend>
+            {/* Pinned on the map so the driver can navigate there (maps M-3). */}
+            <LocationPicker
+              value={draft.destinationPin}
+              onChange={setDestinationPin}
+              onAvailabilityChange={(available) => patch({ destinationPinRequired: available })}
+              label={t('jobs:create.destination.mapLabel')}
+            />
             <Field label={t('jobs:create.destination.address')} required>
               {(p) => (
                 <Input

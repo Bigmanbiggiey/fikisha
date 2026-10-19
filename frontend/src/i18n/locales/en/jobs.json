@@ -105,13 +105,16 @@
       "contactPhone": "Pickup contact phone",
       "savedLocation": "Pick up from",
       "anotherAddress": "Another address",
-      "contactOverrideHint": "Leave empty to use the contact saved for this location."
+      "contactOverrideHint": "Leave empty to use the contact saved for this location.",
+      "noPin": "This location has no pin on the map, so the driver can't navigate to it.",
+      "addPin": "Add the pin"
     },
     "destination": {
       "address": "Destination",
       "recipientName": "Recipient name",
       "recipientPhone": "Recipient phone",
-      "phoneHint": "Used for the delivery link and pickup/handover contact."
+      "phoneHint": "Used for the delivery link and pickup/handover contact.",
+      "mapLabel": "Map: where the goods are going"
     },
     "cargo": {
       "description": "Description",

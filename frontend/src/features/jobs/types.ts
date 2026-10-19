@@ -49,6 +49,9 @@ export interface JobLocation {
   address_text: string;
   lat: string | null;
   lng: string | null;
+  /** CAPTURED: pinned on the map; COARSENED: only the ~1 km area is shared
+   * with this viewer (maps MD-2); NOT_CAPTURED: no pin */
+  geo_state?: 'CAPTURED' | 'COARSENED' | 'NOT_CAPTURED';
   contact_name: string;
   contact_phone: string;
 }
@@ -115,8 +118,8 @@ export interface LocationWrite {
   /** pickup only: copy one of the business's saved locations */
   business_location_id?: string;
   address_text?: string;
-  lat?: number | null;
-  lng?: number | null;
+  lat?: number | string | null;
+  lng?: number | string | null;
   contact_name?: string;
   contact_phone?: string;
   notes?: string;
