@@ -217,5 +217,18 @@
     "vehicles": "Magari",
     "noVehicles": "Hakuna magari yaliyosajiliwa.",
     "noLocations": "Hakuna eneo linalotumika: biashara haiwezi kuthibitishwa hadi iongeze moja."
+  },
+  "locationMap": {
+    "pinned": "Iko kwenye ramani",
+    "addPin": "Weka alama",
+    "movePin": "Hamisha alama",
+    "savePin": "Hifadhi alama",
+    "mapLabel": "Ramani: mahali {{name}} lilipo",
+    "newMapLabel": "Ramani: mahali eneo jipya lilipo",
+    "name": "Jina la eneo hili",
+    "nameHint": "Kwa mfano \"Duka kuu\" au \"Duka la Barabara ya Namanga\".",
+    "landmark": "Alama ya eneo au anwani (si lazima)",
+    "pinFirst": "Weka alama kwenye ramani kwanza.",
+    "save": "Hifadhi eneo"
   }
 }

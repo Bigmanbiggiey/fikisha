@@ -31,6 +31,8 @@ export const orgApi = {
     apiRequest<{ data: BusinessLocation[] }>(`/businesses/${id}/locations`),
   addLocation: (id: string, body: Partial<BusinessLocation> & { zone_code?: string }) =>
     apiRequest<BusinessLocation>(`/businesses/${id}/locations`, { method: 'POST', body }),
+  updateLocation: (id: string, locationId: string, body: Partial<BusinessLocation>) =>
+    apiRequest<BusinessLocation>(`/businesses/${id}/locations/${locationId}`, { method: 'PATCH', body }),
   removeLocation: (id: string, locationId: string) =>
     apiRequest<null>(`/businesses/${id}/locations/${locationId}`, { method: 'DELETE' }),
 
