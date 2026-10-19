@@ -102,7 +102,10 @@
     },
     "pickup": {
       "address": "Pickup location",
-      "contactPhone": "Pickup contact phone"
+      "contactPhone": "Pickup contact phone",
+      "savedLocation": "Pick up from",
+      "anotherAddress": "Another address",
+      "contactOverrideHint": "Leave empty to use the contact saved for this location."
     },
     "destination": {
       "address": "Destination",

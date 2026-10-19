@@ -9,7 +9,10 @@ import { Card } from '@/components/Card';
 import { Field } from '@/components/Field';
 import { Input } from '@/components/Input';
 import { PageLoader } from '@/components/PageLoader';
+import { Select } from '@/components/Select';
 import { diagnosticsApi } from '@/features/diagnostics/diagnosticsApi';
+import { orgApi } from '@/features/org/orgApi';
+import type { BusinessLocation } from '@/features/org/types';
 import { localizeError } from '@/services/errorMessage';
 
 import { jobsApi } from './jobsApi';
@@ -36,6 +39,8 @@ const TOTAL_STEPS = 8;
 const HANDLING_FLAGS = ['FRAGILE', 'KEEP_UPRIGHT'] as const;
 
 interface Draft {
+  /** a saved business location to copy; '' = type another address */
+  pickupLocationId: string;
   pickupAddress: string;
   pickupContactPhone: string;
   destinationAddress: string;
@@ -59,6 +64,7 @@ interface Draft {
 }
 
 const EMPTY_DRAFT: Draft = {
+  pickupLocationId: '',
   pickupAddress: '',
   pickupContactPhone: '',
   destinationAddress: '',
@@ -89,7 +95,9 @@ function buildBody(d: Draft): JobCreateBody {
       : '';
   const deliveryRequirements = [whenLine, d.deliveryRequirements.trim()].filter(Boolean).join(' ');
   return {
-    pickup_location: { address_text: d.pickupAddress.trim(), contact_phone: d.pickupContactPhone.trim() },
+    pickup_location: d.pickupLocationId
+      ? { business_location_id: d.pickupLocationId, contact_phone: d.pickupContactPhone.trim() }
+      : { address_text: d.pickupAddress.trim(), contact_phone: d.pickupContactPhone.trim() },
     destination_location: {
       address_text: d.destinationAddress.trim(),
       contact_name: d.recipientName.trim(),
@@ -116,7 +124,11 @@ function buildBody(d: Draft): JobCreateBody {
 }
 
 function step1Valid(d: Draft): boolean {
-  return d.pickupAddress.trim().length > 0;
+  return Boolean(d.pickupLocationId) || d.pickupAddress.trim().length > 0;
+}
+
+function locationLabel(l: BusinessLocation): string {
+  return l.address_text ? `${l.label} — ${l.address_text}` : l.label;
 }
 function step2Valid(d: Draft): boolean {
   return d.destinationAddress.trim().length > 0 && d.recipientName.trim().length > 0;
@@ -153,6 +165,23 @@ export function CreateJobPage(): JSX.Element {
     queryFn: diagnosticsApi.reference,
     retry: false,
   });
+
+  // The business's saved locations (assessment 2026-10-19 part 2): pickup
+  // defaults to the first one (MAIN sorts first); "Another address" is free text.
+  const locations = useQuery({
+    queryKey: ['business', businessId, 'locations'],
+    queryFn: () => orgApi.listLocations(businessId!),
+    enabled: Boolean(businessId),
+  });
+  const savedLocations = locations.data?.data ?? [];
+  const firstLocationId = savedLocations[0]?.id;
+  const [pickupTouched, setPickupTouched] = useState(false);
+  useEffect(() => {
+    if (!pickupTouched && firstLocationId) {
+      setDraft((d) => (d.pickupLocationId ? d : { ...d, pickupLocationId: firstLocationId }));
+    }
+  }, [firstLocationId, pickupTouched]);
+  const pickedLocation = savedLocations.find((l) => l.id === draft.pickupLocationId);
 
   function patch(fields: Partial<Draft>): void {
     setDraft((d) => ({ ...d, ...fields }));
@@ -213,12 +242,38 @@ export function CreateJobPage(): JSX.Element {
         {step === 0 && (
           <fieldset className="space-y-3">
             <legend className="text-h3 text-fg">{t('jobs:create.steps.pickup')}</legend>
-            <Field label={t('jobs:create.pickup.address')} required>
-              {(p) => (
-                <Input {...p} value={draft.pickupAddress} onChange={(e) => patch({ pickupAddress: e.target.value })} />
-              )}
-            </Field>
-            <Field label={t('jobs:create.pickup.contactPhone')}>
+            {savedLocations.length > 0 && (
+              <Field label={t('jobs:create.pickup.savedLocation')} required>
+                {(p) => (
+                  <Select
+                    {...p}
+                    value={draft.pickupLocationId}
+                    onChange={(e) => {
+                      setPickupTouched(true);
+                      patch({ pickupLocationId: e.target.value });
+                    }}
+                  >
+                    {savedLocations.map((l) => (
+                      <option key={l.id} value={l.id}>
+                        {locationLabel(l)}
+                      </option>
+                    ))}
+                    <option value="">{t('jobs:create.pickup.anotherAddress')}</option>
+                  </Select>
+                )}
+              </Field>
+            )}
+            {!draft.pickupLocationId && (
+              <Field label={t('jobs:create.pickup.address')} required>
+                {(p) => (
+                  <Input {...p} value={draft.pickupAddress} onChange={(e) => patch({ pickupAddress: e.target.value })} />
+                )}
+              </Field>
+            )}
+            <Field
+              label={t('jobs:create.pickup.contactPhone')}
+              hint={draft.pickupLocationId ? t('jobs:create.pickup.contactOverrideHint') : undefined}
+            >
               {(p) => (
                 <Input
                   {...p}
@@ -457,7 +512,11 @@ export function CreateJobPage(): JSX.Element {
               {t('jobs:create.draftBanner')}
             </p>
             <dl className="space-y-2 text-body-sm">
-              <ReviewRow label={t('jobs:create.steps.pickup')} value={draft.pickupAddress} onEdit={() => setStep(0)} />
+              <ReviewRow
+                label={t('jobs:create.steps.pickup')}
+                value={pickedLocation ? locationLabel(pickedLocation) : draft.pickupAddress}
+                onEdit={() => setStep(0)}
+              />
               <ReviewRow
                 label={t('jobs:create.steps.destination')}
                 value={`${draft.destinationAddress} — ${draft.recipientName}`}

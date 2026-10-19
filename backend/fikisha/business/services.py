@@ -333,6 +333,42 @@ def locations_for(business: BusinessAccount) -> QuerySet[BusinessLocation]:
     return business.locations.filter(deactivated_at__isnull=True).order_by("type", "label")
 
 
+def active_location_snapshot(business_id: Any, location_id: Any) -> dict[str, Any] | None:
+    """The fields a job copies from a saved location, or ``None`` when the
+    location is not an active location *of this business*. The ownership check
+    lives here so a caller cannot snapshot another business's location."""
+    loc = (
+        BusinessLocation.objects.filter(
+            id=location_id, business_id=business_id, deactivated_at__isnull=True
+        )
+        .only(
+            "id",
+            "label",
+            "address_text",
+            "lat",
+            "lng",
+            "zone_id",
+            "contact_name",
+            "contact_phone",
+            "access_notes",
+        )
+        .first()
+    )
+    if loc is None:
+        return None
+    address = loc.address_text.strip()
+    return {
+        "id": loc.id,
+        "address_text": f"{loc.label} — {address}" if address else loc.label,
+        "lat": loc.lat,
+        "lng": loc.lng,
+        "zone_id": loc.zone_id,
+        "contact_name": loc.contact_name,
+        "contact_phone": loc.contact_phone,
+        "notes": loc.access_notes,
+    }
+
+
 def _demote_existing_main(business: BusinessAccount, *, keep_id: Any = None) -> None:
     qs = BusinessLocation.objects.filter(
         business=business, type=LocationType.MAIN, deactivated_at__isnull=True

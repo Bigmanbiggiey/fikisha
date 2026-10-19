@@ -13,6 +13,7 @@ const listBusinesses = vi.fn();
 const getMyOperator = vi.fn();
 const listGroups = vi.fn();
 const reference = vi.fn();
+const listLocations = vi.fn();
 
 vi.mock('./jobsApi', () => ({
   jobsApi: {
@@ -25,6 +26,7 @@ vi.mock('@/features/org/orgApi', () => ({
     listBusinesses: (...a: unknown[]) => listBusinesses(...a),
     getMyOperator: (...a: unknown[]) => getMyOperator(...a),
     listGroups: (...a: unknown[]) => listGroups(...a),
+    listLocations: (...a: unknown[]) => listLocations(...a),
   },
 }));
 vi.mock('@/features/diagnostics/diagnosticsApi', () => ({
@@ -67,6 +69,7 @@ describe('CreateJobPage', () => {
       ),
     );
     listGroups.mockResolvedValue({ data: [], page: { next_cursor: null, prev_cursor: null } });
+    listLocations.mockResolvedValue({ data: [] });
     reference.mockResolvedValue({
       locales: { supported: ['en', 'sw'], default: 'en', operator_default: 'sw' },
       config_version: 1,
@@ -131,5 +134,52 @@ describe('CreateJobPage', () => {
     expect(submit).toHaveBeenCalledWith('job123', expect.any(String));
     // Eight steps of simulated typing: ~4.5 s alone, over the 5 s default
     // under full-suite load (intermittent timeout seen 2026-09-28).
+  }, 15_000);
+
+  it('picks up from a saved business location by default and sends its id', async () => {
+    listLocations.mockResolvedValue({
+      data: [
+        { id: 'loc-main', label: 'Main shop', type: 'MAIN', address_text: 'Namanga Rd' },
+        { id: 'loc-wh', label: 'Warehouse', type: 'WAREHOUSE', address_text: '' },
+      ],
+    });
+    const user = userEvent.setup();
+    renderWithProviders(<CreateJobPage />, { route: '/jobs/new' });
+
+    const select = await screen.findByLabelText(/Pick up from/);
+    await waitFor(() => expect(select).toHaveValue('loc-main'));
+    expect(screen.getByRole('option', { name: 'Main shop — Namanga Rd' })).toBeInTheDocument();
+    expect(screen.queryByLabelText(/Pickup location/)).not.toBeInTheDocument();
+
+    // "Another address" brings back the free-text field…
+    await user.selectOptions(select, '');
+    expect(screen.getByLabelText(/Pickup location/)).toBeInTheDocument();
+    // …and choosing a saved one again hides it.
+    await user.selectOptions(select, 'loc-wh');
+    expect(screen.queryByLabelText(/Pickup location/)).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+    await user.type(screen.getByLabelText(/Destination/), 'Shop 4');
+    await user.type(screen.getByLabelText(/Recipient name/), 'J. Mwangi');
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+    await fillAndAdvance(user, /Description/, 'Cement');
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+    await fillAndAdvance(user, /approximate value/, '5000');
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+    await user.click(screen.getByRole('button', { name: 'Review request' }));
+    expect(await screen.findByText('Warehouse')).toBeInTheDocument();
+
+    create.mockResolvedValue({ id: 'job9' });
+    submit.mockResolvedValue({ id: 'job9', status: 'REQUESTED' });
+    await user.click(screen.getByRole('button', { name: 'Send request' }));
+    await waitFor(() => expect(submit).toHaveBeenCalled());
+    expect(create).toHaveBeenCalledWith(
+      'b1',
+      expect.objectContaining({
+        pickup_location: { business_location_id: 'loc-wh', contact_phone: '' },
+      }),
+      expect.any(String),
+    );
   }, 15_000);
 });

@@ -102,7 +102,10 @@
     },
     "pickup": {
       "address": "Mahali pa kuchukua",
-      "contactPhone": "Simu ya mawasiliano ya kuchukua"
+      "contactPhone": "Simu ya mawasiliano ya kuchukua",
+      "savedLocation": "Chukua kutoka",
+      "anotherAddress": "Anwani nyingine",
+      "contactOverrideHint": "Acha wazi ili kutumia mawasiliano yaliyohifadhiwa kwa eneo hili."
     },
     "destination": {
       "address": "Mahali pa kufikishwa",
