@@ -107,5 +107,21 @@
   "offline": {
     "emptyTitle": "You're offline",
     "emptyBody": "This can't load until you're back online. Anything already loaded is still shown."
+  },
+  "map": {
+    "useMyLocation": "Use my location",
+    "pinCentre": "Pin the centre of the map",
+    "locateFailed": "Couldn't get your location. Move the map and tap the spot instead.",
+    "unavailable": "The map can't load right now. Type the address or a landmark instead.",
+    "tapToPin": "Tap the map where it is. You can drag the pin to adjust it.",
+    "pinned": "Pinned at {{lat}}, {{lng}}",
+    "outsideArea": "This pin is outside Kitengela and nearby areas. Check it is in the right place.",
+    "jobMapTitle": "Map",
+    "jobMapLabel": "Map of the pickup and the destination",
+    "pickup": "Pickup",
+    "destination": "Destination",
+    "openInGoogleMaps": "Open in Google Maps",
+    "approximateNote": "Only the area is shown for now. The exact spot appears once the job is assigned to you.",
+    "noPin": "No pin on the map yet"
   }
 }
