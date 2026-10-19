@@ -1,6 +1,6 @@
 # Commission & Statements: plan
 
-**Status:** APPROVED 2026-10-15. Decisions D-1 to D-8 answered the same day, all as recommended (see §7); paybill number to follow. S-1 in progress.
+**Status:** APPROVED 2026-10-15; COMPLETE. Decisions D-1 to D-8 answered the same day, all as recommended (see §7); paybill number to follow. S-1 (backend), S-2 (payee screens) and S-3 (staff screens) built 2026-10-15 (ADR-2D-42) and merged 2026-10-16 (PRs #16–#18).
 **Founder decision:** 2026-10-14 item 5, "weekly statements + manual
 settlement recording; eTIMS later", planned before it is built
 (`founder-decisions-2026-10-14.md`). Item 6 also applies: manual commission

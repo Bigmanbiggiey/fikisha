@@ -1,3 +1,4 @@
+import { jobVersion, rememberJobVersion } from '@/features/jobs/jobVersions';
 import { apiRequest, fetchBlob } from '@/services/apiClient';
 
 import type {
@@ -51,10 +52,16 @@ export const disputesApi = {
   listForJob: (jobId: string) => apiRequest<Listed<Dispute>>(`/jobs/${jobId}/disputes`),
   get: (disputeId: string) => apiRequest<Dispute>(`/disputes/${disputeId}`),
   open: (jobId: string, incidentIds: string[], idempotencyKey: string) =>
+    // opening a dispute moves the job to DISPUTED: send the version seen
+    // (ADR-2D-44) and remember the one it moves to
     apiRequest<{ dispute: Dispute; job: unknown }>(`/jobs/${jobId}/disputes`, {
       method: 'POST',
       body: { incident_ids: incidentIds },
       idempotencyKey,
+      ifMatch: jobVersion(jobId),
+    }).then((r) => {
+      rememberJobVersion(r.job);
+      return r;
     }),
   resolve: (disputeId: string, body: ResolveDisputeBody, idempotencyKey: string) =>
     apiRequest<{ resolution_id: string; job: unknown }>(`/disputes/${disputeId}/resolve`, {

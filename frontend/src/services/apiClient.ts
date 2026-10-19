@@ -45,6 +45,9 @@ export interface RequestOptions {
   /** Attempt one refresh-and-retry on a 401 (default true). */
   retryOnUnauthorized?: boolean;
   signal?: AbortSignal;
+  /** Sent as `If-Match: "<version>"` on a job action (ADR-2D-44): the
+   * server refuses with 412 `stale_job` if the job has moved on since. */
+  ifMatch?: number;
   /**
    * Sent as `Idempotency-Key` — required by the backend for job-creation and
    * every lifecycle-transition call (submit, cancel, assign, custody
@@ -129,6 +132,7 @@ export async function apiRequest<T = unknown>(
     stepUp = true,
     signal,
     idempotencyKey,
+    ifMatch,
   } = options;
   const isForm = typeof FormData !== 'undefined' && body instanceof FormData;
 
@@ -137,6 +141,7 @@ export async function apiRequest<T = unknown>(
   const tokenSent = auth ? accessToken : null;
   if (tokenSent) headers.Authorization = `Bearer ${tokenSent}`;
   if (idempotencyKey) headers['Idempotency-Key'] = idempotencyKey;
+  if (ifMatch !== undefined) headers['If-Match'] = `"${ifMatch}"`;
 
   let response: Response;
   try {

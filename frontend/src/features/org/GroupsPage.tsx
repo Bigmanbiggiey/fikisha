@@ -3,6 +3,7 @@ import { useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 
+import { useAuth } from '@/features/auth/useAuth';
 import { Alert } from '@/components/Alert';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
@@ -19,10 +20,11 @@ import { orgApi } from './orgApi';
 import { GROUP_TYPES } from './types';
 
 export function GroupsPage(): JSX.Element {
+  const { user } = useAuth();
   const { t } = useTranslation(['org', 'errors']);
   const qc = useQueryClient();
 
-  const list = useQuery({ queryKey: ['groups'], queryFn: orgApi.listGroups, retry: false });
+  const list = useQuery({ queryKey: ['groups', user?.id], queryFn: orgApi.listGroups, retry: false });
 
   const [name, setName] = useState('');
   const [type, setType] = useState<string>('SACCO');

@@ -258,3 +258,123 @@ def create_adjustment(
         payload={"job_id": str(locked.job_id), "commission_record_id": str(locked.id)},
     )
     return adjustment
+
+
+# ─── Billing reads for the statement run (Commission & Statements S-1) ──────
+# ``fikisha.statements`` never imports these models (module boundary rule); it
+# asks here for plain rows. Payee: the confirmed operator for a solo job, the
+# group for a group job (FR-O-8).
+
+
+def _payee_of(agreement: Any) -> tuple[str, str]:
+    if agreement.operator_id is not None:
+        return "OPERATOR", str(agreement.operator_id)
+    return "GROUP", str(agreement.group_id)
+
+
+def billable_commission(*, as_of: Any, exclude_record_ids: Any) -> list[dict[str, Any]]:
+    """Commission records ready to bill as of ``as_of`` (plan §3.3, D-2): the
+    job is ``COMPLETED`` (so not ``DISPUTED``) and its post-completion
+    dispute window closed on or before ``as_of``. ``exclude_record_ids`` (an
+    iterable or a values queryset) are records already on a statement."""
+    from datetime import timedelta
+
+    from fikisha.jobs.constants import JobStatus
+    from fikisha.jobs.guards import post_completion_window_hours
+    from fikisha.jobs.ops import job_reference
+
+    window = config.get("timeouts.post_completion_window", {}) or {}
+    shortest = min(
+        float(window.get("default_hours", 72)), float(window.get("high_and_latent_days", 7)) * 24
+    )
+    qs = (
+        CommissionRecord.objects.select_related("job", "agreement")
+        .filter(
+            job__status=JobStatus.COMPLETED,
+            job__completed_at__isnull=False,
+            job__completed_at__lte=as_of - timedelta(hours=shortest),
+        )
+        .exclude(id__in=exclude_record_ids)
+        .order_by("job__completed_at", "id")
+    )
+    rows = []
+    for record in qs:
+        job = record.job
+        closes_at = job.completed_at + timedelta(hours=post_completion_window_hours(job))
+        if closes_at > as_of:
+            continue
+        payee_kind, payee_id = _payee_of(record.agreement)
+        rows.append(
+            {
+                "record_id": str(record.id),
+                "job_id": str(job.id),
+                "job_reference": job_reference(job.id),
+                "payee_kind": payee_kind,
+                "payee_id": payee_id,
+                "agreed_price_kes": record.agreed_price_kes,
+                "commission_kes": record.commission_kes,
+            }
+        )
+    return rows
+
+
+def unbilled_adjustments(
+    *, record_ids: Any, exclude_adjustment_ids: Any, created_before: Any
+) -> list[dict[str, Any]]:
+    """Adjustments to bill: their record is billed (``record_ids``), they are
+    not on a statement yet, and they existed by ``created_before``. An
+    adjustment whose record was never billed (for example a job that ended
+    ``FAILED`` after a dispute) is never billed either."""
+    from fikisha.jobs.ops import job_reference
+
+    qs = (
+        CommissionAdjustment.objects.select_related("commission_record__agreement")
+        .filter(commission_record_id__in=record_ids, created_at__lt=created_before)
+        .exclude(id__in=exclude_adjustment_ids)
+        .order_by("created_at", "id")
+    )
+    rows = []
+    for adj in qs:
+        record = adj.commission_record
+        payee_kind, payee_id = _payee_of(record.agreement)
+        rows.append(
+            {
+                "adjustment_id": str(adj.id),
+                "record_id": str(record.id),
+                "job_id": str(record.job_id),
+                "job_reference": job_reference(record.job_id),
+                "payee_kind": payee_kind,
+                "payee_id": payee_id,
+                "kind": adj.kind,
+                "amount_kes": adj.amount_kes,
+            }
+        )
+    return rows
+
+
+def commission_for_job(job_id: Any) -> dict[str, Any] | None:
+    """One job's commission for its payee's "Earnings for this Job" (P3 §7.4):
+    agreed price, commission, adjustments, net. ``None`` if the job has no
+    commission record. Authorization is the caller's (``statements``)."""
+    record = (
+        CommissionRecord.objects.select_related("agreement")
+        .prefetch_related("adjustments")
+        .filter(job_id=job_id)
+        .first()
+    )
+    if record is None:
+        return None
+    payee_kind, payee_id = _payee_of(record.agreement)
+    adjustments_kes = sum(a.amount_kes for a in record.adjustments.all())
+    effective = record.commission_kes + adjustments_kes
+    return {
+        "job_id": str(record.job_id),
+        "record_id": str(record.id),
+        "payee_kind": payee_kind,
+        "payee_id": payee_id,
+        "agreed_price_kes": record.agreed_price_kes,
+        "commission_kes": record.commission_kes,
+        "adjustments_kes": adjustments_kes,
+        "effective_commission_kes": effective,
+        "net_to_operator_kes": record.agreed_price_kes - effective,
+    }

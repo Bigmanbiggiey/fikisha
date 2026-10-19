@@ -25,13 +25,15 @@ interface NavRolesState {
  * UX only: the server authorises every action.
  */
 export function useNavRoles(): NavRolesState {
+  const { user } = useAuth();
   const { loading, workspaces } = useWorkspaces();
   const has = (kind: string): boolean => workspaces.some((w) => w.kind === kind);
   const operatorId = workspaces.find((w) => w.kind === 'OPERATOR')?.id ?? null;
   const isGroupDriver = has('DRIVER');
 
   const ownsVehicle = useQuery({
-    queryKey: ['vehicles'],
+    // keyed by user: sign-out doesn't clear the cache (PR #5 follow-up 1)
+    queryKey: ['vehicles', user?.id],
     queryFn: vehiclesApi.list,
     enabled: !loading && isGroupDriver && !!operatorId,
     retry: false,

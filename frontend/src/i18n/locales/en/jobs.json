@@ -50,9 +50,9 @@
     "timeline": "Timeline",
     "cancel": "Cancel request",
     "nothingNeeded": "Nothing needed from you right now.",
+    "disputeUnderReview": "Fikisha is reviewing this job. You'll be told when there's an update.",
     "draftNote": "This request hasn't been sent yet.",
-    "autoCompleteNote": "This delivery will be marked complete automatically — nothing needed from you.",
-    "comingSoon": "This screen is coming in a later update."
+    "autoCompleteNote": "This delivery will be marked complete automatically — nothing needed from you."
   },
   "pickupConfirm": {
     "whatYoureConfirming": "Confirm that {{cargo}} for Job {{ref}} has been handed to the driver at {{location}}.",
@@ -228,14 +228,20 @@
     "title": "Assign driver & vehicle",
     "forJob": "For job {{ref}}",
     "movedOn": "This job has moved on — nothing needed here.",
-    "groupNotSupported": "Assigning a group driver isn't available yet — assign this job from a manager account that supports it, or contact support.",
     "chooseDriver": "Choose driver",
     "chooseVehicle": "Choose vehicle",
     "trustLevel": "Level {{level}}",
     "noLevel": "none",
     "capacity": "{{value}} {{unit}}",
     "noVehicles": "You have no vehicles registered yet.",
-    "confirm": "Confirm assignment"
+    "noGroupVehicles": "This group has no vehicles registered yet.",
+    "confirm": "Confirm assignment",
+    "noDrivers": "This group has no active members to assign yet. Add drivers to the group first.",
+    "groupRole": {
+      "OWNER": "Owner",
+      "MANAGER": "Manager",
+      "DRIVER": "Driver"
+    }
   },
   "pickupProof": {
     "title": "Confirm pickup",

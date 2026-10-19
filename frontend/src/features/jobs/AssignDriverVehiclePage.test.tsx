@@ -117,13 +117,93 @@ describe('AssignDriverVehiclePage', () => {
 
   it('blocks submission and explains a pending high-value review', async () => {
     assignmentCandidates.mockResolvedValue(
-      baseCandidates({ value_band: 'HIGH', blocked: "This job requires Fikisha's high-value review before it can be assigned." }),
+      baseCandidates({
+        value_band: 'HIGH',
+        blocked: "This job requires Fikisha's high-value review before it can be assigned.",
+      }),
     );
     renderAtJob('job1');
 
     expect(
-      await screen.findByText("This job requires Fikisha's high-value review before it can be assigned."),
+      await screen.findByText(
+        "This job requires Fikisha's high-value review before it can be assigned.",
+      ),
     ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Confirm assignment' })).toBeDisabled();
+  });
+});
+
+describe('AssignDriverVehiclePage — group jobs', () => {
+  beforeEach(() => {
+    get.mockReset();
+    assignmentCandidates.mockReset();
+    assign.mockReset();
+    get.mockResolvedValue({ id: 'job1', status: 'CONFIRMED' });
+  });
+
+  it("lists the group's members with their role and assigns the chosen one", async () => {
+    assignmentCandidates.mockResolvedValue(
+      baseCandidates({
+        supports_group_assignment: true,
+        assignment_mode: 'MANAGER_ASSIGNS',
+        drivers: [
+          {
+            id: 'mgr',
+            name: 'A. Manager',
+            trust_level: 'L1',
+            eligible: true,
+            reasons: [],
+            group_role: 'OWNER',
+          },
+          {
+            id: 'drv2',
+            name: 'B. Otieno',
+            trust_level: 'L1',
+            eligible: true,
+            reasons: [],
+            group_role: 'DRIVER',
+          },
+        ],
+      }),
+    );
+    assign.mockResolvedValue({ id: 'job1', status: 'ASSIGNED' });
+    const user = userEvent.setup();
+    renderAtJob('job1');
+
+    const driver = await screen.findByRole('radio', { name: /B\. Otieno/ });
+    expect(screen.getByText(/Driver · Level L1/)).toBeInTheDocument();
+    await user.click(driver);
+    await user.click(screen.getByRole('radio', { name: /KDA 200B/ }));
+    await user.click(screen.getByRole('button', { name: 'Confirm assignment' }));
+
+    expect(assign).toHaveBeenCalledWith(
+      'job1',
+      { driver_profile_id: 'drv2', vehicle_id: 'veh1' },
+      expect.any(String),
+    );
+  });
+
+  it('explains a group with no active members', async () => {
+    assignmentCandidates.mockResolvedValue(
+      baseCandidates({ supports_group_assignment: true, drivers: [], vehicles: [] }),
+    );
+    renderAtJob('job1');
+
+    expect(
+      await screen.findByText(
+        'This group has no active members to assign yet. Add drivers to the group first.',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('says the group, not the user, has no vehicles', async () => {
+    assignmentCandidates.mockResolvedValue(
+      baseCandidates({ supports_group_assignment: true, vehicles: [] }),
+    );
+    renderAtJob('job1');
+
+    expect(
+      await screen.findByText('This group has no vehicles registered yet.'),
+    ).toBeInTheDocument();
   });
 });

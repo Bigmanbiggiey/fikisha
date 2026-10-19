@@ -189,3 +189,95 @@ def test_suspended_group_cannot_be_assigned(
             driver_profile_id=s["member"].id,
             vehicle_id=s["vehicle"].id,
         )
+
+
+# ─── Group Manager assigns from the driver pool (founder decision 2026-10-14) ──
+def _candidates(client: Any, job: Any) -> Any:
+    return client.get(f"/api/v1/jobs/{job.id}/assignment-candidates")
+
+
+def test_manager_sees_the_group_pool_and_assigns_from_it(
+    group_setup: Callable,
+    make_confirmed_job: Callable,
+    make_vehicle: Callable,
+    client_for: Callable,
+) -> None:
+    s = group_setup()
+    # a member's own vehicle is not the group's, so it isn't offered
+    make_vehicle(owner_operator=s["member"], registration="KDA 900P")
+    job = make_confirmed_job(group=s["group"])
+    client = client_for(s["manager"].user)
+
+    r = _candidates(client, job)
+    assert r.status_code == 200, r.content
+    assert r.data["supports_group_assignment"] is True
+    assert r.data["assignment_mode"] == "MANAGER_ASSIGNS"
+    drivers = {d["id"]: d for d in r.data["drivers"]}
+    assert set(drivers) == {str(s["manager"].id), str(s["member"].id)}
+    assert drivers[str(s["member"].id)]["group_role"] == "DRIVER"
+    assert drivers[str(s["member"].id)]["eligible"] is True
+    assert [v["registration"] for v in r.data["vehicles"]] == ["KDA 800G"]
+    assert r.data["vehicles"][0]["eligible"] is True
+
+    r = client.post(
+        f"/api/v1/jobs/{job.id}/assign",
+        {"driver_profile_id": str(s["member"].id), "vehicle_id": str(s["vehicle"].id)},
+        format="json",
+        HTTP_IDEMPOTENCY_KEY="group-assign-1",
+    )
+    assert r.status_code == 200, r.content
+    job.refresh_from_db()
+    assert job.status == JobStatus.ASSIGNED
+    assert str(job.assignment.assigned_driver_profile_id) == str(s["member"].id)
+
+
+def test_a_member_cannot_see_the_pool_when_the_manager_assigns(
+    group_setup: Callable, make_confirmed_job: Callable, client_for: Callable
+) -> None:
+    s = group_setup()
+    job = make_confirmed_job(group=s["group"])
+    r = _candidates(client_for(s["member"].user), job)
+    assert r.status_code in (403, 422), r.content
+
+
+def test_in_driver_accepts_mode_a_member_sees_only_themselves(
+    group_setup: Callable, make_confirmed_job: Callable, client_for: Callable
+) -> None:
+    from fikisha.groups.models import AssignmentMode
+
+    s = group_setup(mode=AssignmentMode.DRIVER_ACCEPTS)
+    job = make_confirmed_job(group=s["group"])
+    r = _candidates(client_for(s["member"].user), job)
+    assert r.status_code == 200, r.content
+    assert [d["id"] for d in r.data["drivers"]] == [str(s["member"].id)]
+    assert r.data["assignment_mode"] == "DRIVER_ACCEPTS"
+
+
+def test_an_outsider_cannot_see_a_group_pool(
+    group_setup: Callable,
+    make_confirmed_job: Callable,
+    make_verified_operator: Callable,
+    client_for: Callable,
+) -> None:
+    s = group_setup()
+    job = make_confirmed_job(group=s["group"])
+    outsider = make_verified_operator("+254745000099", "Outsider")
+    r = _candidates(client_for(outsider.user), job)
+    assert r.status_code in (403, 404, 422), r.content
+    assert "drivers" not in (r.data or {})
+
+
+def test_a_suspended_groups_pool_is_shown_but_not_eligible(
+    group_setup: Callable, make_confirmed_job: Callable, client_for: Callable
+) -> None:
+    from fikisha.groups.models import GroupStanding
+
+    s = group_setup()
+    job = make_confirmed_job(group=s["group"])
+    s["group"].standing = GroupStanding.SUSPENDED
+    s["group"].save(update_fields=["standing"])
+    r = _candidates(client_for(s["manager"].user), job)
+    assert r.status_code == 200, r.content
+    assert r.data["drivers"]
+    assert all(not d["eligible"] for d in r.data["drivers"])
+    assert all(any("suspended" in reason for reason in d["reasons"]) for d in r.data["drivers"])

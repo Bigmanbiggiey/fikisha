@@ -94,6 +94,19 @@ describe('apiRequest', () => {
     expect(withoutKey.has('Idempotency-Key')).toBe(false);
   });
 
+  it('sends If-Match as a quoted version when given (ADR-2D-44)', async () => {
+    const fetchMock = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(jsonResponse({ ok: true }))
+      .mockResolvedValueOnce(jsonResponse({ ok: true }));
+
+    await apiRequest('/jobs/1/cancel', { method: 'POST', ifMatch: 0 });
+    expect(new Headers(fetchMock.mock.calls[0]![1]!.headers as HeadersInit).get('If-Match')).toBe('"0"');
+
+    await apiRequest('/jobs/1/cancel', { method: 'POST' });
+    expect(new Headers(fetchMock.mock.calls[1]![1]!.headers as HeadersInit).has('If-Match')).toBe(false);
+  });
+
   it('shares one refresh between requests that 401 at the same time (P-15)', async () => {
     // The backend rotates the refresh cookie and revokes the session if a
     // spent one is reused, so two parallel refreshes would sign the user out.

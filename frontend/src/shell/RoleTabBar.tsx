@@ -29,14 +29,18 @@ export function RoleTabBar(): JSX.Element | null {
 
   const items = [...nav.primary, ...(nav.action ? [nav.action] : []), MORE];
   // "More" also covers the secondary screens it links to.
-  const moreActive = pathname === '/more' || nav.secondary.some((s) => isNavItemActive(s, pathname));
+  const moreActive =
+    pathname === '/more' || nav.secondary.some((s) => isNavItemActive(s, pathname));
 
   return (
     <nav
       aria-label={t('common:nav.main')}
-      className="fixed inset-x-0 bottom-0 z-nav border-t border-line bg-surface-nav pb-[env(safe-area-inset-bottom)] md:hidden"
+      className="fixed inset-x-0 bottom-0 z-nav border-t border-line bg-surface-nav pb-[env(safe-area-inset-bottom)] md:hidden print:hidden"
     >
-      <ul className="grid" style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }}>
+      <ul
+        className="grid"
+        style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }}
+      >
         {items.map((item) => {
           const active = item === MORE ? moreActive : isNavItemActive(item, pathname);
           return (
@@ -51,7 +55,9 @@ export function RoleTabBar(): JSX.Element | null {
               >
                 <span className="relative">
                   <Icon name={item.icon} size={22} />
-                  {item.badge === 'messages' && <NavBadge count={unread} className="absolute -right-3 -top-2" />}
+                  {item.badge === 'messages' && (
+                    <NavBadge count={unread} className="absolute -right-3 -top-2" />
+                  )}
                 </span>
                 <span>{t(item.labelKey)}</span>
               </Link>

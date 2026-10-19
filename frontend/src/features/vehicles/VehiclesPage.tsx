@@ -3,6 +3,7 @@ import { useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 
+import { useAuth } from '@/features/auth/useAuth';
 import { Alert } from '@/components/Alert';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
@@ -20,12 +21,13 @@ import { localizeError } from '@/services/errorMessage';
 import { CAPACITY_UNITS, VEHICLE_CLASSES, vehiclesApi } from './vehiclesApi';
 
 export function VehiclesPage(): JSX.Element {
+  const { user } = useAuth();
   const { t } = useTranslation(['org', 'errors']);
   const qc = useQueryClient();
 
-  const list = useQuery({ queryKey: ['vehicles'], queryFn: vehiclesApi.list, retry: false });
+  const list = useQuery({ queryKey: ['vehicles', user?.id], queryFn: vehiclesApi.list, retry: false });
   const me = useQuery({ queryKey: ['operator', 'me'], queryFn: orgApi.getMyOperator, retry: false });
-  const groups = useQuery({ queryKey: ['groups'], queryFn: orgApi.listGroups, retry: false });
+  const groups = useQuery({ queryKey: ['groups', user?.id], queryFn: orgApi.listGroups, retry: false });
 
   const [vehicleClass, setVehicleClass] = useState<string>('PICKUP');
   const [registration, setRegistration] = useState('');

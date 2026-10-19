@@ -14,6 +14,7 @@ import { jobReference, needsOperatorAttention, operatorNextAction } from './jobH
 import { jobsApi } from './jobsApi';
 import { formatKes } from './money';
 import type { Job } from './types';
+import { NewStatementCard } from '@/features/statements/NewStatementCard';
 
 /**
  * Operator Home (`design-phase-3-wireframes.md` §7.1) — mirrors
@@ -27,11 +28,21 @@ export function OperatorHomePage(): JSX.Element {
   const navigate = useNavigate();
 
   const jobs = useQuery({ queryKey: ['jobs'], queryFn: jobsApi.list, retry: false });
-  const work = useQuery({ queryKey: ['jobs', 'opportunities', ''], queryFn: () => jobsApi.discover(), retry: false });
+  const work = useQuery({
+    queryKey: ['jobs', 'opportunities', ''],
+    queryFn: () => jobsApi.discover(),
+    retry: false,
+  });
 
   if (jobs.isLoading) return <PageLoader />;
   if (jobs.isError) {
-    return <ErrorState message={localizeError(jobs.error, t)} error={jobs.error} onRetry={() => void jobs.refetch()} />;
+    return (
+      <ErrorState
+        message={localizeError(jobs.error, t)}
+        error={jobs.error}
+        onRetry={() => void jobs.refetch()}
+      />
+    );
   }
 
   const ACTIVE = new Set(['ASSIGNED', 'AT_PICKUP', 'PICKED_UP', 'IN_TRANSIT', 'AT_DESTINATION']);
@@ -44,10 +55,10 @@ export function OperatorHomePage(): JSX.Element {
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-3">
         <h1 className="text-h1 text-fg">{t('jobs:work.homeTitle')}</h1>
-        <Button onClick={() => navigate('/work')}>
-          {t('jobs:work.findWork')}
-        </Button>
+        <Button onClick={() => navigate('/work')}>{t('jobs:work.findWork')}</Button>
       </div>
+
+      <NewStatementCard />
 
       <section aria-labelledby="current-job-heading">
         <h2 id="current-job-heading" className="text-label text-fg-secondary">
@@ -64,20 +75,29 @@ export function OperatorHomePage(): JSX.Element {
                 to: current.destination_location?.address_text || '—',
               }}
               cargo={current.cargo?.description ?? ''}
-              price={current.agreed_price_kes != null ? formatKes(current.agreed_price_kes) : undefined}
+              price={
+                current.agreed_price_kes != null ? formatKes(current.agreed_price_kes) : undefined
+              }
               onClick={() => navigate(`/jobs/${current.id}`)}
             />
           </div>
         ) : (
           <div className="mt-2">
-            <EmptyState title={t('jobs:work.noCurrentJob')} description={t('jobs:work.noCurrentJobBody')} />
+            <EmptyState
+              title={t('jobs:work.noCurrentJob')}
+              description={t('jobs:work.noCurrentJobBody')}
+            />
           </div>
         )}
       </section>
 
       {needsResponse.length > 0 && (
         <section aria-labelledby="needs-response-heading">
-          <h2 id="needs-response-heading" className="text-label text-fg-secondary" aria-live="polite">
+          <h2
+            id="needs-response-heading"
+            className="text-label text-fg-secondary"
+            aria-live="polite"
+          >
             {t('jobs:work.needsResponse')} ({needsResponse.length})
           </h2>
           <ul className="mt-2 space-y-2">

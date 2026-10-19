@@ -499,7 +499,7 @@ def test_commission_ledger(
     complete_job(job)
     r = client_for(platform_admin).get(f"{API}/admin/commission")
     assert r.status_code == 200, r.content
-    assert r.data["statements_available"] is False
+    assert r.data["statements_available"] is True
     [row] = r.data["data"]
     assert row["job_id"] == str(job.id)
     assert row["payee"]["id"] == str(eligible_driver.id)
