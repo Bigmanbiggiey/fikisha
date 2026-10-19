@@ -258,21 +258,34 @@ def job_detail(job: Job, viewer: Any = None) -> dict[str, Any]:
     recomputed business logic — every field here is a stored value).
 
     Pass the ``viewer`` (the actor reading it): contact phone numbers are
-    blanked for anyone ``job_authz.may_see_contact_phones`` refuses, e.g. an
-    operator still negotiating (founder decision 2026-10-14, ADR-2D-36), and
-    ``contacts_hidden`` says so. Without a viewer (the business's own create
-    response) nothing is hidden."""
-    hide = viewer is not None and not job_authz.may_see_contact_phones(viewer, job)
+    blanked per ``job_authz.hidden_contacts`` (an operator not assigned the
+    job sees none; the assigned side sees the recipient's only from pickup
+    and none once the job is closed: ADR-2D-36, assessment 2026-10-20), and
+    ``contacts_hidden`` / ``hidden_contacts`` say so. Without a viewer (the
+    business's own create response) nothing is hidden."""
+    # Exact map pins: the business, staff and the assigned side; anyone else
+    # (an operator still looking or negotiating) sees the ~1 km area (MD-2).
+    coarsen = viewer is not None and not job_authz.may_see_contact_phones(viewer, job)
+    # Contact phones also depend on the job's stage (assessment 2026-10-20
+    # item 4): the recipient's only from pickup, none once the job is closed.
+    hidden: dict[str, str | None] = (
+        job_authz.hidden_contacts(viewer, job)
+        if viewer is not None
+        else {"pickup": None, "recipient": None}
+    )
+    hide_pickup = hidden["pickup"] is not None
+    hide_recipient = hidden["recipient"] is not None
     view = job_view(job)
-    # The same people see exact map pins; anyone else (an operator still
-    # looking or negotiating) sees only the ~1 km area (maps MD-2).
-    view["pickup_location"] = _location_view(job.pickup_location, hide_phone=hide, coarsen=hide)
+    view["pickup_location"] = _location_view(
+        job.pickup_location, hide_phone=hide_pickup, coarsen=coarsen
+    )
     view["destination_location"] = _location_view(
-        job.destination_location, hide_phone=hide, coarsen=hide
+        job.destination_location, hide_phone=hide_recipient, coarsen=coarsen
     )
     view["recipient_name"] = job.recipient_name
-    view["recipient_phone"] = "" if hide else job.recipient_phone
-    view["contacts_hidden"] = hide
+    view["recipient_phone"] = "" if hide_recipient else job.recipient_phone
+    view["contacts_hidden"] = hide_pickup or hide_recipient
+    view["hidden_contacts"] = hidden
     if viewer is not None and job.is_high_value and job_authz.is_admin(viewer):
         # staff only: the effective high-value decision, so the console can
         # offer a Platform Admin the reversal of a rejection

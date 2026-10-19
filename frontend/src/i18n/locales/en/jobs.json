@@ -372,5 +372,10 @@
     "LIVESTOCK": "Livestock",
     "LIQUIDS_BULK": "Fuel and bulk liquids",
     "OTHER": "Other"
+  },
+  "contactHidden": {
+    "not_assigned": "Number shown once the job is assigned to you",
+    "until_pickup": "Number shown once pickup is confirmed",
+    "job_closed": "Job closed: contact through Fikisha"
   }
 }

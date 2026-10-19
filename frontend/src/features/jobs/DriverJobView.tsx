@@ -15,7 +15,7 @@ import { displayPhone } from '@/services/phone';
 
 import { mapsHref, telHref, whatsappHref } from './contactLinks';
 import { jobReference } from './jobHelpers';
-import type { Job } from './types';
+import type { ContactHiddenReason, Job } from './types';
 
 /**
  * The driver's "Current job" (Design Phase 7 P-03, F-03; P3 §10.1): one
@@ -68,6 +68,7 @@ export function DriverJobView({
       address={job.pickup_location?.address_text}
       name={job.pickup_location?.contact_name}
       phone={job.pickup_location?.contact_phone}
+      hiddenReason={job.hidden_contacts?.pickup}
       mapHref={mapsHref(job.pickup_location)}
       goLabel={t('jobs:driver.goPickup')}
     />
@@ -79,6 +80,7 @@ export function DriverJobView({
       address={job.destination_location?.address_text}
       name={receiverContact.name}
       phone={receiverContact.phone}
+      hiddenReason={job.hidden_contacts?.recipient}
       mapHref={mapsHref(job.destination_location)}
       goLabel={t('jobs:driver.goDropoff')}
     />
@@ -153,6 +155,7 @@ function ContactCard({
   phone,
   mapHref,
   goLabel,
+  hiddenReason,
 }: {
   title: string;
   address: string | null | undefined;
@@ -160,6 +163,8 @@ function ContactCard({
   phone: string | null | undefined;
   mapHref: string | null;
   goLabel: string;
+  /** the number is hidden for now (assessment 2026-10-20 item 4) */
+  hiddenReason?: ContactHiddenReason | null;
 }): JSX.Element {
   const { t } = useTranslation('jobs');
   const tel = telHref(phone);
@@ -177,7 +182,10 @@ function ContactCard({
         {phone ? (
           <span className="fk-numeric select-text text-fg-secondary"> · {displayPhone(phone)}</span>
         ) : (
-          <span className="text-fg-muted"> · {t('jobs:driver.noPhone')}</span>
+          <span className="text-fg-muted">
+            {' · '}
+            {hiddenReason ? t(`jobs:contactHidden.${hiddenReason}`) : t('jobs:driver.noPhone')}
+          </span>
         )}
       </p>
       <div className="mt-3 flex flex-wrap gap-2">

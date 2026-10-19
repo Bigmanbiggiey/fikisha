@@ -475,6 +475,17 @@ describe('JobDetailPage', () => {
         expect(screen.getByText('Full job detail')).toBeInTheDocument();
       });
 
+      it('says the recipient’s number appears once pickup is confirmed', async () => {
+        get.mockResolvedValue(
+          driverJob({
+            recipient_phone: '',
+            hidden_contacts: { pickup: null, recipient: 'until_pickup' },
+          }),
+        );
+        renderAtJob('01a0a4123456');
+        expect(await screen.findByText(/Number shown once pickup is confirmed/)).toBeInTheDocument();
+      });
+
       it('links both contacts by phone, sender first before pickup', async () => {
         get.mockResolvedValue(driverJob());
         renderAtJob('01a0a4123456');

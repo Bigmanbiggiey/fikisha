@@ -125,7 +125,10 @@ def test_confirmed_but_not_assigned_still_hides_then_assignment_reveals(
 
     assigned = make_assigned_job(recipient_phone=RECIPIENT_PHONE, pickup_contact_phone=PICKUP_PHONE)
     r = client_for(eligible_driver.user).get(f"{API}/jobs/{assigned.id}")
-    assert _phones(r.data) == (PICKUP_PHONE, RECIPIENT_PHONE, False)
+    # Assignment reveals the pickup contact; the recipient's waits for pickup
+    # (founder assessment 2026-10-20 item 4, test_contact_timing.py).
+    assert _phones(r.data) == (PICKUP_PHONE, "", True)
+    assert r.data["hidden_contacts"] == {"pickup": None, "recipient": "until_pickup"}
 
 
 # ─── reversible high-value rejection ────────────────────────────────────

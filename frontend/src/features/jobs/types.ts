@@ -95,6 +95,8 @@ export interface JobTransitionResult {
   timestamps: JobTimestamps;
 }
 
+export type ContactHiddenReason = 'not_assigned' | 'until_pickup' | 'job_closed';
+
 /** Returned by list/detail/create — `job_detail()`, a superset of the above. */
 export interface Job extends JobTransitionResult {
   pickup_location: JobLocation | null;
@@ -108,6 +110,12 @@ export interface Job extends JobTransitionResult {
   /** Contact phone numbers were blanked for this viewer (an operator not yet
    * assigned — founder decision 2026-10-14). */
   contacts_hidden?: boolean;
+  /** per contact: why it is hidden from this viewer, or null when shown
+   * (assessment 2026-10-20 item 4) */
+  hidden_contacts?: {
+    pickup: ContactHiddenReason | null;
+    recipient: ContactHiddenReason | null;
+  };
   /** Staff only: the effective high-value decision (a reversed rejection
    * reads as APPROVED); absent for non-staff or non-high-value jobs. */
   high_value_decision?: 'APPROVED' | 'REJECTED' | null;
