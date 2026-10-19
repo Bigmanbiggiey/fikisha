@@ -172,11 +172,8 @@ CELERY_BEAT_SCHEDULE = {
         "task": "fikisha.statements.tasks.reconcile_statements",
         "schedule": crontab(minute=30, hour=2),
     },
-    "jobs-autocomplete-delivered": {
-        "task": "fikisha.jobs.tasks.autocomplete_delivered",
-        "schedule": float(JOBS_AUTOCOMPLETE_DELIVERED_POLL_SECONDS),
-        "options": {"expires": JOBS_AUTOCOMPLETE_DELIVERED_POLL_SECONDS},
-    },
+    # "jobs-autocomplete-delivered" retired (founder 2026-10-20, PD-3): jobs
+    # no longer complete on a timer.
 }
 
 # ─── Password hashing (Argon2 first) ──────────────────────────────────

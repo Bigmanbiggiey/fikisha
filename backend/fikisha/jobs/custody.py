@@ -281,6 +281,59 @@ def confirm_delivery(
     return view
 
 
+# ─── close-off (DELIVERED -> COMPLETED) ─────────────────────────────
+class NotABusinessParty(GuardFailed):
+    default_code = "not_a_business_party"
+    default_detail = "Only the business owner or dispatcher can close this job."
+
+
+@transaction.atomic
+def sender_close_job(
+    *,
+    actor: Any,
+    job_id: Any,
+    method: str,
+    mpesa_reference: str = "",
+    idempotency_key: str = "",
+) -> dict[str, Any]:
+    """The sender confirms the goods arrived and records paying the operator;
+    the job completes (founder 2026-10-20, PD-3 / PD-4). Fikisha does not take
+    or move the money: the record is the sender's statement, kept
+    append-only. A failed transition (e.g. an open dispute) rolls the record
+    back with it."""
+    from fikisha.jobs.models import JobPaymentRecord
+    from fikisha.jobs.selectors import job_for_update
+
+    job = job_for_update(job_id)
+    if not _actor_is_business_party(actor, job):
+        raise NotABusinessParty()
+    if job.status != JobStatus.DELIVERED:
+        raise GuardFailed("Only a delivered job can be closed.", code="not_delivered")
+    user: Any = actor.user  # a signed-in business party (checked above)
+    if not JobPaymentRecord.objects.filter(job=job).exists():
+        record = JobPaymentRecord.objects.create(
+            job=job,
+            method=method,
+            mpesa_reference=(mpesa_reference or "").strip().upper(),
+            recorded_by=user,
+        )
+        audit.record(
+            actor=actor,
+            action="job.payment.recorded_by_sender",
+            entity_type="job",
+            entity_id=job.id,
+            after={"method": record.method, "mpesa_reference": record.mpesa_reference},
+        )
+    view, _ = _advance(
+        actor=actor,
+        job_id=job.id,
+        to=JobStatus.COMPLETED,
+        data={"initiator_tokens": ["BUSINESS_PARTY"]},
+        idempotency_key=idempotency_key,
+    )
+    return view
+
+
 # ─── pickup failure (AT_PICKUP -> FAILED) ───────────────────────────
 def fail_at_pickup(
     *, actor: Any, job_id: Any, reason_text: str, idempotency_key: str = ""

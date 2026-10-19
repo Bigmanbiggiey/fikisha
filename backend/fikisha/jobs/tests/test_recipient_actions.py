@@ -117,10 +117,11 @@ def test_confirm_receipt_records_the_code_and_the_driver_completes(
     row = CustodyConfirmation.objects.get(job=job, stage="DELIVERY")
     assert (row.method, row.captured_by, row.party_name) == ("OTP", "RECIPIENT", "A. Wanjiku")
 
-    out = _complete(job, driver_actor)  # no code needed: the recipient gave it
+    # no code needed: the recipient gave it; the driver adds the photo (PD-2)
+    out = _complete(job, driver_actor, photo_evidence_ids=["ev-1"])
     assert out["status"] == JobStatus.DELIVERED
     pod = ProofOfDelivery.objects.get(job=job)
-    assert pod.otp_verified is True and pod.methods == ["OTP"]
+    assert pod.otp_verified is True and pod.methods == ["OTP", "PHOTO"]
 
 
 def test_a_recipients_signature_counts_too(resolved_recipient: Callable, driver_actor: Any) -> None:
@@ -131,9 +132,10 @@ def test_a_recipients_signature_counts_too(resolved_recipient: Callable, driver_
     recipient_service.confirm_receipt(
         principal=principal, code="000000", party_name="A. W", signature_evidence_id=sig
     )
-    _complete(job, driver_actor)
+    _complete(job, driver_actor, photo_evidence_ids=["ev-1"])
     pod = ProofOfDelivery.objects.get(job=job)
-    assert pod.methods == ["OTP", "SIGNATURE"] and str(pod.signature_evidence_id) == sig
+    assert pod.methods == ["OTP", "SIGNATURE", "PHOTO"]
+    assert str(pod.signature_evidence_id) == sig
 
 
 def test_elevated_still_needs_the_drivers_photo(

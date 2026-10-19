@@ -10,6 +10,7 @@ from typing import Any
 
 import pytest
 from django.core.cache import cache
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import connection
 from rest_framework.test import APIClient
 
@@ -103,8 +104,11 @@ class TestRecipientConfirm:
         assert r.data["status"] == "AT_DESTINATION"
         r = client_for(driver_actor.user).post(
             f"/api/v1/jobs/{job.id}/custody/confirm-delivery",
-            {"party_name": "A. Recipient"},
-            format="json",
+            {
+                "party_name": "A. Recipient",
+                "photos": SimpleUploadedFile("pod.jpg", b"fake-jpeg", content_type="image/jpeg"),
+            },
+            format="multipart",
         )
         assert r.status_code == 200, r.content
         assert r.data["status"] == "DELIVERED"

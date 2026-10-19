@@ -117,6 +117,8 @@ export interface Job extends JobTransitionResult {
   /** what pickup and delivery need for this job's band (assessment
    * 2026-10-20 L-5): groups, all required, any one method per group */
   custody_requirements?: { pickup: ProofGroups; delivery: ProofGroups };
+  /** the sender's record of paying the operator, made on close-off (PD-4) */
+  payment_record?: { method: 'CASH' | 'MPESA'; mpesa_reference: string; recorded_at: string } | null;
   /** the other party's own confirmations already recorded */
   custody_confirmations?: {
     sender_in_app: boolean;

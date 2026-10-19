@@ -251,17 +251,24 @@ ALLOWED_TRANSITIONS: dict[tuple[str, str], Rule] = {
         event_type=JobEventType.FAILED,
     ),
     # ── 3.3 completion & post-completion ──────────────────────────────
+    # Founder 2026-10-20 (PD-3, superseding D-JOB-5's auto-complete): a job
+    # completes when the sender confirms the goods arrived and records paying
+    # the operator; no scheduler. The recipient's close-off stays until SMS
+    # brings every party's input (founder instruction 2026-10-20).
     (S.DELIVERED, S.COMPLETED): Rule(
-        initiators=("BUSINESS_PARTY", "RECIPIENT", "SCHEDULER", "ADMIN"),
-        guards=("NoOpenBlockingDispute",),
+        initiators=("BUSINESS_PARTY", "RECIPIENT", "ADMIN"),
+        guards=("NoOpenBlockingDispute", "SenderRecordedPayment"),
         apply="complete",
         events=("JobCompleted",),
         is_custody=True,
         event_type=JobEventType.COMPLETED,
     ),
+    # No automatic completion any more (PD-3), so a delivered job can wait
+    # for the sender indefinitely: either side may dispute while it does
+    # (e.g. the operator "I haven't been paid", PD-4 / PD-5).
     (S.DELIVERED, S.DISPUTED): Rule(
         initiators=("BUSINESS_PARTY", "RECIPIENT", "OPERATOR_PARTY", "GROUP_MANAGER", "ADMIN"),
-        guards=("WithinDeliveryAcceptanceWindow",),
+        guards=(),
         apply="freeze",
         events=("JobDisputed",),
         event_type=JobEventType.DISPUTED,

@@ -101,7 +101,6 @@ def _status(job: Any) -> str:
     [
         {"code": "000000"},
         {"signature_evidence_id": SIGNATURE},
-        {"photo_evidence_ids": ["ev-goods-1"]},
     ],
 )
 def test_standard_needs_any_one_proof(
@@ -111,6 +110,17 @@ def test_standard_needs_any_one_proof(
     out = custody.confirm_pickup(actor=driver_actor, job_id=job.id, **proof)
     assert out["status"] == JobStatus.PICKED_UP
     assert ProofOfPickup.objects.get(job=job).attestation == "VERIFIED"
+
+
+def test_standard_the_drivers_photo_alone_is_not_enough(
+    at_pickup: Callable, driver_actor: Any
+) -> None:
+    """The sender takes part at every band (founder 2026-10-20, PD-1): the
+    photo is proof, never a stand-in for the sender."""
+    job = at_pickup()
+    with pytest.raises(PickupConfirmationRequired):
+        custody.confirm_pickup(actor=driver_actor, job_id=job.id, photo_evidence_ids=["ev-1"])
+    assert _status(job) == JobStatus.AT_PICKUP
 
 
 def test_standard_with_nothing_is_refused(at_pickup: Callable, driver_actor: Any) -> None:

@@ -22,6 +22,8 @@ class IncidentType(models.TextChoices):
     ACCIDENT = "ACCIDENT", "Accident"
     DELAY = "DELAY", "Delay"
     CANCELLATION = "CANCELLATION", "Cancellation"
+    #: the operator wasn't paid for a delivered job (founder 2026-10-20, PD-4)
+    NON_PAYMENT = "NON_PAYMENT", "Not paid"
     OTHER = "OTHER", "Other"
 
 

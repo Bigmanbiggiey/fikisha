@@ -32,6 +32,7 @@ from fikisha.jobs.api.serializers import (
     ArriveSerializer,
     AssignSerializer,
     CancelJobSerializer,
+    CloseJobSerializer,
     ConfirmDeliverySerializer,
     ConfirmPickupSerializer,
     FailAtPickupSerializer,
@@ -474,6 +475,25 @@ class SenderConfirmPickupView(OrgApiView):
             actor=self.actor(request),
             job_id=job_id,
             party_name=serializer.validated_data.get("party_name", ""),
+        )
+        return Response(view)
+
+
+class CloseJobView(OrgApiView):
+    """``POST /jobs/<id>/close``: the sender confirms the goods arrived and
+    that they paid the operator; the job completes (PD-3 / PD-4)."""
+
+    action_post = "job.transition"
+
+    def post(self, request: Request, job_id: str) -> Response:
+        serializer = CloseJobSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        view = custody.sender_close_job(
+            actor=self.actor(request),
+            job_id=job_id,
+            method=serializer.validated_data["payment_method"],
+            mpesa_reference=serializer.validated_data.get("mpesa_reference", ""),
+            idempotency_key=_idempotency_key(request),
         )
         return Response(view)
 

@@ -52,6 +52,21 @@ manager and driver:
 | PICKED_UP, IN_TRANSIT, AT_DESTINATION, DELIVERED | yes | yes |
 | COMPLETED, CANCELLED, FAILED, DISPUTED | no | no |
 
+## Follow-up decisions (founder, 2026-10-20, approved as recommended)
+
+The sender is required at every band; the driver's photo is proof only; a
+job completes when the sender confirms the goods arrived and records paying
+the operator. The recipient's close-off stays until SMS brings every party's
+input (founder instruction).
+
+| # | Decision | Approved answer |
+| --- | --- | --- |
+| PD-1 | STANDARD pickup | The sender's code, signature or in-app confirmation; the driver's photo no longer counts. |
+| PD-2 | Delivery photo | Required at every band, as proof, with the recipient's code or signature. |
+| PD-3 | Who completes | The sender ("goods received and operator paid"); the recipient's close-off kept; staff when resolving. No automatic completion (D-JOB-5's auto-complete superseded). |
+| PD-4 | What "paid" records | Cash or M-Pesa, optional M-Pesa code; Fikisha moves no money. The operator can answer "I haven't been paid" (a Not-paid issue, which can become a dispute). |
+| PD-5 | If the sender never confirms | No automatic completion; the job shows on Business Home under "Needs your action" and to Ops as "Delivered, waiting for the sender to close" after the acceptance window. SMS reminders come with the SMS provider. |
+
 ## Plan (one branch, one commit per part)
 
 - **L-6 Admin icons** — new `settings`, `coins`, `search` icons; menu mapping.

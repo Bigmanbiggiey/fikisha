@@ -109,6 +109,18 @@ export const jobsApi = {
       body,
       idempotencyKey,
     }),
+  /** The sender closes a delivered job: goods received, operator paid
+   * (PD-3 / PD-4). Fikisha records it; it doesn't move the money. */
+  closeJob: (
+    jobId: string,
+    body: { payment_method: 'CASH' | 'MPESA'; mpesa_reference?: string },
+    idempotencyKey: string,
+  ) =>
+    jobAction<JobTransitionResult>(jobId, `/jobs/${jobId}/close`, {
+      method: 'POST',
+      body,
+      idempotencyKey,
+    }),
   // Multipart: the driver completes pickup with the sender's code and/or
   // signature and the driver's photos (assessment 2026-10-20 L-5).
   confirmPickup: (jobId: string, body: ConfirmPickupBody, idempotencyKey: string) => {

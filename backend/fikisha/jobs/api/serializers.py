@@ -86,6 +86,16 @@ class ConfirmPickupSerializer(serializers.Serializer[dict[str, Any]]):
     condition_note = serializers.CharField(max_length=2000, required=False, allow_blank=True)
 
 
+class CloseJobSerializer(serializers.Serializer[dict[str, Any]]):
+    """The sender closes a delivered job: goods received, operator paid
+    (founder 2026-10-20, PD-3 / PD-4)."""
+
+    payment_method = serializers.ChoiceField(choices=["CASH", "MPESA"])
+    mpesa_reference = serializers.RegexField(
+        r"^[A-Za-z0-9]{0,20}$", required=False, allow_blank=True, max_length=20
+    )
+
+
 class SenderConfirmPickupSerializer(serializers.Serializer[dict[str, Any]]):
     party_name = serializers.CharField(max_length=120, required=False, allow_blank=True)
 

@@ -56,6 +56,7 @@ def test_standard_signature_only(at_destination: Callable, driver_actor: Any) ->
         job_id=job.id,
         party_name="R. Recipient",
         signature_evidence_id=str(__import__("uuid").uuid4()),
+        photo_evidence_ids=["ev-1"],
     )
     assert out["status"] == JobStatus.DELIVERED
 
@@ -63,10 +64,24 @@ def test_standard_signature_only(at_destination: Callable, driver_actor: Any) ->
 def test_standard_otp_only(at_destination: Callable, driver_actor: Any) -> None:
     job = at_destination()
     out = custody.confirm_delivery(
-        actor=driver_actor, job_id=job.id, party_name="R. Recipient", code="000000"
+        actor=driver_actor,
+        job_id=job.id,
+        party_name="R. Recipient",
+        code="000000",
+        photo_evidence_ids=["ev-1"],
     )
     assert out["status"] == JobStatus.DELIVERED
     assert ProofOfDelivery.objects.get(job=job).otp_verified is True
+
+
+def test_standard_needs_the_drivers_photo_as_proof(
+    at_destination: Callable, driver_actor: Any
+) -> None:
+    job = at_destination()
+    with pytest.raises(DeliveryProofIncomplete, match="a photo"):
+        custody.confirm_delivery(
+            actor=driver_actor, job_id=job.id, party_name="R. Recipient", code="000000"
+        )
 
 
 def test_standard_needs_the_recipient_name(at_destination: Callable, driver_actor: Any) -> None:
@@ -137,7 +152,11 @@ def test_first_valid_delivery_proof_wins(at_destination: Callable, driver_actor:
 
     job = at_destination()
     custody.confirm_delivery(
-        actor=driver_actor, job_id=job.id, party_name="R. Recipient", code="000000"
+        actor=driver_actor,
+        job_id=job.id,
+        party_name="R. Recipient",
+        code="000000",
+        photo_evidence_ids=["ev-1"],
     )
     with pytest.raises((TransitionNotAllowed, DeliveryProofIncomplete)):
         custody.confirm_delivery(

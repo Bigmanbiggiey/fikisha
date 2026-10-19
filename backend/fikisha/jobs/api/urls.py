@@ -57,6 +57,7 @@ urlpatterns = [
         views.ArriveAtPickupView.as_view(),
         name="arrive-pickup",
     ),
+    path("jobs/<uuid:job_id>/close", views.CloseJobView.as_view(), name="close"),
     path(
         "jobs/<uuid:job_id>/custody/confirm-pickup",
         views.ConfirmPickupView.as_view(),

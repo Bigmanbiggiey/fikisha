@@ -523,6 +523,23 @@ def _within_window(job: Any, anchor_field: str, hours: float) -> bool:
     return timezone.now() <= anchor + timedelta(hours=hours)
 
 
+def sender_recorded_payment(job: Any, actor: Any, ctx: dict[str, Any]) -> None:
+    """A sender closing a job has recorded paying the operator (founder
+    2026-10-20, PD-3 / PD-4). Fikisha never holds or moves the fare; the
+    record is the sender's own statement. Read from the database, never from
+    the caller. The recipient's close-off and staff (dispute resolution) don't
+    need it."""
+    if "BUSINESS_PARTY" not in (ctx.get("initiator_tokens") or []):
+        return
+    from fikisha.jobs.models import JobPaymentRecord
+
+    if not JobPaymentRecord.objects.filter(job=job).exists():
+        _fail(
+            "payment_not_recorded",
+            "Confirm that you have paid the operator before closing the job.",
+        )
+
+
 def within_delivery_acceptance_window(job: Any, actor: Any, ctx: dict[str, Any]) -> None:
     """job-state-machine §3.3 / D-JOB-5: 24h Standard/Elevated, 48h High/Very-high."""
     from fikisha.platform_config import services as cfg
@@ -554,6 +571,7 @@ def within_post_completion_window(job: Any, actor: Any, ctx: dict[str, Any]) -> 
 GUARDS: dict[str, Guard] = {
     "RequiredFieldsComplete": required_fields_complete,
     "BusinessVerifiedWithLocation": business_verified_with_location,
+    "SenderRecordedPayment": sender_recorded_payment,
     "CargoNotProhibited": cargo_not_prohibited,
     "OperatorEligibleForJob": operator_eligible_for_job,
     "NoRacingConfirm": no_racing_confirm,

@@ -271,10 +271,14 @@ def test_full_custody_chain_to_delivered(
         data: dict[str, Any] = {}
         if to == JobStatus.PICKED_UP:
             # STANDARD pickup: any one proof (assessment 2026-10-20 L-5) - a photo
-            data = {"photo_evidence_ids": ["g1"]}
+            data = {"signature_evidence_id": str(uuid.uuid4())}
         if to == JobStatus.DELIVERED:
             # STANDARD delivery: name + the code or a signature (no photo-only POD)
-            data = {"party_name": "J. Mwangi", "signature_evidence_id": str(uuid.uuid4())}
+            data = {
+                "party_name": "J. Mwangi",
+                "signature_evidence_id": str(uuid.uuid4()),
+                "photo_evidence_ids": ["p1"],
+            }
         do_transition(j, to, driver_actor, data=data)
         j.refresh_from_db()
         assert j.status == to

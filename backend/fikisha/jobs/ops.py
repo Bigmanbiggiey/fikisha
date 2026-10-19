@@ -54,7 +54,7 @@ _ACTIVE_STATUSES: tuple[str, ...] = (
     JobStatus.AT_DESTINATION,
     JobStatus.DELIVERED,
 )
-ATTENTION_FILTERS = ("disputed", "failed", "high_value_pending", "stale")
+ATTENTION_FILTERS = ("disputed", "failed", "high_value_pending", "stale", "awaiting_sender")
 _HEX = re.compile(r"[^0-9a-f]")
 
 
@@ -109,6 +109,12 @@ def monitored_jobs(
         elif attention == "stale":
             qs = qs.filter(status__in=_ACTIVE_STATUSES)
             stale_hours = stale_hours or 24
+        elif attention == "awaiting_sender":
+            # Delivered, past the acceptance window, the sender hasn't closed
+            # it (founder 2026-10-20, PD-5).
+            from fikisha.jobs.tasks import awaiting_sender_job_ids
+
+            qs = qs.filter(id__in=awaiting_sender_job_ids(batch_size=500))
     if stale_hours:
         if stale_hours < 1:
             raise InvalidFilter("stale_hours must be at least 1.")

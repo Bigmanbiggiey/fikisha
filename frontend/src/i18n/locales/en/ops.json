@@ -36,7 +36,8 @@
       "disputed": "Under dispute",
       "failed": "Couldn't complete",
       "high_value_pending": "High-value review waiting",
-      "stale": "No change for 24 hours+"
+      "stale": "No change for 24 hours+",
+      "awaiting_sender": "Delivered, waiting for the sender to close"
     },
     "col": {
       "reference": "Reference",

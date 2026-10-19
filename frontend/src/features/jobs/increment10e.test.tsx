@@ -51,10 +51,11 @@ describe('P-08 job header', () => {
   });
 });
 
-describe('P-09 delivered completes on its own', () => {
-  it('is not an action and not under "Needs your action"', () => {
+describe('delivered jobs wait for the sender (founder 2026-10-20 PD-3, replacing P-09)', () => {
+  it('are under "Needs your action": the sender closes them once paid', () => {
+    // The close-off card on Job detail is the action itself (CloseOffCards).
     expect(businessNextAction('DELIVERED')).toBeNull();
-    expect(needsBusinessAttention('DELIVERED')).toBe(false);
+    expect(needsBusinessAttention('DELIVERED')).toBe(true);
     expect(needsBusinessAttention('AT_PICKUP')).toBe(true);
   });
 });

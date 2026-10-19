@@ -294,6 +294,19 @@ def job_detail(job: Job, viewer: Any = None) -> dict[str, Any]:
 
     view["custody_requirements"] = custody_rules.requirements_view(job)
     recorded = set(CustodyConfirmation.objects.filter(job=job).values_list("stage", "method"))
+    # The sender's record of paying the operator, made on close-off (PD-4).
+    from fikisha.jobs.models import JobPaymentRecord
+
+    payment = JobPaymentRecord.objects.filter(job=job).first()
+    view["payment_record"] = (
+        {
+            "method": payment.method,
+            "mpesa_reference": payment.mpesa_reference,
+            "recorded_at": payment.created_at.isoformat(),
+        }
+        if payment
+        else None
+    )
     view["custody_confirmations"] = {
         "sender_in_app": ("PICKUP", "IN_APP") in recorded,
         "recipient_code": ("DELIVERY", "OTP") in recorded,

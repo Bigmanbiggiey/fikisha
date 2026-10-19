@@ -21,6 +21,7 @@ import { formatStamp } from '@/services/datetime';
 import { CancelJobSheet } from './CancelJobSheet';
 import { DriverJobView } from './DriverJobView';
 import { getOneShotGeo } from './geo';
+import { OperatorPaymentCard, SenderCloseOffCard } from './CloseOffCards';
 import { jobsApi } from './jobsApi';
 import {
   DRIVER_VIEW_STATUSES,
@@ -129,6 +130,10 @@ export function JobDetailPage(): JSX.Element {
 
   const detailCards = (
     <>
+      {/* Close-off (founder 2026-10-20, PD-3 / PD-4): the sender closes the
+          job once paid; the operator sees it waiting or what was recorded. */}
+      {viewer.role === 'BUSINESS' && data.status === 'DELIVERED' && <SenderCloseOffCard job={data} />}
+      {isOperatorViewer && <OperatorPaymentCard job={data} />}
       <Card>
         <h2 className="text-label text-fg-secondary">{t('jobs:detail.route')}</h2>
         <dl className="mt-2 space-y-1 text-body">

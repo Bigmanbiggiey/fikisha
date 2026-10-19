@@ -26,7 +26,7 @@
     "PICKED_UP": "The driver has collected your goods.",
     "IN_TRANSIT": "Your delivery is on the way.",
     "AT_DESTINATION": "The driver has arrived at the destination.",
-    "DELIVERED": "Delivered — the platform will complete this shortly.",
+    "DELIVERED": "Delivered. Confirm you've received the goods and paid the operator to close the job.",
     "COMPLETED": "This delivery is complete.",
     "CANCELLED": "This request was cancelled.",
     "FAILED": "This delivery couldn't be completed.",
@@ -36,7 +36,7 @@
     "PICKED_UP_DRIVER": "Goods collected — start the trip when you set off.",
     "IN_TRANSIT_DRIVER": "You're on the way to the drop-off.",
     "AT_DESTINATION_DRIVER": "You've arrived — confirm the delivery.",
-    "DELIVERED_DRIVER": "Delivery recorded. Nothing more to do.",
+    "DELIVERED_DRIVER": "Delivery recorded. The sender closes the job once they've paid you.",
     "DISPUTED_DRIVER": "On hold — Fikisha is reviewing an issue."
   },
   "detail": {
@@ -85,7 +85,7 @@
     "noBusinessBody": "Create a business to start requesting transport.",
     "noBusinessCta": "Create a business",
     "asOf": "as of {{time}}",
-    "deliveredAuto": "Delivered — completes automatically"
+    "deliveredAuto": "Delivered — confirm and close"
   },
   "create": {
     "stepOf": "Step {{n}} of {{total}}",
@@ -397,5 +397,22 @@
     "completePickup": "Complete pickup",
     "recipientConfirmed": "The recipient has confirmed with their code.",
     "youConfirmed": "You've confirmed the handover. The driver completes the pickup on their phone."
+  },
+  "closeOff": {
+    "title": "Goods received and operator paid",
+    "body": "Close the job once the goods have arrived and you've paid the operator directly. Fikisha doesn't take or move the money: this records what you paid.",
+    "how": "How did you pay?",
+    "cash": "Cash",
+    "mpesa": "M-Pesa",
+    "mpesaRef": "M-Pesa code (optional)",
+    "mpesaRefHint": "From your M-Pesa SMS, for example SGH7K2L9PQ.",
+    "confirm": "Confirm and close the job",
+    "awaitingTitle": "Waiting for the sender",
+    "awaitingBody": "The sender closes the job once they've confirmed the goods arrived and paid you.",
+    "notPaid": "I haven't been paid",
+    "paidTitle": "Payment recorded by the sender",
+    "paidCash": "Paid in cash",
+    "paidMpesa": "Paid by M-Pesa",
+    "paidRef": "M-Pesa code {{ref}}"
   }
 }

@@ -474,6 +474,27 @@ class CustodyConfirmation(AppendOnlyModel):
         indexes = [models.Index(fields=["job", "stage"])]
 
 
+class JobPaymentRecord(AppendOnlyModel):
+    """The sender's own statement that they paid the operator, made when they
+    close the job (founder 2026-10-20, PD-3 / PD-4). Fikisha never holds or
+    moves the fare: this records what the sender says they paid, by which
+    means. The operator can answer "I haven't been paid", which opens a
+    dispute. One per job; append-only."""
+
+    job = models.OneToOneField(Job, on_delete=models.PROTECT, related_name="payment_record")
+    method = models.CharField(max_length=10, choices=[("CASH", "Cash"), ("MPESA", "M-Pesa")])
+    #: optional M-Pesa transaction code the sender copies from their SMS
+    mpesa_reference = models.CharField(max_length=20, blank=True, default="")
+    recorded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="+"
+    )
+
+    objects = AppendOnlyQuerySet.as_manager()
+
+    class Meta:
+        db_table = "job_payment_record"
+
+
 class OtpChallengeBase(TimestampedModel):
     job = models.ForeignKey(Job, on_delete=models.PROTECT, related_name="+")
     purpose = models.CharField(max_length=20, choices=OtpPurpose.choices)

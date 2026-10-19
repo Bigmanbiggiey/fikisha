@@ -14,7 +14,8 @@
       "ACCIDENT": "Accident",
       "DELAY": "Delay",
       "CANCELLATION": "Cancellation",
-      "OTHER": "Other"
+      "OTHER": "Other",
+      "NON_PAYMENT": "Not paid"
     },
     "otherLabel": "Tell us what kind of issue this is",
     "description": "Describe what happened",

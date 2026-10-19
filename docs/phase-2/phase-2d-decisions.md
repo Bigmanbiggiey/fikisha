@@ -1557,6 +1557,61 @@ rollback and concurrency); frontend live-refresh (2), phone rule (3),
 destination choice, hidden-contact note, checklist pickup (4) / delivery
 (3), business confirmed state.
 
+## ADR-2D-51 — The sender closes the job; the photo is proof only — CONFIRMED (founder approval 2026-10-20, PD-1..PD-5)
+
+Follow-up to ADR-2D-50, recorded in `docs/assessment-2026-10-20-plan.md`.
+
+**Proof rules (PD-1 / PD-2).** `custody_proof_rules` defaults: STANDARD
+pickup is the sender's code, signature or in-app confirmation (the driver's
+photo no longer counts); every delivery needs the driver's photo as proof,
+with the recipient's code or signature (HIGH+ code + signature + photo, as
+before). This resolves the review note in ADR-2D-50.
+
+**Close-off (PD-3 / PD-4).**
+- `POST /jobs/<id>/close {payment_method: CASH|MPESA, mpesa_reference?}`
+  (`custody.sender_close_job`): the business owner or dispatcher confirms
+  the goods arrived and records paying the operator, and the job completes
+  through the single lifecycle writer.
+- The record is an append-only `job_payment_record` (migration
+  `jobs/0014`, trigger `0015`), audited (`job.payment.recorded_by_sender`).
+  **Fikisha takes and moves no money**; this is the sender's statement.
+- New guard `SenderRecordedPayment` on `DELIVERED → COMPLETED`: a business
+  completion needs the record, read from the database.
+- The recipient's close-off (`RECIPIENT` initiator) is **kept** by founder
+  instruction, until SMS brings every party's input. Staff completion is
+  unchanged. `SCHEDULER` is removed.
+- `job_detail` adds `payment_record`; the operator sees what was recorded.
+
+**No automatic completion (PD-3 / PD-5), superseding D-JOB-5's
+auto-complete.**
+- The `autocomplete_delivered` task is retired. It stays registered so an
+  old schedule doesn't error, only counts jobs waiting, and its beat entry
+  is gone.
+- `DELIVERED → DISPUTED` no longer needs the acceptance window, since a job
+  can now wait indefinitely; either side may dispute while it does.
+- A new incident type `NON_PAYMENT` (migration `incidents/0004`) backs the
+  operator's "I haven't been paid".
+- Ops gets an `awaiting_sender` attention filter: delivered, past the
+  acceptance window, no open dispute.
+- Business Home lists delivered jobs under "Needs your action" (replacing
+  Design Phase 7 P-09, "delivered is a status, not an action").
+- **Commission is unaffected:** it's only ever on completed jobs, so an
+  unpaid job is never billed. The post-completion dispute windows are
+  unchanged.
+
+**Frontend.** Job detail: the sender's "Goods received and operator paid"
+card (cash or M-Pesa, optional M-Pesa code); the operator's "Waiting for the
+sender" with "I haven't been paid" (opens the report form with Not paid
+preselected), and the recorded payment once completed. The texts that
+promised automatic completion are reworded.
+
+**Tests:** `jobs/tests/test_close_off.py` (8): close-off with a record and
+commission; cash; no record refused; the driver can't close; an open
+dispute blocks and rolls back the record; non-payment dispute long after
+delivery; recipient close-off kept and scheduler gone; Ops awaiting-sender
+filter. Updated: pickup (photo alone refused), delivery (photo required),
+sweeps (retired), engine chain. Frontend `CloseOffCards.test.tsx` (4).
+
 ## Self-caught defects fixed during implementation
 
 Every one of these was found by the implementation's own review or test

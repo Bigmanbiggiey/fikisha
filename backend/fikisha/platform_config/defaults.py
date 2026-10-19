@@ -86,21 +86,22 @@ DEFAULT_CONFIG: dict[str, Any] = {
     ],
     "latent_risk_categories": ["ELECTRONICS", "FOOD_BEVERAGE", "FURNITURE_APPLIANCES"],
     # What completes a pickup and a delivery, per value band (founder
-    # assessment 2026-10-20, LD-4). Each band lists groups; every group must be
-    # met, and a group is met by any one of its methods. OTP = the code, given
-    # to the driver or through the recipient link; SIGNATURE = signed on the
-    # driver's phone; PHOTO = taken by the driver; IN_APP = the sender
-    # confirmed in their own app. The driver always makes the final call, so
-    # both parties take part.
+    # assessment 2026-10-20, LD-4, amended PD-1 / PD-2). Each band lists
+    # groups; every group must be met, and a group is met by any one of its
+    # methods. OTP = the code, given to the driver or through the recipient
+    # link; SIGNATURE = signed on the driver's phone; PHOTO = taken by the
+    # driver, as proof only (it never stands in for the other party);
+    # IN_APP = the sender confirmed in their own app. The driver makes the
+    # final call, so both parties take part.
     "custody_proof_rules": {
         "pickup": {
-            "STANDARD": [["OTP", "SIGNATURE", "PHOTO", "IN_APP"]],
+            "STANDARD": [["OTP", "SIGNATURE", "IN_APP"]],
             "ELEVATED": [["OTP", "IN_APP"], ["PHOTO"]],
             "HIGH": [["OTP"], ["SIGNATURE"], ["PHOTO"]],
             "VERY_HIGH": [["OTP"], ["SIGNATURE"], ["PHOTO"]],
         },
         "delivery": {
-            "STANDARD": [["OTP", "SIGNATURE"]],
+            "STANDARD": [["OTP", "SIGNATURE"], ["PHOTO"]],
             "ELEVATED": [["OTP"], ["PHOTO"]],
             "HIGH": [["OTP"], ["SIGNATURE"], ["PHOTO"]],
             "VERY_HIGH": [["OTP"], ["SIGNATURE"], ["PHOTO"]],
