@@ -27,4 +27,15 @@ urlpatterns = [
     path("admin/config", views.ConfigView.as_view(), name="config"),
     path("admin/config/preview", views.ConfigPreviewView.as_view(), name="config-preview"),
     path("admin/commission", views.CommissionLedgerView.as_view(), name="commission"),
+    path("admin/cargo-categories", views.CargoCategoryView.as_view(), name="cargo-categories"),
+    path(
+        "admin/cargo-categories/keywords",
+        views.CargoKeywordView.as_view(),
+        name="cargo-keywords",
+    ),
+    path(
+        "admin/cargo-categories/uncategorised",
+        views.CargoUncategorisedView.as_view(),
+        name="cargo-uncategorised",
+    ),
 ]

@@ -23,7 +23,8 @@
     "directory": "Users & orgs",
     "config": "Configuration",
     "commission": "Commission",
-    "statements": "Statements"
+    "statements": "Statements",
+    "cargoCategories": "Cargo categories"
   },
   "language": {
     "label": "Language",

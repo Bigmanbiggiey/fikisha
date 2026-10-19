@@ -185,5 +185,24 @@
     },
     "statementsLink": "Taarifa za wiki na malipo yaliyorekodiwa ziko kwenye ukurasa wa Taarifa za malipo.",
     "statementsOpen": "Fungua taarifa"
+  },
+  "cargo": {
+    "title": "Aina za mizigo",
+    "intro": "Maelezo ambayo Fikisha haikuweza kuyaweka katika aina yoyote, yanayotokea zaidi kwanza. Ongeza neno kuu kwa aina na kila maelezo yatakayokuwa nalo yatawekwa hapo. Safari zilizokwisha undwa zinabaki na aina yake.",
+    "empty": "Maelezo yote ya hivi karibuni yamewekwa katika aina.",
+    "times_one": "safari {{count}}",
+    "times_other": "safari {{count}}",
+    "lastSeen": "mwisho {{when}}",
+    "category": "Aina",
+    "keyword": "Neno kuu",
+    "reason": "Sababu",
+    "defaultReason": "Imefundishwa kutoka orodha ya yasiyo na aina",
+    "addKeyword": "Ongeza neno kuu",
+    "added": "\"{{keyword}}\" imeongezwa kwa {{category}}.",
+    "newTitle": "Ongeza aina",
+    "newCode": "Msimbo wa aina (mf. MEDICAL_SUPPLIES)",
+    "newKeywords": "Maneno makuu, yakitenganishwa kwa koma",
+    "addCategory": "Ongeza aina",
+    "categoryAdded": "{{code}} imeongezwa."
   }
 }

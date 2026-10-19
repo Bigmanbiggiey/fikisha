@@ -24,6 +24,7 @@ import { MessagesPage } from '@/features/messages/MessagesPage';
 import { MorePage } from '@/features/more/MorePage';
 import { NegotiationPage } from '@/features/negotiation/NegotiationPage';
 import { AdminControlPage } from '@/features/admin/AdminControlPage';
+import { CargoCategoriesPage } from '@/features/admin/CargoCategoriesPage';
 import { CommissionPage } from '@/features/admin/CommissionPage';
 import { ConfigPage } from '@/features/admin/ConfigPage';
 import { DirectoryDetailPage } from '@/features/admin/DirectoryDetailPage';
@@ -155,6 +156,7 @@ export function AppRoutes(): JSX.Element {
             <Route path="directory/:kind/:id" element={<DirectoryDetailPage />} />
             <Route path="config" element={<ConfigPage />} />
             <Route path="commission" element={<CommissionPage />} />
+            <Route path="cargo-categories" element={<CargoCategoriesPage />} />
           </Route>
         </Route>
       </Route>

@@ -131,6 +131,7 @@ export const NAV: Record<NavRole, RoleNav> = {
       { to: '/admin/directory', labelKey: 'common:nav.directory', icon: 'badge' },
       { to: '/admin/config', labelKey: 'common:nav.config', icon: 'pencil' },
       { to: '/admin/commission', labelKey: 'common:nav.commission', icon: 'list' },
+      { to: '/admin/cargo-categories', labelKey: 'common:nav.cargoCategories', icon: 'box' },
       staff.primary[0]!,
       ...staff.secondary,
     ],

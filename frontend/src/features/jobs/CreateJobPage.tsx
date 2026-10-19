@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 
@@ -16,6 +16,8 @@ import { orgApi } from '@/features/org/orgApi';
 import type { BusinessLocation } from '@/features/org/types';
 import { localizeError } from '@/services/errorMessage';
 
+import { CargoCategorySelect } from './CargoCategorySelect';
+import { useCargoCategoryLabel } from './cargoCategoryLabel';
 import { jobsApi } from './jobsApi';
 import { formatKes, parseKesToMinorUnits } from './money';
 import { useActiveBusiness } from './useActiveBusiness';
@@ -194,6 +196,8 @@ export function CreateJobPage(): JSX.Element {
   function patch(fields: Partial<Draft>): void {
     setDraft((d) => ({ ...d, ...fields }));
   }
+  const setCargoCategory = useCallback((code: string) => setDraft((d) => ({ ...d, cargoCategory: code })), []);
+  const categoryLabel = useCargoCategoryLabel();
 
   const isReview = step === TOTAL_STEPS;
   const canAdvance = isReview ? true : STEP_VALIDATORS[step]!(draft);
@@ -348,7 +352,12 @@ export function CreateJobPage(): JSX.Element {
             </Field>
             <Field label={t('jobs:create.cargo.category')}>
               {(p) => (
-                <Input {...p} value={draft.cargoCategory} onChange={(e) => patch({ cargoCategory: e.target.value })} />
+                <CargoCategorySelect
+                  {...p}
+                  value={draft.cargoCategory}
+                  onChange={setCargoCategory}
+                  description={draft.cargoDescription}
+                />
               )}
             </Field>
             <div className="space-y-2">
@@ -539,7 +548,15 @@ export function CreateJobPage(): JSX.Element {
                 value={`${draft.destinationAddress} — ${draft.recipientName}`}
                 onEdit={() => setStep(1)}
               />
-              <ReviewRow label={t('jobs:create.steps.cargo')} value={draft.cargoDescription} onEdit={() => setStep(2)} />
+              <ReviewRow
+                label={t('jobs:create.steps.cargo')}
+                value={
+                  draft.cargoCategory
+                    ? `${draft.cargoDescription} · ${categoryLabel(draft.cargoCategory)}`
+                    : draft.cargoDescription
+                }
+                onEdit={() => setStep(2)}
+              />
               <ReviewRow
                 label={t('jobs:create.steps.value')}
                 value={step5Valid(draft) ? formatKes(parseKesToMinorUnits(draft.declaredValue)!) : '—'}

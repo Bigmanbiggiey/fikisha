@@ -1403,6 +1403,51 @@ grouped under operator and vehicle; business locations; unknown → 404.
 Frontend `ApplicantQueue.test.tsx` (2): tabs and rows; the grouped
 applicant page and Approve.
 
+## ADR-2D-48 — Cargo categories that sort themselves — CONFIRMED (founder approval 2026-10-19, D-4 / D-5)
+
+From the founder's assessment (findings F-5, F-6): the cargo category was
+free text never checked against config, and the 7-day post-completion
+window for latent-risk cargo (D-JOB-5) never applied from the app, because
+`job.latent_risk_cargo` was a client flag the form never sent.
+
+**Backend.** `fikisha.jobs.cargo_categories`:
+- A picked `category_code` must be one of config `cargo_categories`
+  (`422 unknown_cargo_category`).
+- **None picked:** deterministic keyword matching on the description
+  (config `cargo_category_keywords`, English and Swahili; whole words or
+  phrases, plural "s"/"es"; a longer phrase outweighs a word; ties go to
+  config order). No match → `OTHER`. `CargoDetails.category_auto` (migration
+  `jobs/0011`) records that the matcher chose.
+- **The category sets `latent_risk_cargo`** when it is in
+  `latent_risk_categories`, so electronics, food and furniture now get the
+  7-day window (fixes F-6). An explicit client flag still adds to it.
+- `GET /jobs/cargo-categories` and `GET /jobs/cargo-categories/suggest
+  ?description=` for any signed-in user.
+- **Teaching (Platform Admin):** `GET /admin/cargo-categories/uncategorised`
+  lists automatic-`OTHER` descriptions the current keywords still don't
+  place, most frequent first. `POST /admin/cargo-categories/keywords` adds a
+  keyword; `POST /admin/cargo-categories` adds a category (before `OTHER`).
+  Both are versioned `platform_config.apply_change` calls: audited, with a
+  reason, behind step-up. A keyword belongs to one category. Jobs already
+  created keep their category.
+- A live config without the keywords key uses the shipped defaults.
+
+**Frontend.** The create-job form's category is a picker (EN/SW labels)
+that fills itself in from the description until the person picks one;
+"Let Fikisha choose" leaves it to the server. Business registration uses
+the same picker (D-4). Platform Admin → Cargo categories lists what
+couldn't be placed, with a keyword or new-category form per row.
+
+**Not done (D-5):** the system never creates a category itself, and there
+is no AI classifier or external service.
+
+**Tests:** `jobs/tests/test_cargo_categories.py` (15): eight matching cases
+(EN, SW, plural, phrase over word, no match); automatic category with
+latent risk; picked category kept; unknown refused; catalogue and suggest
+endpoints; the uncategorised list until a keyword is taught (and existing
+jobs unchanged); a new category; teaching needs step-up and Platform Admin.
+Frontend: the picker fills in and stops once picked (2); the admin page (1).
+
 ## Self-caught defects fixed during implementation
 
 Every one of these was found by the implementation's own review or test

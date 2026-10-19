@@ -185,5 +185,24 @@
     },
     "statementsLink": "Weekly statements and the payments recorded against them are on the Statements page.",
     "statementsOpen": "Open statements"
+  },
+  "cargo": {
+    "title": "Cargo categories",
+    "intro": "Descriptions Fikisha could not place in a category, most common first. Add a keyword to a category and every later description containing it is placed there. Jobs already created keep their category.",
+    "empty": "Every recent description was placed in a category.",
+    "times_one": "{{count}} job",
+    "times_other": "{{count}} jobs",
+    "lastSeen": "last {{when}}",
+    "category": "Category",
+    "keyword": "Keyword",
+    "reason": "Reason",
+    "defaultReason": "Taught from the uncategorised list",
+    "addKeyword": "Add keyword",
+    "added": "Added \"{{keyword}}\" to {{category}}.",
+    "newTitle": "Add a category",
+    "newCode": "Category code (e.g. MEDICAL_SUPPLIES)",
+    "newKeywords": "Keywords, comma separated",
+    "addCategory": "Add category",
+    "categoryAdded": "Added {{code}}."
   }
 }

@@ -26,7 +26,7 @@ from django.http import Http404
 
 from fikisha.audit import services as audit
 from fikisha.common.exceptions import DomainError
-from fikisha.jobs import job_authz
+from fikisha.jobs import cargo_categories, job_authz
 from fikisha.jobs.constants import JobStatus, LocationSourceKind, LocationType
 from fikisha.jobs.dto import job_view
 from fikisha.jobs.errors import GuardFailed, NotAuthorisedToAssign
@@ -116,9 +116,14 @@ def create_draft(*, actor: Any, business_id: Any, data: dict[str, Any]) -> Job:
     if business.standing == BusinessStanding.SUSPENDED:
         raise BusinessSuspended()
 
+    description = (data["cargo"].get("description") or "").strip()
+    category_code, category_auto = cargo_categories.resolve(
+        category_code=data["cargo"].get("category_code") or "", description=description
+    )
     cargo = CargoDetails.objects.create(
-        description=(data["cargo"].get("description") or "").strip(),
-        category_code=(data["cargo"].get("category_code") or "").strip(),
+        description=description,
+        category_code=category_code,
+        category_auto=category_auto,
         est_weight_kg=data["cargo"].get("est_weight_kg"),
         dims_l_cm=data["cargo"].get("dims_l_cm"),
         dims_w_cm=data["cargo"].get("dims_w_cm"),
@@ -157,7 +162,10 @@ def create_draft(*, actor: Any, business_id: Any, data: dict[str, Any]) -> Job:
         delivery_flags=list(data.get("delivery_flags") or []),
         proposed_price_kes=data.get("proposed_price_kes"),
         declared_value_kes=cargo.declared_value_kes,
-        latent_risk_cargo=bool(data.get("latent_risk_cargo", False)),
+        # The category sets it (D-JOB-5's latent-risk categories, F-6); a
+        # client may still flag other cargo as latent-risk explicitly.
+        latent_risk_cargo=bool(data.get("latent_risk_cargo", False))
+        or cargo_categories.is_latent_risk(category_code),
     )
     audit.record(
         actor=actor,

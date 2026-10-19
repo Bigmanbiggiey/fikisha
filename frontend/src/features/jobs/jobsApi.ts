@@ -32,6 +32,13 @@ function jobAction<T>(jobId: string, path: string, options: RequestOptions): Pro
  * (`phase-2d-api.md` §1). */
 export const jobsApi = {
   list: () => apiRequest<Paged<Job>>('/jobs'),
+  /** The configured cargo categories (assessment 2026-10-19 D-5). */
+  cargoCategories: () =>
+    apiRequest<{ data: { code: string; latent_risk: boolean }[] }>('/jobs/cargo-categories'),
+  suggestCargoCategory: (description: string) =>
+    apiRequest<{ code: string | null }>(
+      `/jobs/cargo-categories/suggest?description=${encodeURIComponent(description)}`,
+    ),
   /** The caller's own active driving jobs, whatever page they'd fall on in
    * the full list (PR #5 follow-up 2). */
   myAssigned: (statuses: readonly string[]) =>
