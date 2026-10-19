@@ -59,6 +59,9 @@ export POSTGRES_HOST=localhost POSTGRES_PORT=5433
 export POSTGRES_DB=fikisha POSTGRES_USER=fikisha POSTGRES_PASSWORD=fikisha-local-dev
 export DJANGO_SECRET_KEY=dev-only-not-a-secret-change-me
 export REDIS_URL=redis://localhost:6380/0 CELERY_BROKER_URL=redis://localhost:6380/1
+# Without this the CORS allow-list is empty and the browser blocks every call.
+# Add :5174 if Vite moved there because the compose frontend holds 5173.
+export API_CORS_ALLOWED_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
 
 python manage.py migrate
 python manage.py runserver 0.0.0.0:8000
