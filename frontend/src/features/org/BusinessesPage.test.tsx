@@ -56,5 +56,11 @@ describe('BusinessesPage', () => {
 
     await waitFor(() => expect(createBusiness).toHaveBeenCalledWith({ trading_name: 'New Co' }));
     expect(await screen.findByText('New Co')).toBeInTheDocument();
+    // Registering submits the business for verification, and the pop-up says so.
+    const dialog = await screen.findByRole('dialog', { name: 'Profile submitted for verification' });
+    expect(dialog).toHaveTextContent(/submitted for verification/);
+    expect(screen.getByRole('button', { name: 'Open my business' })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Later' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
   });
 });

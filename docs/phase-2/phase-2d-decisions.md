@@ -1258,6 +1258,196 @@ does not yet reject a request without it.
   and the business's click sent `If-Match: "0"`, got 412, showed the
   message and refreshed to Requested.
 
+## ADR-2D-45 — Business and group verification — CONFIRMED (founder approval 2026-10-19, D-1 / D-6)
+
+From the founder's assessment (`docs/assessment-2026-10-19-plan.md`,
+finding F-1): `DRAFT → REQUESTED` has always required a VERIFIED business
+(`BusinessVerifiedWithLocation`), but nothing set the flag, so no real
+business could send a job. Groups had the same unused flag.
+
+**Backend.**
+- `verification` gains two subjects, `BUSINESS` and `GROUP`
+  (`subject_business` / `subject_group`), with domains `BUSINESS` /
+  `GROUP` (plus `DOCUMENT`) and two document kinds
+  (`BUSINESS_REGISTRATION_CERT`, `KRA_PIN_CERT`). Migration
+  `verification/0002` widens the exactly-one-subject check and adds the
+  per-subject unique constraints.
+- **Documents are optional** for those two domains: the details record may
+  be submitted with none (`EVIDENCE_OPTIONAL_DOMAINS`).
+- **Registering is submitting.** `business.create_business` and
+  `groups.create_group` submit the details record in the same transaction,
+  as the creator, so a reviewer can never approve their own organisation
+  (`reviewer_is_submitter`).
+- **A reviewer's decision sets the flag.** Approving the details record
+  sets `verification_status = VERIFIED`; rejecting it sets `UNVERIFIED`.
+  The verification module calls `business.services.set_verification_status`
+  / `groups.services.set_verification_status`; only the owning module
+  writes its flag, audited (`business.verification_status.changed` /
+  `group.verification_status.changed`), in the decision's transaction.
+- Approving a business with **no active location** is refused
+  (`422 business_has_no_location`), the "≥ 1 confirmed location" of
+  `verification-architecture.md` §7.
+- Subject owner: the business **OWNER**; a group **OWNER or MANAGER**.
+  Dispatchers, viewers and drivers neither read nor submit.
+- Config: two mandatory rules in `verification_requirements`. A live config
+  that predates them takes the shipped default rules for any subject type
+  it does not name, until an admin applies one that does.
+
+**Frontend.** After registering, a pop-up says the profile was submitted for
+verification. Business Home, the create-job page and the business page show
+where verification stands; an unverified business sees why on the create-job
+page instead of the form. The business page (owner) and group page
+(owner/manager) carry the verification panel, with documents optional.
+
+**Deviation from `verification-architecture.md` §7, documented:** §7
+describes "a single flag set by an admin, no per-domain records". This
+build keeps the single flag as the thing the job guard checks, but sets it
+through a verification record.
+- **Why:** the founder asked for the business's submitted data, documents
+  and decision history in the verification queue, next to operators (D-1).
+- **Why it's safe:** the job guard, the flag's two values and the absence
+  of business trust tiers are unchanged; the record only adds the history
+  and the reviewer rules every other subject already has.
+
+**Not done here:** existing businesses keep their current flag and have no
+record until the owner presses "Submit for verification". Documents can be
+added to a record already awaiting review only after a reviewer asks for
+more information (evidence stays frozen during review).
+
+**Tests:** `verification/tests/test_organisation_verification.py` (9):
+registration submits; the owner sees it as mandatory; approval sets the
+flag and is audited; no-location approval refused; reject after approval
+unverifies; documents frozen during review; a stranger can neither read nor
+submit (IDOR); the owner cannot review their own business; group create →
+approve. Frontend: the pop-up, and the unverified create-job state.
+
+## ADR-2D-46 — Operator approval and the pending lock-out — CONFIRMED (founder approval 2026-10-19, D-2 / D-3)
+
+From the founder's assessment (finding F-2): operators start `PENDING` and
+nothing ever moved them to `ACTIVE`, while `PENDING` already counted as
+operational, so a brand-new operator saw Work.
+
+**Backend.**
+- `POST /admin/operators/<id>/approve {note?}` →
+  `admin_console.services.approve_operator`: `PENDING → ACTIVE`, one
+  append-only `admin_intervention` row (new action `APPROVE`, migration
+  `admin_console/0003`) and an `admin.account.approve` audit entry, in one
+  transaction with the row locked.
+- **Who:** the verification reviewers (`verification.decide`: Operations
+  Officer and Platform Admin), since they read the operator's records. No
+  step-up: like a verification decision, it is routine review work.
+- A reviewer cannot approve their own operator profile. Only a `PENDING`
+  operator can be approved (409 otherwise). `APPROVE` cannot be sent
+  through `/admin/interventions`.
+- **Never automatic.** Approval does not require or follow from records
+  reaching `VERIFIED`; the reviewer decides (verification records facts).
+  Job eligibility still applies its own verification and trust checks.
+- **Lock-out (D-3):** work discovery returns nothing to a `PENDING`
+  operator; `OperatorEligibleForJob` refuses their offers
+  (`operator_not_approved`); `DriverAssignmentAllowed` refuses a `PENDING`
+  group member as the driver, so a group cannot hand work to someone
+  Fikisha has not approved.
+
+**Frontend.** A `PENDING` operator, while working as Operator, Driver or
+Group Manager, sees Home, Operator, Vehicles and Operating locations only.
+Home is a checklist (profile, each mandatory verification and its state, a
+vehicle, Fikisha's review). Work, jobs, messages, groups and statements
+redirect Home (`RequireApprovedOperator`). The same person working as a
+Business keeps their business screens. The Approve button is on the
+applicant page of the verification queue (ADR-2D-47).
+
+**Tests:** `admin_console/tests/test_operator_approval.py` (8): approve
+with intervention row and audit; only `PENDING`; non-reviewer 403; no
+self-approval; no back door via interventions; no work while pending
+(then visible once approved); offers refused; assignment refused. Frontend:
+the pending tab bars (`RoleNav.test`), the route guard (3).
+
+## ADR-2D-47 — The verification queue by applicant — CONFIRMED (founder approval 2026-10-19, D-6)
+
+From the founder's assessment (finding F-7): the queue was a flat list of
+records ("OPERATOR · IDENTITY"), so a reviewer could not see one applicant's
+submissions together, and businesses were not in it.
+
+**Backend (read-only).** `fikisha.verification.applicants` and two
+endpoints, both behind the existing `verification.queue` policy (reviewers
+and queue viewers only; the applicant themselves gets 403):
+- `GET /verification/applicants?kind=OPERATOR|BUSINESS|GROUP`: one row per
+  applicant with an open record (`SUBMITTED`, `IN_REVIEW`,
+  `INFO_REQUESTED`) on themselves or on what they own, plus every operator
+  still awaiting approval. Oldest waiting first. Rows carry status, open
+  count and, for operators, mandatory checks verified out of how many.
+  Pilot-sized, so not cursor-paginated; the response has the one-page shape.
+- `GET /verification/applicants/<kind>/<id>`: the applicant's details and
+  every record with its evidence and decision history, grouped: the
+  operator's own records, each vehicle they own, each operating location
+  they created; a business's record and its locations; a group's record and
+  its vehicles.
+- Nothing about deciding changed: actions still go through the per-record
+  endpoints (append-only decisions, `reviewer_is_submitter`), and evidence
+  bytes are still fetched one document at a time, authorised and logged.
+  Phones are not included (the admin directory's audited reveal stays the
+  only way to see them).
+
+**Frontend.** `/verification` has tabs Operators · Businesses · Groups and
+lists applicants. `/verification/applicants/<kind>/<id>` shows the
+applicant, their required checks, every record as a review card (documents,
+actions, history; `RecordReview`, shared with the single-record page), and
+for a pending operator the Approve action (ADR-2D-46), with a warning when
+not every required check is verified yet. The single-record page's
+hard-coded English is now translated.
+
+**Tests:** `verification/tests/test_applicants.py` (7): one row per
+operator counting their vehicle's record; business and group tabs; a pending
+operator with nothing submitted still listed; reviewers only; records
+grouped under operator and vehicle; business locations; unknown → 404.
+Frontend `ApplicantQueue.test.tsx` (2): tabs and rows; the grouped
+applicant page and Approve.
+
+## ADR-2D-48 — Cargo categories that sort themselves — CONFIRMED (founder approval 2026-10-19, D-4 / D-5)
+
+From the founder's assessment (findings F-5, F-6): the cargo category was
+free text never checked against config, and the 7-day post-completion
+window for latent-risk cargo (D-JOB-5) never applied from the app, because
+`job.latent_risk_cargo` was a client flag the form never sent.
+
+**Backend.** `fikisha.jobs.cargo_categories`:
+- A picked `category_code` must be one of config `cargo_categories`
+  (`422 unknown_cargo_category`).
+- **None picked:** deterministic keyword matching on the description
+  (config `cargo_category_keywords`, English and Swahili; whole words or
+  phrases, plural "s"/"es"; a longer phrase outweighs a word; ties go to
+  config order). No match → `OTHER`. `CargoDetails.category_auto` (migration
+  `jobs/0011`) records that the matcher chose.
+- **The category sets `latent_risk_cargo`** when it is in
+  `latent_risk_categories`, so electronics, food and furniture now get the
+  7-day window (fixes F-6). An explicit client flag still adds to it.
+- `GET /jobs/cargo-categories` and `GET /jobs/cargo-categories/suggest
+  ?description=` for any signed-in user.
+- **Teaching (Platform Admin):** `GET /admin/cargo-categories/uncategorised`
+  lists automatic-`OTHER` descriptions the current keywords still don't
+  place, most frequent first. `POST /admin/cargo-categories/keywords` adds a
+  keyword; `POST /admin/cargo-categories` adds a category (before `OTHER`).
+  Both are versioned `platform_config.apply_change` calls: audited, with a
+  reason, behind step-up. A keyword belongs to one category. Jobs already
+  created keep their category.
+- A live config without the keywords key uses the shipped defaults.
+
+**Frontend.** The create-job form's category is a picker (EN/SW labels)
+that fills itself in from the description until the person picks one;
+"Let Fikisha choose" leaves it to the server. Business registration uses
+the same picker (D-4). Platform Admin → Cargo categories lists what
+couldn't be placed, with a keyword or new-category form per row.
+
+**Not done (D-5):** the system never creates a category itself, and there
+is no AI classifier or external service.
+
+**Tests:** `jobs/tests/test_cargo_categories.py` (15): eight matching cases
+(EN, SW, plural, phrase over word, no match); automatic category with
+latent risk; picked category kept; unknown refused; catalogue and suggest
+endpoints; the uncategorised list until a keyword is taught (and existing
+jobs unchanged); a new category; teaching needs step-up and Platform Admin.
+Frontend: the picker fills in and stops once picked (2); the admin page (1).
+
 ## Self-caught defects fixed during implementation
 
 Every one of these was found by the implementation's own review or test

@@ -23,7 +23,19 @@ function withQuery(path: string, params: URLSearchParams, cursor?: string | null
  * is Platform-Admin-only server-side; interventions and config changes
  * also need an MFA step-up the backend refuses (`step_up_required`) until
  * admin MFA exists. */
+export interface UncategorisedCargo {
+  description: string;
+  count: number;
+  last_seen: string;
+}
+
 export const adminApi = {
+  /** Cargo the keyword matcher filed under Other (assessment 2026-10-19 D-5). */
+  uncategorisedCargo: () => apiRequest<{ data: UncategorisedCargo[] }>('/admin/cargo-categories/uncategorised'),
+  addCargoKeyword: (body: { category_code: string; keyword: string; rationale: string }) =>
+    apiRequest<{ version: number }>('/admin/cargo-categories/keywords', { method: 'POST', body }),
+  addCargoCategory: (body: { code: string; keywords: string[]; rationale: string }) =>
+    apiRequest<{ version: number; code: string }>('/admin/cargo-categories', { method: 'POST', body }),
   directory: (kind: DirectoryKind, filters: { q?: string; state?: string } = {}, cursor?: string | null) => {
     const p = new URLSearchParams();
     if (filters.q) p.set('q', filters.q);

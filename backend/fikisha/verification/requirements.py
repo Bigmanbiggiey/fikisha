@@ -17,10 +17,19 @@ from fikisha.verification.models import SubjectType
 def _rules() -> list[dict[str, Any]]:
     # Fall back to the shipped default if a pre-2C config snapshot lacks the key
     # (an already-deployed config picks it up via ConfigService.apply_change).
-    rules = config.get("verification_requirements", None)
+    rules = list(config.get("verification_requirements", None) or [])
     if not rules:
-        rules = DEFAULT_CONFIG["verification_requirements"]
-    return list(rules)
+        return list(DEFAULT_CONFIG["verification_requirements"])
+    # A subject type the live config predates (BUSINESS / GROUP, assessment
+    # 2026-10-19) takes the shipped default rules until an admin applies a
+    # config that names it.
+    configured = {r.get("subject_type") for r in rules}
+    rules += [
+        r
+        for r in DEFAULT_CONFIG["verification_requirements"]
+        if r.get("subject_type") not in configured
+    ]
+    return rules
 
 
 def required_domains(subject_type: str, *, vehicle_is_heavy: bool = False) -> list[str]:
@@ -46,4 +55,11 @@ def required_domains_for_subject(subject: Any) -> list[str]:
         )
     if isinstance(subject, OperatingBase):
         return required_domains(SubjectType.BASE)
+    from fikisha.business.models import BusinessAccount
+    from fikisha.groups.models import OperatorGroup
+
+    if isinstance(subject, BusinessAccount):
+        return required_domains(SubjectType.BUSINESS)
+    if isinstance(subject, OperatorGroup):
+        return required_domains(SubjectType.GROUP)
     raise TypeError(f"unsupported verification subject: {type(subject).__name__}")

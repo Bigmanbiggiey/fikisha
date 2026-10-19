@@ -44,6 +44,12 @@ urlpatterns = [
         name="review-reject",
     ),
     path("verification/queue", views.QueueView.as_view(), name="queue"),
+    path("verification/applicants", views.ApplicantsView.as_view(), name="applicants"),
+    path(
+        "verification/applicants/<str:kind>/<uuid:applicant_id>",
+        views.ApplicantDetailView.as_view(),
+        name="applicant-detail",
+    ),
     path(
         "verification/subjects/<str:subject_type>/<uuid:subject_id>/status",
         views.SubjectStatusView.as_view(),

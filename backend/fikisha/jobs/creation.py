@@ -10,11 +10,11 @@ Step 10 API needs a real one. `DRAFT` is not reached via
 not a lifecycle transition; `submit_job` immediately hands off to the
 authoritative `transition(REQUESTED)` for the real first transition.
 
-Only ad-hoc pickup/destination locations are supported here (`source_kind
-=AD_HOC`) — reusing a saved `BusinessLocation` (`source_kind=BUSINESS_
-LOCATION`) is deliberately deferred; nothing in the approved schema is
-missing for it, there simply isn't yet a caller that needs it. See the
-Step 10 Founder Gate report's Known limitations.
+The pickup may be one of the business's saved locations
+(`pickup_location.business_location_id` → `source_kind=BUSINESS_LOCATION`,
+copied at creation so a later edit does not rewrite the job; assessment
+2026-10-19 part 2) or an ad-hoc address (`source_kind=AD_HOC`). The
+destination is always ad-hoc.
 """
 
 from __future__ import annotations
@@ -25,7 +25,8 @@ from django.db import transaction
 from django.http import Http404
 
 from fikisha.audit import services as audit
-from fikisha.jobs import job_authz
+from fikisha.common.exceptions import DomainError
+from fikisha.jobs import cargo_categories, job_authz
 from fikisha.jobs.constants import JobStatus, LocationSourceKind, LocationType
 from fikisha.jobs.dto import job_view
 from fikisha.jobs.errors import GuardFailed, NotAuthorisedToAssign
@@ -52,6 +53,33 @@ class BusinessSuspended(GuardFailed):
 def _actor_user(actor: Any) -> Any:
     user = getattr(actor, "user", actor)
     return user if getattr(user, "pk", None) else None
+
+
+class UnknownBusinessLocation(DomainError):
+    default_code = "unknown_business_location"
+    default_detail = "That saved location is not an active location of this business."
+
+
+def _make_saved_location(*, type_: str, business_id: Any, data: dict[str, Any]) -> JobLocation:
+    """Snapshot a saved business location (``source_kind=BUSINESS_LOCATION``).
+    The request may still override the contact for this one job."""
+    from fikisha.business import services as business_services
+
+    snap = business_services.active_location_snapshot(business_id, data["business_location_id"])
+    if snap is None:
+        raise UnknownBusinessLocation()
+    return JobLocation.objects.create(
+        type=type_,
+        source_kind=LocationSourceKind.BUSINESS_LOCATION,
+        source_location_id=snap["id"],
+        address_text=snap["address_text"],
+        lat=snap["lat"],
+        lng=snap["lng"],
+        zone_id=snap["zone_id"],
+        contact_name=(data.get("contact_name") or "").strip() or snap["contact_name"],
+        contact_phone=(data.get("contact_phone") or "").strip() or snap["contact_phone"],
+        notes=(data.get("notes") or "").strip() or snap["notes"],
+    )
 
 
 def _make_location(*, type_: str, data: dict[str, Any]) -> JobLocation:
@@ -88,9 +116,14 @@ def create_draft(*, actor: Any, business_id: Any, data: dict[str, Any]) -> Job:
     if business.standing == BusinessStanding.SUSPENDED:
         raise BusinessSuspended()
 
+    description = (data["cargo"].get("description") or "").strip()
+    category_code, category_auto = cargo_categories.resolve(
+        category_code=data["cargo"].get("category_code") or "", description=description
+    )
     cargo = CargoDetails.objects.create(
-        description=(data["cargo"].get("description") or "").strip(),
-        category_code=(data["cargo"].get("category_code") or "").strip(),
+        description=description,
+        category_code=category_code,
+        category_auto=category_auto,
         est_weight_kg=data["cargo"].get("est_weight_kg"),
         dims_l_cm=data["cargo"].get("dims_l_cm"),
         dims_w_cm=data["cargo"].get("dims_w_cm"),
@@ -98,7 +131,12 @@ def create_draft(*, actor: Any, business_id: Any, data: dict[str, Any]) -> Job:
         declared_value_kes=data["cargo"]["declared_value_kes"],
         handling_flags=list(data["cargo"].get("handling_flags") or []),
     )
-    pickup = _make_location(type_=LocationType.PICKUP, data=data["pickup_location"])
+    pickup_data = data["pickup_location"]
+    pickup = (
+        _make_saved_location(type_=LocationType.PICKUP, business_id=business.id, data=pickup_data)
+        if pickup_data.get("business_location_id")
+        else _make_location(type_=LocationType.PICKUP, data=pickup_data)
+    )
     destination = _make_location(type_=LocationType.DESTINATION, data=data["destination_location"])
     vehicle_requirement = VehicleRequirement.objects.create(
         required_vehicle_class_codes=list(
@@ -124,7 +162,10 @@ def create_draft(*, actor: Any, business_id: Any, data: dict[str, Any]) -> Job:
         delivery_flags=list(data.get("delivery_flags") or []),
         proposed_price_kes=data.get("proposed_price_kes"),
         declared_value_kes=cargo.declared_value_kes,
-        latent_risk_cargo=bool(data.get("latent_risk_cargo", False)),
+        # The category sets it (D-JOB-5's latent-risk categories, F-6); a
+        # client may still flag other cargo as latent-risk explicitly.
+        latent_risk_cargo=bool(data.get("latent_risk_cargo", False))
+        or cargo_categories.is_latent_risk(category_code),
     )
     audit.record(
         actor=actor,

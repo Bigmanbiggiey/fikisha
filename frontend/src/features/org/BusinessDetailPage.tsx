@@ -12,8 +12,11 @@ import { Input } from '@/components/Input';
 import { PageLoader } from '@/components/PageLoader';
 import { StatusBadge } from '@/components/StatusBadge';
 import { Select } from '@/components/Select';
+import { ORGANISATION_EVIDENCE_KINDS } from '@/features/verification/verificationApi';
+import { VerificationPanel } from '@/features/verification/VerificationPanel';
 import { localizeError } from '@/services/errorMessage';
 
+import { BusinessVerificationBanner } from './BusinessVerificationBanner';
 import { orgApi } from './orgApi';
 import { BUSINESS_ROLES, LOCATION_TYPES } from './types';
 
@@ -88,6 +91,11 @@ export function BusinessDetailPage(): JSX.Element {
       <Link to="/businesses" className="text-body-sm text-action-secondary-text">
         &larr; {t('org:common.back')}
       </Link>
+
+      <BusinessVerificationBanner businessId={businessId} showLink={false} />
+      {biz.data.verification_status !== 'VERIFIED' && locations.data?.data.length === 0 && (
+        <Alert tone="warning">{t('org:businessVerification.needsLocation')}</Alert>
+      )}
 
       <Card>
         <div className="flex items-center justify-between gap-3">
@@ -285,6 +293,17 @@ export function BusinessDetailPage(): JSX.Element {
           </div>
         )}
       </Card>
+
+      {/* The owner submits (or resubmits) the business's details; documents
+          are optional (D-1). */}
+      {isOwner && (
+        <VerificationPanel
+          subjectType="BUSINESS"
+          subjectId={businessId}
+          kinds={ORGANISATION_EVIDENCE_KINDS}
+          documentsOptional
+        />
+      )}
     </div>
   );
 }

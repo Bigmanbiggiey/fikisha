@@ -136,6 +136,84 @@ class InterventionsView(OrgApiView):
         return Response(result, status=201)
 
 
+class _ApproveOperatorSerializer(serializers.Serializer):
+    note = serializers.CharField(max_length=2000, allow_blank=True, required=False)
+
+
+class ApproveOperatorView(OrgApiView):
+    """``POST /admin/operators/<id>/approve`` — a verification reviewer
+    approves a new operator, ``PENDING → ACTIVE`` (assessment 2026-10-19 D-2)."""
+
+    action_post = "verification.decide"
+
+    def post(self, request: Request, operator_id: uuid.UUID) -> Response:
+        s = _ApproveOperatorSerializer(data=request.data)
+        s.is_valid(raise_exception=True)
+        result = services.approve_operator(
+            actor=self.actor(request),
+            operator_id=operator_id,
+            note=s.validated_data.get("note", ""),
+        )
+        return Response(result, status=201)
+
+
+class CargoUncategorisedView(OrgApiView):
+    """``GET /admin/cargo-categories/uncategorised`` (assessment 2026-10-19 D-5)."""
+
+    action_get = "admin.config.read"
+
+    def get(self, request: Request) -> Response:
+        return Response({"data": services.uncategorised_cargo(actor=self.actor(request))})
+
+
+class _CargoKeywordSerializer(serializers.Serializer):
+    category_code = serializers.CharField(max_length=40)
+    keyword = serializers.CharField(max_length=60)
+    rationale = serializers.CharField(max_length=2000, allow_blank=True, required=False)
+
+
+class CargoKeywordView(OrgApiView):
+    """``POST /admin/cargo-categories/keywords`` — add a keyword (step-up)."""
+
+    action_post = "admin.config.change"
+
+    def post(self, request: Request) -> Response:
+        s = _CargoKeywordSerializer(data=request.data)
+        s.is_valid(raise_exception=True)
+        v = s.validated_data
+        result = services.add_cargo_keyword(
+            actor=self.actor(request),
+            category_code=v["category_code"],
+            keyword=v["keyword"],
+            rationale=v.get("rationale", ""),
+        )
+        return Response(result, status=201)
+
+
+class _CargoCategorySerializer(serializers.Serializer):
+    code = serializers.CharField(max_length=40)
+    keywords = serializers.ListField(child=serializers.CharField(max_length=60), required=False)
+    rationale = serializers.CharField(max_length=2000, allow_blank=True, required=False)
+
+
+class CargoCategoryView(OrgApiView):
+    """``POST /admin/cargo-categories`` — add a category (step-up)."""
+
+    action_post = "admin.config.change"
+
+    def post(self, request: Request) -> Response:
+        s = _CargoCategorySerializer(data=request.data)
+        s.is_valid(raise_exception=True)
+        v = s.validated_data
+        result = services.add_cargo_category(
+            actor=self.actor(request),
+            code=v["code"],
+            keywords=v.get("keywords", []),
+            rationale=v.get("rationale", ""),
+        )
+        return Response(result, status=201)
+
+
 class _ConfigChangeSerializer(serializers.Serializer):
     changes = serializers.DictField()
     rationale = serializers.CharField(max_length=2000, allow_blank=True, required=False)

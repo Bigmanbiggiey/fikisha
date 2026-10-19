@@ -58,6 +58,9 @@ def _coord_field() -> models.DecimalField:
 class CargoDetails(TimestampedModel):
     description = models.TextField()
     category_code = models.CharField(max_length=64, blank=True, default="")
+    #: The business picked none; the description's keywords chose it
+    #: (assessment 2026-10-19 D-5). Feeds the admin "uncategorised" list.
+    category_auto = models.BooleanField(default=False)
     est_weight_kg = models.PositiveIntegerField(null=True, blank=True)
     dims_l_cm = models.PositiveIntegerField(null=True, blank=True)
     dims_w_cm = models.PositiveIntegerField(null=True, blank=True)

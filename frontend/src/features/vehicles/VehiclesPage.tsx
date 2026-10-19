@@ -98,7 +98,8 @@ export function VehiclesPage(): JSX.Element {
               <Input
                 id={id}
                 value={registration}
-                onChange={(e) => setRegistration(e.target.value)}
+                onChange={(e) => setRegistration(e.target.value.toUpperCase())}
+                autoCapitalize="characters"
                 placeholder="KAA 123A"
               />
             )}

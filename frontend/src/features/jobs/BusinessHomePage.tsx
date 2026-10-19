@@ -9,11 +9,13 @@ import { ErrorState } from '@/components/ErrorState';
 import { JobCard } from '@/components/JobCard';
 import { JobStatusChip } from '@/components/JobStatusChip';
 import { PageLoader } from '@/components/PageLoader';
+import { BusinessVerificationBanner } from '@/features/org/BusinessVerificationBanner';
 import { localizeError } from '@/services/errorMessage';
 
 import { jobsApi } from './jobsApi';
 import { businessNextAction, jobReference, needsBusinessAttention } from './jobHelpers';
 import { formatKes } from './money';
+import { useActiveBusiness } from './useActiveBusiness';
 import type { Job, JobStatus } from './types';
 
 function statusLabel(t: (key: string) => string, status: JobStatus): string {
@@ -24,6 +26,7 @@ function statusLabel(t: (key: string) => string, status: JobStatus): string {
 export function BusinessHomePage(): JSX.Element {
   const { t } = useTranslation(['jobs', 'errors']);
   const navigate = useNavigate();
+  const { businessId } = useActiveBusiness();
 
   const jobs = useQuery({ queryKey: ['jobs'], queryFn: jobsApi.list, retry: false });
 
@@ -52,6 +55,8 @@ export function BusinessHomePage(): JSX.Element {
           {t('jobs:home.requestTransport')}
         </Button>
       </div>
+
+      {businessId && <BusinessVerificationBanner businessId={businessId} />}
 
       {needsAttention.length > 0 && (
         <section aria-labelledby="needs-action-heading">

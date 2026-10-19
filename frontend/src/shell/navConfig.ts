@@ -131,6 +131,7 @@ export const NAV: Record<NavRole, RoleNav> = {
       { to: '/admin/directory', labelKey: 'common:nav.directory', icon: 'badge' },
       { to: '/admin/config', labelKey: 'common:nav.config', icon: 'pencil' },
       { to: '/admin/commission', labelKey: 'common:nav.commission', icon: 'list' },
+      { to: '/admin/cargo-categories', labelKey: 'common:nav.cargoCategories', icon: 'box' },
       staff.primary[0]!,
       ...staff.secondary,
     ],
@@ -148,8 +149,24 @@ export const SETUP_NAV: RoleNav = {
   secondary: [{ to: '/businesses', labelKey: 'org:nav.businesses', icon: 'box' }, profile],
 };
 
+/** Operator-side roles: what a not-yet-approved operator works as. */
+export const OPERATOR_SIDE_ROLES: ReadonlySet<NavRole> = new Set(['OPERATOR', 'DRIVER', 'GROUP_MANAGER']);
+
+/**
+ * An operator Fikisha has not approved yet (status `PENDING`) sees only the
+ * screens that get them approved: Home (their checklist), profile, vehicles
+ * and operating locations (assessment 2026-10-19 D-2 / D-3). Work, jobs,
+ * messages, groups and statements open after approval; the server refuses
+ * that work too.
+ */
+export const PENDING_OPERATOR_NAV: RoleNav = {
+  primary: [home, profile, vehicles],
+  secondary: [{ to: '/operating-locations', labelKey: 'org:nav.locations', icon: 'pin' }],
+};
+
 /** The navigation to show: the active role's, or the setup set. */
-export function navFor(role: NavRole | null): RoleNav {
+export function navFor(role: NavRole | null, operatorPending = false): RoleNav {
+  if (role && operatorPending && OPERATOR_SIDE_ROLES.has(role)) return PENDING_OPERATOR_NAV;
   return role ? NAV[role] : SETUP_NAV;
 }
 

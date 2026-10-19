@@ -20,6 +20,7 @@ from fikisha.vehicles.models import (
     Vehicle,
     VehicleOwnership,
     VehicleStatus,
+    display_registration,
     normalize_registration,
 )
 
@@ -99,7 +100,7 @@ def register_vehicle(
         owner_operator=owner_operator,
         owner_group=owner_group,
         vehicle_class=klass,
-        registration=registration.strip(),
+        registration=display_registration(registration),
         capacity_value=capacity_value,
         capacity_unit=capacity_unit,
         **clean,
@@ -146,6 +147,7 @@ def update_vehicle(*, actor: Any, vehicle: Vehicle, patch: dict[str, Any]) -> Ve
 
     if patch.get("registration"):
         norm = normalize_registration(patch["registration"])
+        shown = display_registration(patch["registration"])
         if norm != vehicle.registration_normalized:
             if (
                 Vehicle.objects.filter(registration_normalized=norm, deactivated_at__isnull=True)
@@ -155,8 +157,9 @@ def update_vehicle(*, actor: Any, vehicle: Vehicle, patch: dict[str, Any]) -> Ve
                 raise ConflictError(
                     "An active vehicle with that registration already exists.", code="conflict"
                 )
+        if shown != vehicle.registration:
             before["registration"] = vehicle.registration
-            vehicle.registration = patch["registration"].strip()
+            vehicle.registration = shown
             changed.append("registration")
 
     if not changed:

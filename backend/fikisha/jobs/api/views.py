@@ -24,8 +24,8 @@ from fikisha.evidence import services as evidence_services
 from fikisha.evidence.models import EvidencePurpose, PiiClass, UploaderKind
 from fikisha.identity.authz.step_up import require_step_up
 from fikisha.jobs import assignment_candidates as assignment_candidates_service
+from fikisha.jobs import cargo_categories, creation, custody, discovery, high_value, job_authz, ops
 from fikisha.jobs import commission as commission_service
-from fikisha.jobs import creation, custody, discovery, high_value, job_authz, ops
 from fikisha.jobs import recipient as recipient_service
 from fikisha.jobs.api.serializers import (
     AddNoteSerializer,
@@ -327,6 +327,28 @@ class JobOpportunityDetailView(OrgApiView):
 
     def get(self, request: Request, job_id: str) -> Response:
         return Response(discovery.opportunity_detail(self.actor(request), job_id))
+
+
+# ─── Cargo categories (assessment 2026-10-19 D-5) ───────────────────────
+class CargoCategoriesView(OrgApiView):
+    """``GET /jobs/cargo-categories`` — the configured categories, each with
+    whether it is latent-risk (longer dispute window)."""
+
+    action_get = "job.cargo_categories.read"
+
+    def get(self, request: Request) -> Response:
+        return Response({"data": cargo_categories.catalogue()})
+
+
+class CargoCategorySuggestView(OrgApiView):
+    """``GET /jobs/cargo-categories/suggest?description=`` — the category the
+    description's keywords point to, or ``null``."""
+
+    action_get = "job.cargo_categories.read"
+
+    def get(self, request: Request) -> Response:
+        description = (request.query_params.get("description") or "")[:4000]
+        return Response({"code": cargo_categories.suggest(description)})
 
 
 # ─── Assignment ─────────────────────────────────────────────────────────

@@ -22,8 +22,8 @@ const MORE: NavItem = { to: '/more', labelKey: 'common:nav.more', icon: 'menu', 
 export function RoleTabBar(): JSX.Element | null {
   const { t } = useTranslation(['common', 'org']);
   const { pathname } = useLocation();
-  const { loading, role } = useActiveRole();
-  const nav = navFor(role);
+  const { loading, role, operatorPending } = useActiveRole();
+  const nav = navFor(role, operatorPending);
   const unread = useUnreadMessages(!loading && nav.primary.some((i) => i.badge === 'messages'));
   if (loading) return null;
 

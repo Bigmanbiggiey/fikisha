@@ -57,7 +57,7 @@ describe('VehiclesPage', () => {
     expect(await screen.findByText(/KAA 123A · PICKUP/)).toBeInTheDocument();
   });
 
-  it('registers a vehicle to my operator profile', async () => {
+  it('registers a vehicle to my operator profile, plate in capitals', async () => {
     list.mockResolvedValueOnce({ data: [], page: { next_cursor: null, prev_cursor: null } });
     create.mockResolvedValue({ id: 'v2' });
     list.mockResolvedValueOnce({
@@ -77,7 +77,7 @@ describe('VehiclesPage', () => {
     renderWithProviders(<VehiclesPage />);
     await screen.findByText(/no vehicles yet/i);
 
-    await userEvent.type(screen.getByLabelText(/registration number/i), 'KBB 9Z');
+    await userEvent.type(screen.getByLabelText(/registration number/i), 'kbb 9z');
     await userEvent.type(screen.getByLabelText(/capacity/i), '8');
     await userEvent.click(screen.getByRole('button', { name: /^create$/i }));
 

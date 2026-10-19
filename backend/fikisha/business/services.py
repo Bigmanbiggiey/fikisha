@@ -22,6 +22,7 @@ from fikisha.business.models import (
     BusinessMembership,
     BusinessRole,
     BusinessStanding,
+    BusinessVerificationStatus,
     LocationType,
     MembershipStatus,
 )
@@ -138,7 +139,40 @@ def create_business(
         entity_id=membership.id,
         after={"business_id": str(business.id), "user_id": str(user.id), "role": membership.role},
     )
+    # Registering is submitting for verification (assessment 2026-10-19 D-1):
+    # the business details go straight into the reviewers' queue.
+    from fikisha.verification import services as verification
+    from fikisha.verification.models import Domain
+
+    verification.submit(actor=actor, subject=business, domain=Domain.BUSINESS, evidence_items=[])
     return business
+
+
+def has_active_location(business_id: Any) -> bool:
+    return BusinessLocation.objects.filter(
+        business_id=business_id, deactivated_at__isnull=True
+    ).exists()
+
+
+@transaction.atomic
+def set_verification_status(*, actor: Any, business_id: Any, verified: bool) -> None:
+    """Set by the verification module when a reviewer decides on the business's
+    details record (D-1). Audited; a no-op when unchanged."""
+    business = BusinessAccount.objects.select_for_update().get(pk=business_id)
+    new = BusinessVerificationStatus.VERIFIED if verified else BusinessVerificationStatus.UNVERIFIED
+    if business.verification_status == new:
+        return
+    before = business.verification_status
+    business.verification_status = new
+    business.save(update_fields=["verification_status", "updated_at"])
+    audit.record(
+        actor=actor,
+        action="business.verification_status.changed",
+        entity_type="business_account",
+        entity_id=business.id,
+        before={"verification_status": before},
+        after={"verification_status": new},
+    )
 
 
 @transaction.atomic
@@ -331,6 +365,42 @@ _LOCATION_FIELDS = (
 
 def locations_for(business: BusinessAccount) -> QuerySet[BusinessLocation]:
     return business.locations.filter(deactivated_at__isnull=True).order_by("type", "label")
+
+
+def active_location_snapshot(business_id: Any, location_id: Any) -> dict[str, Any] | None:
+    """The fields a job copies from a saved location, or ``None`` when the
+    location is not an active location *of this business*. The ownership check
+    lives here so a caller cannot snapshot another business's location."""
+    loc = (
+        BusinessLocation.objects.filter(
+            id=location_id, business_id=business_id, deactivated_at__isnull=True
+        )
+        .only(
+            "id",
+            "label",
+            "address_text",
+            "lat",
+            "lng",
+            "zone_id",
+            "contact_name",
+            "contact_phone",
+            "access_notes",
+        )
+        .first()
+    )
+    if loc is None:
+        return None
+    address = loc.address_text.strip()
+    return {
+        "id": loc.id,
+        "address_text": f"{loc.label} — {address}" if address else loc.label,
+        "lat": loc.lat,
+        "lng": loc.lng,
+        "zone_id": loc.zone_id,
+        "contact_name": loc.contact_name,
+        "contact_phone": loc.contact_phone,
+        "notes": loc.access_notes,
+    }
 
 
 def _demote_existing_main(business: BusinessAccount, *, keep_id: Any = None) -> None:

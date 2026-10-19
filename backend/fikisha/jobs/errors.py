@@ -51,6 +51,14 @@ class DriverNotEligible(GuardFailed):
     default_code = "driver_not_eligible"
 
 
+class OperatorNotApproved(GuardFailed):
+    """The operator (or the driver being assigned) is still ``PENDING``:
+    Fikisha has not approved them yet (assessment 2026-10-19 D-3)."""
+
+    default_code = "operator_not_approved"
+    default_detail = "Fikisha has not approved this operator yet."
+
+
 class VehicleNotEligible(GuardFailed):
     default_code = "vehicle_not_eligible"
 

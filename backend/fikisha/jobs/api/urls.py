@@ -10,6 +10,12 @@ urlpatterns = [
     # ─── Jobs ────────────────────────────────────────────────────────
     path("jobs", views.JobCollectionView.as_view(), name="collection"),
     path("jobs/opportunities", views.JobOpportunitiesView.as_view(), name="opportunities"),
+    path("jobs/cargo-categories", views.CargoCategoriesView.as_view(), name="cargo-categories"),
+    path(
+        "jobs/cargo-categories/suggest",
+        views.CargoCategorySuggestView.as_view(),
+        name="cargo-category-suggest",
+    ),
     path(
         "jobs/<uuid:job_id>/opportunity",
         views.JobOpportunityDetailView.as_view(),

@@ -112,6 +112,8 @@ export interface Job extends JobTransitionResult {
 
 // ─── Create-Job request shape (JobCreateSerializer) ───────────────────────
 export interface LocationWrite {
+  /** pickup only: copy one of the business's saved locations */
+  business_location_id?: string;
   address_text?: string;
   lat?: number | null;
   lng?: number | null;

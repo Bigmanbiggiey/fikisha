@@ -27,6 +27,9 @@ class InterventionAction(models.TextChoices):
     SUSPEND = "SUSPEND", "Suspend"
     REINSTATE = "REINSTATE", "Reinstate"
     OFFBOARD = "OFFBOARD", "Offboard"
+    #: A reviewer approves a new operator: PENDING → ACTIVE (assessment
+    #: 2026-10-19 D-2). Not part of ``intervene()``; see ``approve_operator``.
+    APPROVE = "APPROVE", "Approve"
 
 
 class AdminIntervention(AppendOnlyModel):

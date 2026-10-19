@@ -12,7 +12,10 @@ import { RoleSidebar } from './RoleSidebar';
 import { RoleTabBar } from './RoleTabBar';
 
 const setRole = vi.fn();
-let active: { role: NavRole | null; roles: NavRole[] } = { role: 'BUSINESS', roles: ['BUSINESS'] };
+let active: { role: NavRole | null; roles: NavRole[]; operatorPending?: boolean } = {
+  role: 'BUSINESS',
+  roles: ['BUSINESS'],
+};
 
 vi.mock('@/shell/activeRole', () => ({
   useActiveRole: () => ({ loading: false, setRole, ...active }),
@@ -57,6 +60,16 @@ describe('role navigation (Design Phase 7 P-04)', () => {
     unread = 0;
     renderWithProviders(<RoleTabBar />);
     expect(screen.getByRole('link', { name: 'Messages' })).not.toHaveTextContent(/d/);
+  });
+
+  it.each<[NavRole, string[]]>([
+    ['OPERATOR', ['Home', 'Operator', 'Vehicles', 'More']],
+    ['DRIVER', ['Home', 'Operator', 'Vehicles', 'More']],
+    ['BUSINESS', ['Home', 'Jobs', 'Messages', 'Request transport', 'More']],
+  ])('an operator awaiting approval, working as %s, sees only the approval screens', (role, expected) => {
+    active = { role, roles: [role], operatorPending: true };
+    renderWithProviders(<RoleTabBar />);
+    expect(tabNames()).toEqual(expected);
   });
 
   it.each<[NavRole, string[]]>([

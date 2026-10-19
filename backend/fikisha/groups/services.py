@@ -20,6 +20,7 @@ from fikisha.groups.models import (
     GroupMembershipStatus,
     GroupStanding,
     GroupType,
+    GroupVerificationStatus,
     OperatorGroup,
 )
 from fikisha.identity.models import User
@@ -110,7 +111,33 @@ def create_group(
         entity_id=membership.id,
         after={"group_id": str(group.id), "operator_id": str(owner_profile.id), "role": "OWNER"},
     )
+    # Creating a group submits its details for verification (D-6).
+    from fikisha.verification import services as verification
+    from fikisha.verification.models import Domain
+
+    verification.submit(actor=actor, subject=group, domain=Domain.GROUP, evidence_items=[])
     return group
+
+
+@transaction.atomic
+def set_verification_status(*, actor: Any, group_id: Any, verified: bool) -> None:
+    """Set by the verification module when a reviewer decides on the group's
+    details record (D-6). Audited; a no-op when unchanged."""
+    group = OperatorGroup.objects.select_for_update().get(pk=group_id)
+    new = GroupVerificationStatus.VERIFIED if verified else GroupVerificationStatus.UNVERIFIED
+    if group.verification_status == new:
+        return
+    before = group.verification_status
+    group.verification_status = new
+    group.save(update_fields=["verification_status", "updated_at"])
+    audit.record(
+        actor=actor,
+        action="group.verification_status.changed",
+        entity_type="operator_group",
+        entity_id=group.id,
+        before={"verification_status": before},
+        after={"verification_status": new},
+    )
 
 
 @transaction.atomic

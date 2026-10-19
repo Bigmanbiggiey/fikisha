@@ -2,7 +2,8 @@
 
 Two kinds of caller:
   * the **subject owner** — the operator whose profile / whose vehicle / whose
-    operating base the record is about — may read it and submit evidence;
+    operating base the record is about, the OWNER of a business, or an OWNER /
+    MANAGER of an operator group — may read it and submit evidence;
   * a **reviewer** — a user holding the ``verification.decide`` permission
     (pilot: Operations Officer or Platform Admin) — may read any record and act
     on it. A business user is neither.
@@ -43,7 +44,26 @@ def owns_subject(actor: Any, record: VerificationRecord) -> bool:
     if record.subject_base_id is not None:
         base = OperatingBase.objects.filter(pk=record.subject_base_id).first()
         return base is not None and str(base.created_by_id) == actor_user_id
+    if record.subject_business_id is not None:
+        return _owns_business(actor, record.subject_business_id)
+    if record.subject_group_id is not None:
+        return _manages_group(actor, record.subject_group_id)
     return False
+
+
+def _owns_business(actor: Any, business_id: Any) -> bool:
+    from fikisha.business import authz as business_authz
+
+    return business_authz.is_owner(actor, {"business_id": business_id})
+
+
+def _manages_group(actor: Any, group_id: Any) -> bool:
+    from fikisha.groups import authz as group_authz
+    from fikisha.groups.models import GroupMemberRole
+
+    return group_authz.has_role(
+        actor, {"group_id": group_id}, {GroupMemberRole.OWNER, GroupMemberRole.MANAGER}
+    )
 
 
 def can_submit_for(actor: Any, subject: Any) -> bool:
@@ -60,4 +80,11 @@ def can_submit_for(actor: Any, subject: Any) -> bool:
         return group_is_member(actor, {"group_id": subject.owner_group_id})
     if isinstance(subject, OperatingBase):
         return str(subject.created_by_id) == actor_user_id
+    from fikisha.business.models import BusinessAccount
+    from fikisha.groups.models import OperatorGroup
+
+    if isinstance(subject, BusinessAccount):
+        return _owns_business(actor, subject.id)
+    if isinstance(subject, OperatorGroup):
+        return _manages_group(actor, subject.id)
     return False

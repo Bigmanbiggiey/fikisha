@@ -26,6 +26,7 @@ from fikisha.jobs.errors import (
     GuardFailed,
     HighValueApprovalRequired,
     JobNoLongerAvailable,
+    OperatorNotApproved,
     PickupConfirmationRequired,
     VehicleNotEligible,
 )
@@ -107,6 +108,9 @@ def operator_eligible_for_job(job: Any, actor: Any, ctx: dict[str, Any]) -> None
         OperatorStatus.OFFBOARDED,
     }:
         raise DriverNotEligible("Operator is suspended, restricted or offboarded.")
+    if getattr(op, "status", None) == OperatorStatus.PENDING:
+        # Not approved by Fikisha yet (assessment 2026-10-19 D-3).
+        raise OperatorNotApproved()
 
 
 def no_racing_confirm(job: Any, actor: Any, ctx: dict[str, Any]) -> None:
@@ -177,6 +181,11 @@ def driver_assignment_allowed(job: Any, actor: Any, ctx: dict[str, Any]) -> None
     driver = ctx.get("driver_profile")
     if driver is None:
         raise DriverNotEligible("No driver supplied for assignment.")
+    from fikisha.operators.models import OperatorStatus
+
+    if getattr(driver, "status", None) == OperatorStatus.PENDING:
+        # A group may not hand work to a member Fikisha has not approved (D-3).
+        raise OperatorNotApproved("The driver has not been approved by Fikisha yet.")
     _party, operator_id, group_id = _agreement_party(job)
 
     if operator_id is not None:

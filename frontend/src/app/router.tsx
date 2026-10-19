@@ -24,6 +24,7 @@ import { MessagesPage } from '@/features/messages/MessagesPage';
 import { MorePage } from '@/features/more/MorePage';
 import { NegotiationPage } from '@/features/negotiation/NegotiationPage';
 import { AdminControlPage } from '@/features/admin/AdminControlPage';
+import { CargoCategoriesPage } from '@/features/admin/CargoCategoriesPage';
 import { CommissionPage } from '@/features/admin/CommissionPage';
 import { ConfigPage } from '@/features/admin/ConfigPage';
 import { DirectoryDetailPage } from '@/features/admin/DirectoryDetailPage';
@@ -49,9 +50,11 @@ import { StatementDetailPage } from '@/features/statements/StatementDetailPage';
 import { StatementsPage } from '@/features/statements/StatementsPage';
 import { VehicleDetailPage } from '@/features/vehicles/VehicleDetailPage';
 import { VehiclesPage } from '@/features/vehicles/VehiclesPage';
+import { ApplicantPage } from '@/features/verification/ApplicantPage';
 import { VerificationQueuePage } from '@/features/verification/VerificationQueuePage';
 import { VerificationRecordPage } from '@/features/verification/VerificationRecordPage';
 import { AppShell } from '@/shell/AppShell';
+import { RequireApprovedOperator } from '@/shell/RequireApprovedOperator';
 
 /**
  * `/` is public (the landing page for a signed-out or first-time visitor —
@@ -80,9 +83,7 @@ export function AppRoutes(): JSX.Element {
           }
         >
           <Route path="home" element={<HomePage />} />
-          <Route path="current-job" element={<CurrentJobPage />} />
           <Route path="more" element={<MorePage />} />
-          <Route path="messages" element={<MessagesPage />} />
           <Route path="jobs" element={<JobsListPage />} />
           <Route path="jobs/new" element={<CreateJobPage />} />
           <Route path="jobs/:jobId" element={<JobDetailPage />} />
@@ -95,22 +96,34 @@ export function AppRoutes(): JSX.Element {
           <Route path="jobs/:jobId/report-issue" element={<IncidentReportPage />} />
           <Route path="incidents/:incidentId" element={<IncidentDetailPage />} />
           <Route path="disputes/:disputeId" element={<DisputeDetailPage />} />
-          <Route path="work" element={<WorkListPage />} />
-          <Route path="work/:jobId" element={<JobOpportunityPage />} />
-          <Route path="my-jobs" element={<MyJobsPage />} />
-          {/* Commission & Statements S-2: a payee's weekly statements. */}
-          <Route path="statements" element={<StatementsPage />} />
-          <Route path="statements/:statementId" element={<StatementDetailPage />} />
+          {/* Open to an operator only once Fikisha has approved them (D-2). */}
+          <Route
+            element={
+              <RequireApprovedOperator>
+                <Outlet />
+              </RequireApprovedOperator>
+            }
+          >
+            <Route path="current-job" element={<CurrentJobPage />} />
+            <Route path="messages" element={<MessagesPage />} />
+            <Route path="work" element={<WorkListPage />} />
+            <Route path="work/:jobId" element={<JobOpportunityPage />} />
+            <Route path="my-jobs" element={<MyJobsPage />} />
+            {/* Commission & Statements S-2: a payee's weekly statements. */}
+            <Route path="statements" element={<StatementsPage />} />
+            <Route path="statements/:statementId" element={<StatementDetailPage />} />
+            <Route path="groups" element={<GroupsPage />} />
+            <Route path="groups/:groupId" element={<GroupDetailPage />} />
+          </Route>
           <Route path="businesses" element={<BusinessesPage />} />
           <Route path="businesses/:businessId" element={<BusinessDetailPage />} />
           <Route path="operator" element={<OperatorProfilePage />} />
-          <Route path="groups" element={<GroupsPage />} />
-          <Route path="groups/:groupId" element={<GroupDetailPage />} />
           <Route path="operating-locations" element={<OperatingLocationsPage />} />
           <Route path="vehicles" element={<VehiclesPage />} />
           <Route path="vehicles/:vehicleId" element={<VehicleDetailPage />} />
           <Route path="verification" element={<VerificationQueuePage />} />
           <Route path="verification/:recordId" element={<VerificationRecordPage />} />
+          <Route path="verification/applicants/:kind/:applicantId" element={<ApplicantPage />} />
           <Route path="diagnostics" element={<DiagnosticsPage />} />
           {/* Operations Officer console (Design Phase 6 Increment 8, P3 §18). */}
           <Route
@@ -143,6 +156,7 @@ export function AppRoutes(): JSX.Element {
             <Route path="directory/:kind/:id" element={<DirectoryDetailPage />} />
             <Route path="config" element={<ConfigPage />} />
             <Route path="commission" element={<CommissionPage />} />
+            <Route path="cargo-categories" element={<CargoCategoriesPage />} />
           </Route>
         </Route>
       </Route>

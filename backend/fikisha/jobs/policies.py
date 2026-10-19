@@ -51,6 +51,12 @@ def _job_create(actor: Any, _action: str, _resource: Any) -> Decision:
     return ALLOW if getattr(actor, "is_authenticated", False) else deny("authz.unauthenticated")
 
 
+@policy("job.cargo_categories.read")
+def _cargo_categories(actor: Any, _action: str, _resource: Any) -> Decision:
+    # The category list and the keyword suggestion: any signed-in user.
+    return ALLOW if getattr(actor, "is_authenticated", False) else deny("authz.unauthenticated")
+
+
 @policy("job.transition")
 def _job_transition(actor: Any, _action: str, _resource: Any) -> Decision:
     """Coarse gate only — the allowed-initiator match happens in the service."""

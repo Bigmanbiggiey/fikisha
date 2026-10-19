@@ -42,6 +42,11 @@ def normalize_registration(value: str) -> str:
     return re.sub(r"[^A-Z0-9]", "", (value or "").upper())
 
 
+def display_registration(value: str) -> str:
+    """The plate as shown everywhere: capitals, single spaces (``KDA 123A``)."""
+    return " ".join((value or "").upper().split())
+
+
 class Vehicle(TimestampedModel):
     owner_operator = models.ForeignKey(
         "operators.OperatorProfile",
@@ -108,6 +113,7 @@ class Vehicle(TimestampedModel):
         ]
 
     def save(self, *args: Any, **kwargs: Any) -> None:
+        self.registration = display_registration(self.registration)
         self.registration_normalized = normalize_registration(self.registration)
         super().save(*args, **kwargs)
 

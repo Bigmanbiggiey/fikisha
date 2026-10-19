@@ -72,6 +72,100 @@ class TestJobCreation:
         assert Job.objects.filter(business=verified_business).count() == 1
 
 
+class TestPickupFromSavedLocation:
+    """Assessment 2026-10-19 part 2: pickup copied from a saved location."""
+
+    def _saved(self, business: Any, **kw: Any) -> Any:
+        from fikisha.business.models import BusinessLocation
+
+        return BusinessLocation.objects.create(
+            business=business,
+            label=kw.pop("label", "Warehouse"),
+            type=kw.pop("type", "WAREHOUSE"),
+            address_text=kw.pop("address_text", "Namanga Rd, Kitengela"),
+            contact_name="Wanjiru",
+            contact_phone="+254700900055",
+            access_notes="Gate B",
+            **kw,
+        )
+
+    def test_pickup_is_snapshotted_from_a_saved_location(
+        self, client_for: Callable, business_actor: Any, verified_business: Any
+    ) -> None:
+        from fikisha.jobs.models import Job
+
+        loc = self._saved(verified_business)
+        payload = _create_payload(
+            str(verified_business.id), pickup_location={"business_location_id": str(loc.id)}
+        )
+        r = client_for(business_actor.user).post("/api/v1/jobs", payload, format="json")
+        assert r.status_code == 201, r.content
+        pickup = Job.objects.get(id=r.data["id"]).pickup_location
+        assert pickup.source_kind == "BUSINESS_LOCATION"
+        assert pickup.source_location_id == loc.id
+        assert pickup.address_text == "Warehouse — Namanga Rd, Kitengela"
+        assert (pickup.contact_name, pickup.contact_phone, pickup.notes) == (
+            "Wanjiru",
+            "+254700900055",
+            "Gate B",
+        )
+
+        # A later edit to the saved location does not rewrite the job.
+        loc.address_text = "Moved"
+        loc.save()
+        pickup.refresh_from_db()
+        assert pickup.address_text == "Warehouse — Namanga Rd, Kitengela"
+
+    def test_a_contact_given_for_this_job_overrides_the_saved_one(
+        self, client_for: Callable, business_actor: Any, verified_business: Any
+    ) -> None:
+        from fikisha.jobs.models import Job
+
+        loc = self._saved(verified_business)
+        payload = _create_payload(
+            str(verified_business.id),
+            pickup_location={"business_location_id": str(loc.id), "contact_phone": "+254700900066"},
+        )
+        r = client_for(business_actor.user).post("/api/v1/jobs", payload, format="json")
+        assert r.status_code == 201, r.content
+        assert Job.objects.get(id=r.data["id"]).pickup_location.contact_phone == "+254700900066"
+
+    def test_another_businesss_location_is_refused(
+        self,
+        client_for: Callable,
+        business_actor: Any,
+        verified_business: Any,
+        make_user: Callable,
+    ) -> None:
+        """IDOR: a business may not copy a location it does not own."""
+        from fikisha.business.models import BusinessAccount
+
+        other = BusinessAccount.objects.create(
+            owner_user=make_user("+254700777101"), trading_name="Other Co"
+        )
+        foreign = self._saved(other, label="Their yard")
+        payload = _create_payload(
+            str(verified_business.id), pickup_location={"business_location_id": str(foreign.id)}
+        )
+        r = client_for(business_actor.user).post("/api/v1/jobs", payload, format="json")
+        assert r.status_code == 422
+        assert r.data["code"] == "unknown_business_location"
+        assert "Their yard" not in r.content.decode()
+
+    def test_a_deactivated_location_is_refused(
+        self, client_for: Callable, business_actor: Any, verified_business: Any
+    ) -> None:
+        from django.utils import timezone
+
+        loc = self._saved(verified_business, deactivated_at=timezone.now())
+        payload = _create_payload(
+            str(verified_business.id), pickup_location={"business_location_id": str(loc.id)}
+        )
+        r = client_for(business_actor.user).post("/api/v1/jobs", payload, format="json")
+        assert r.status_code == 422
+        assert r.data["code"] == "unknown_business_location"
+
+
 class TestJobReadAndList:
     def test_the_owning_business_can_read_its_job(
         self, client_for: Callable, business_actor: Any, draft_job: Any

@@ -23,6 +23,7 @@ from fikisha.outbox.services import emit
 from fikisha.platform_config import services as config
 from fikisha.vehicles.models import Vehicle
 from fikisha.verification.models import (
+    EVIDENCE_OPTIONAL_DOMAINS,
     VALID_DOMAINS_BY_SUBJECT,
     Action,
     Domain,
@@ -56,6 +57,13 @@ def _subject_kwargs(subject: Any) -> tuple[str, dict[str, Any]]:
         return SubjectType.VEHICLE, {"subject_vehicle": subject}
     if isinstance(subject, OperatingBase):
         return SubjectType.BASE, {"subject_base": subject}
+    from fikisha.business.models import BusinessAccount
+    from fikisha.groups.models import OperatorGroup
+
+    if isinstance(subject, BusinessAccount):
+        return SubjectType.BUSINESS, {"subject_business": subject}
+    if isinstance(subject, OperatorGroup):
+        return SubjectType.GROUP, {"subject_group": subject}
     raise TypeError(f"unsupported verification subject: {type(subject).__name__}")
 
 
@@ -128,7 +136,10 @@ def mark_submitted(
     record = VerificationRecord.objects.select_for_update().get(pk=record.pk)
     if record.effective_state() in {State.SUBMITTED, State.IN_REVIEW}:
         raise ConflictError("This verification is already awaiting review.", code="already_pending")
-    if not record.evidence.filter(superseded_at__isnull=True).exists():
+    if (
+        record.domain not in EVIDENCE_OPTIONAL_DOMAINS
+        and not record.evidence.filter(superseded_at__isnull=True).exists()
+    ):
         raise DomainError("Attach at least one evidence item first.", code="validation_error")
 
     user = _audit_actor(actor)
@@ -190,7 +201,7 @@ def submit(
 ) -> VerificationRecord:
     """Convenience: attach every item then mark the record submitted (one txn)."""
     record = get_or_create_record(subject=subject, domain=domain)
-    if not evidence_items:
+    if not evidence_items and domain not in EVIDENCE_OPTIONAL_DOMAINS:
         raise DomainError("At least one evidence item is required.", code="validation_error")
     for item in evidence_items:
         add_evidence(actor=actor, record=record, item=item)
@@ -322,7 +333,15 @@ def approve(
 
     if expires_at is None:
         expires_at = _suggested_expiry(record)
-    return _record_decision(
+    if record.subject_business_id is not None and record.domain == Domain.BUSINESS:
+        from fikisha.business import services as business_services
+
+        if not business_services.has_active_location(record.subject_business_id):
+            raise DomainError(
+                "A business needs at least one active location before it can be verified.",
+                code="business_has_no_location",
+            )
+    record = _record_decision(
         actor=reviewer,
         record=record,
         action=Action.APPROVE,
@@ -331,6 +350,8 @@ def approve(
         set_expires_at=expires_at,
         reviewer=_audit_actor(reviewer),
     )
+    _sync_organisation_flag(actor=reviewer, record=record)
+    return record
 
 
 @transaction.atomic
@@ -341,7 +362,7 @@ def reject(*, reviewer: Any, record: VerificationRecord, reason: str) -> Verific
     if not reason.strip():
         raise DomainError("A reason is required to reject.", code="validation_error")
     _assert_reviewer_not_submitter(record, _audit_actor(reviewer))
-    return _record_decision(
+    record = _record_decision(
         actor=reviewer,
         record=record,
         action=Action.REJECT,
@@ -349,6 +370,27 @@ def reject(*, reviewer: Any, record: VerificationRecord, reason: str) -> Verific
         reason=reason.strip(),
         reviewer=_audit_actor(reviewer),
     )
+    _sync_organisation_flag(actor=reviewer, record=record)
+    return record
+
+
+def _sync_organisation_flag(*, actor: Any, record: VerificationRecord) -> None:
+    """D-1 / D-6: a business's or group's own ``verification_status`` follows
+    the reviewer's decision on its details record, in the same transaction.
+    Only the owning module writes the flag (through its service)."""
+    verified = record.state == State.VERIFIED
+    if record.subject_business_id is not None and record.domain == Domain.BUSINESS:
+        from fikisha.business import services as business_services
+
+        business_services.set_verification_status(
+            actor=actor, business_id=record.subject_business_id, verified=verified
+        )
+    elif record.subject_group_id is not None and record.domain == Domain.GROUP:
+        from fikisha.groups import services as group_services
+
+        group_services.set_verification_status(
+            actor=actor, group_id=record.subject_group_id, verified=verified
+        )
 
 
 def _suggested_expiry(record: VerificationRecord) -> Any | None:

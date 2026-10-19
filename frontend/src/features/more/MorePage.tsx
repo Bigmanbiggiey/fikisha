@@ -18,8 +18,8 @@ import { RoleSwitch } from '@/shell/RoleSwitch';
 export function MorePage(): JSX.Element {
   const { t } = useTranslation(['common', 'org']);
   const { logout } = useAuth();
-  const { role } = useActiveRole();
-  const secondary = navFor(role).secondary;
+  const { role, operatorPending } = useActiveRole();
+  const secondary = navFor(role, operatorPending).secondary;
 
   return (
     <div className="space-y-5">

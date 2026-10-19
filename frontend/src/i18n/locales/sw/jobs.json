@@ -102,7 +102,10 @@
     },
     "pickup": {
       "address": "Mahali pa kuchukua",
-      "contactPhone": "Simu ya mawasiliano ya kuchukua"
+      "contactPhone": "Simu ya mawasiliano ya kuchukua",
+      "savedLocation": "Chukua kutoka",
+      "anotherAddress": "Anwani nyingine",
+      "contactOverrideHint": "Acha wazi ili kutumia mawasiliano yaliyohifadhiwa kwa eneo hili."
     },
     "destination": {
       "address": "Mahali pa kufikishwa",
@@ -345,5 +348,19 @@
     "availableWork": "Ona kazi zinazopatikana",
     "several_one": "Una kazi {{count}} ya sasa.",
     "several_other": "Una kazi {{count}} za sasa. Chagua moja."
+  },
+  "cargoCategory": {
+    "auto": "Acha Fikisha ichague kutokana na maelezo",
+    "suggested": "Imechaguliwa kutokana na maelezo yako. Unaweza kuibadilisha.",
+    "GENERAL": "Bidhaa za kawaida",
+    "CONSTRUCTION_MATERIALS": "Vifaa vya ujenzi",
+    "AGRICULTURE_PRODUCE": "Mazao ya shamba",
+    "FOOD_BEVERAGE": "Vyakula na vinywaji",
+    "FURNITURE_APPLIANCES": "Samani na vifaa vya nyumbani",
+    "ELECTRONICS": "Vifaa vya elektroniki",
+    "DOCUMENTS_PARCELS": "Nyaraka na vifurushi",
+    "LIVESTOCK": "Mifugo",
+    "LIQUIDS_BULK": "Mafuta na vimiminika vingi",
+    "OTHER": "Nyingine"
   }
 }

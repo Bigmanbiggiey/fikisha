@@ -47,7 +47,26 @@
     "note": "Dokezo",
     "queueEmpty": "Hakuna kinachosubiri ukaguzi.",
     "noRecords": "Hakuna rekodi za uthibitishaji bado.",
-    "expiresAt": "Inaisha"
+    "expiresAt": "Inaisha",
+    "submitDetails": "Tuma kwa uthibitisho",
+    "review": "Ukaguzi",
+    "noAction": "Hakuna hatua ya ukaguzi katika hali hii.",
+    "now": "Sasa: {{state}}",
+    "superseded": "imebadilishwa",
+    "noEvidence": "Hakuna hati zilizoambatishwa.",
+    "kind": {
+      "NATIONAL_ID": "Kitambulisho cha taifa",
+      "PASSPORT": "Pasipoti",
+      "SELFIE": "Picha",
+      "DRIVING_LICENCE": "Leseni ya udereva",
+      "GOOD_CONDUCT_CERT": "Cheti cha Maadili Mema",
+      "LOGBOOK": "Kitabu cha usajili wa gari",
+      "INSPECTION_CERT": "Cheti cha ukaguzi",
+      "INSURANCE_CERT": "Cheti cha bima",
+      "BUSINESS_REGISTRATION_CERT": "Cheti cha usajili wa biashara",
+      "KRA_PIN_CERT": "Cheti cha KRA PIN",
+      "OTHER": "Hati nyingine"
+    }
   },
   "common": {
     "create": "Unda",
@@ -84,7 +103,11 @@
     "address": "Anwani",
     "zone": "Eneo",
     "mainLocationNote": "Biashara inaweza kuwa na kituo kimoja tu cha MSINGI.",
-    "empty": "Bado hujawa mwanachama wa biashara yoyote."
+    "empty": "Bado hujawa mwanachama wa biashara yoyote.",
+    "submittedTitle": "Wasifu umetumwa kwa uthibitisho",
+    "submittedBody": "Wasifu wa biashara yako umetumwa kwa uthibitisho. Unaposubiri, ongeza maeneo yako ya kuchukulia mizigo na, ikiwa unayo, cheti cha usajili wa biashara au KRA PIN. Utaweza kuomba usafiri Fikisha itakapothibitisha biashara yako.",
+    "openBusiness": "Fungua biashara yangu",
+    "later": "Baadaye"
   },
   "operator": {
     "title": "Wasifu wa opereta",
@@ -117,5 +140,82 @@
     "landmark": "Alama ya eneo",
     "zone": "Eneo",
     "empty": "Hakuna vituo vya kazi bado."
+  },
+  "businessVerification": {
+    "pendingTitle": "Biashara yako inathibitishwa",
+    "pendingBody": "Fikisha inakagua maelezo ya biashara yako. Utaweza kuomba usafiri itakapothibitishwa.",
+    "infoRequestedTitle": "Fikisha inahitaji maelezo zaidi",
+    "infoRequestedBody": "Mkaguzi ameomba maelezo zaidi kabla ya kuthibitisha biashara yako. Fungua biashara yako uone ujumbe na uyatume.",
+    "rejectedTitle": "Biashara yako haikuthibitishwa",
+    "rejectedBody": "Fungua biashara yako uone sababu, sahihisha maelezo yako na uitume tena.",
+    "notSubmittedTitle": "Biashara yako haijathibitishwa",
+    "notSubmittedBody": "Tuma biashara yako kwa uthibitisho. Utaweza kuomba usafiri itakapothibitishwa.",
+    "open": "Fungua biashara yangu",
+    "needsLocation": "Ongeza angalau eneo moja: biashara inahitaji eneo moja ili kuthibitishwa."
+  },
+  "operatorApproval": {
+    "title": "Kuidhinishwa",
+    "waitingTitle": "Akaunti yako ya mwendeshaji inasubiri kuidhinishwa",
+    "waitingBody": "Kamilisha hatua zilizo hapa chini. Mkaguzi wa Fikisha atazikagua na kuidhinisha akaunti yako; kazi, safari na ujumbe zitafunguka baada ya hapo.",
+    "checklist": "Tunachohitaji",
+    "profile": "Wasifu wa mwendeshaji",
+    "vehicle": "Angalau gari moja",
+    "review": "Fikisha inakagua na kuidhinisha akaunti yako",
+    "done": "Imekamilika",
+    "todo": "Bado",
+    "domain": {
+      "IDENTITY": "Utambulisho (kitambulisho au pasipoti)",
+      "LICENCE": "Leseni ya udereva",
+      "GOOD_CONDUCT": "Cheti cha Maadili Mema"
+    }
+  },
+  "applicants": {
+    "tabsLabel": "Aina ya mwombaji",
+    "tab": {
+      "OPERATOR": "Waendeshaji",
+      "BUSINESS": "Biashara",
+      "GROUP": "Vikundi"
+    },
+    "status": {
+      "PENDING": "Inasubiri kuidhinishwa",
+      "ACTIVE": "Imeidhinishwa",
+      "SUSPENDED": "Imesimamishwa",
+      "RESTRICTED": "Imezuiliwa",
+      "OFFBOARDED": "Imeondolewa",
+      "UNVERIFIED": "Haijathibitishwa",
+      "VERIFIED": "Imethibitishwa"
+    },
+    "openCount_one": "{{count}} ya kukagua",
+    "openCount_other": "{{count}} za kukagua",
+    "checks": "Ukaguzi {{done}} kati ya {{total}} umethibitishwa",
+    "waitingSince": "Inasubiri tangu {{when}}",
+    "registered": "Ilisajiliwa",
+    "groupType": "Aina ya kikundi",
+    "checksTitle": "Ukaguzi unaohitajika",
+    "approveTitle": "Idhinisha mwendeshaji huyu",
+    "approveBody": "Kuidhinisha kunamfungulia mwendeshaji huyu kazi, safari na ujumbe. Kagua rekodi zake hapa chini kwanza.",
+    "notAllVerified": "Ukaguzi {{done}} tu kati ya {{total}} unaohitajika umethibitishwa. Bado hataweza kuchukua safari zaidi ya kile ukaguzi wake ulioidhinishwa unaruhusu.",
+    "approveOperator": "Idhinisha mwendeshaji",
+    "approved": "Imeidhinishwa: mwendeshaji huyu anaweza kuona na kuchukua kazi.",
+    "ownRecords": {
+      "OPERATOR": "Mwendeshaji",
+      "BUSINESS": "Biashara",
+      "GROUP": "Kikundi"
+    },
+    "domain": {
+      "IDENTITY": "Utambulisho",
+      "LICENCE": "Leseni ya udereva",
+      "GOOD_CONDUCT": "Cheti cha Maadili Mema",
+      "VEHICLE": "Usajili na ubora wa gari",
+      "HEAVY_CLASS_COMPLIANCE": "Utiifu wa magari makubwa",
+      "ASSOCIATION": "Uhusiano wa gari na mwendeshaji",
+      "BASE": "Eneo la kazi",
+      "BUSINESS": "Maelezo ya biashara",
+      "GROUP": "Maelezo ya kikundi",
+      "DOCUMENT": "Hati ya ziada"
+    },
+    "vehicles": "Magari",
+    "noVehicles": "Hakuna magari yaliyosajiliwa.",
+    "noLocations": "Hakuna eneo linalotumika: biashara haiwezi kuthibitishwa hadi iongeze moja."
   }
 }

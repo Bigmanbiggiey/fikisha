@@ -11,6 +11,8 @@ interface NavRolesState {
   loading: boolean;
   /** the navigation roles this person can work as, in priority order */
   roles: NavRole[];
+  /** their operator profile is still waiting for Fikisha's approval (D-2) */
+  operatorPending: boolean;
 }
 
 /**
@@ -28,7 +30,9 @@ export function useNavRoles(): NavRolesState {
   const { user } = useAuth();
   const { loading, workspaces } = useWorkspaces();
   const has = (kind: string): boolean => workspaces.some((w) => w.kind === kind);
-  const operatorId = workspaces.find((w) => w.kind === 'OPERATOR')?.id ?? null;
+  const operatorWorkspace = workspaces.find((w) => w.kind === 'OPERATOR');
+  const operatorId = operatorWorkspace?.id ?? null;
+  const operatorPending = operatorWorkspace?.status === 'PENDING';
   const isGroupDriver = has('DRIVER');
 
   const ownsVehicle = useQuery({
@@ -41,7 +45,7 @@ export function useNavRoles(): NavRolesState {
   });
 
   if (loading || (ownsVehicle.isPending && ownsVehicle.fetchStatus !== 'idle')) {
-    return { loading: true, roles: [] };
+    return { loading: true, roles: [], operatorPending: false };
   }
 
   const roles = new Set<NavRole>();
@@ -52,7 +56,7 @@ export function useNavRoles(): NavRolesState {
   if (has('PLATFORM_ADMIN')) roles.add('PLATFORM_ADMIN');
   else if (has('OPERATIONS_OFFICER')) roles.add('OPERATIONS_OFFICER');
 
-  return { loading: false, roles: ROLE_PRIORITY.filter((r) => roles.has(r)) };
+  return { loading: false, roles: ROLE_PRIORITY.filter((r) => roles.has(r)), operatorPending };
 }
 
 export interface ActiveRoleState extends NavRolesState {
@@ -75,7 +79,7 @@ function readStored(userId: string | undefined): NavRole | null {
 
 export function useActiveRoleState(): ActiveRoleState {
   const { user } = useAuth();
-  const { loading, roles } = useNavRoles();
+  const { loading, roles, operatorPending } = useNavRoles();
   const [picked, setPicked] = useState<{ userId: string; role: NavRole } | null>(null);
 
   const wanted = picked && picked.userId === user?.id ? picked.role : readStored(user?.id);
@@ -94,7 +98,7 @@ export function useActiveRoleState(): ActiveRoleState {
     [user],
   );
 
-  return { loading, roles, role, setRole };
+  return { loading, roles, operatorPending, role, setRole };
 }
 
 /** Shared by ActiveRoleProvider (mounted in AppShell). */

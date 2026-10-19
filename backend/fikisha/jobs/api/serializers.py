@@ -12,6 +12,8 @@ from fikisha.jobs.constants import CancellationReason, HighValueDecision, Recipi
 
 
 class LocationWriteSerializer(serializers.Serializer[dict[str, Any]]):
+    # Pickup only: a saved business location to copy (assessment 2026-10-19).
+    business_location_id = serializers.UUIDField(required=False, allow_null=True)
     address_text = serializers.CharField(max_length=2000, required=False, allow_blank=True)
     lat = serializers.DecimalField(max_digits=9, decimal_places=6, required=False, allow_null=True)
     lng = serializers.DecimalField(max_digits=9, decimal_places=6, required=False, allow_null=True)

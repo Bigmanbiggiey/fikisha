@@ -15,6 +15,7 @@ is a read and works now.
 
 from __future__ import annotations
 
+import re
 from typing import Any
 
 from django.db import transaction
@@ -204,7 +205,8 @@ def intervene(
     _require(actor, "admin.account.intervene")
     if account_type not in _SUSPENDABLE:
         raise InvalidIntervention("Unknown account type.")
-    if action not in InterventionAction.values:
+    # APPROVE has its own path and permission (approve_operator).
+    if action not in InterventionAction.values or action == InterventionAction.APPROVE:
         raise InvalidIntervention("Unknown action.")
     reason = (reason or "").strip()
     if len(reason) < REASON_MIN_LENGTH:
@@ -254,6 +256,139 @@ def intervene(
             source_channel="ADMIN_UI",
         )
     return {"id": str(row.id), "before_state": before, "after_state": after}
+
+
+# ─── Operator approval (assessment 2026-10-19 D-2) ──────────────────────
+def approve_operator(*, actor: Any, operator_id: Any, note: str = "") -> dict[str, Any]:
+    """Approve a new operator: ``PENDING → ACTIVE``. Until then the operator
+    gets no work and cannot negotiate (D-3). Explicit and audited, never
+    automatic: verification records facts and decides nothing.
+
+    Held by the verification reviewers (``verification.decide``: Operations
+    Officer and Platform Admin), who are the ones reading the operator's
+    records. A reviewer cannot approve their own operator profile."""
+    _require(actor, "verification.decide")
+    user = _user(actor)
+    with transaction.atomic():
+        # Locked before the state check, so two reviewers cannot both approve.
+        row = (
+            operators_directory.queryset()
+            .select_for_update(of=("self",))
+            .filter(id=operator_id)
+            .first()
+        )
+        if row is None:
+            from rest_framework.exceptions import NotFound
+
+            raise NotFound("No such operator.")
+        if str(row.user_id) == str(getattr(user, "id", "")):
+            raise InterventionNotAllowed("You can't approve your own operator profile.")
+        current = operators_directory.row(row)["state"]
+        if current != "PENDING":
+            raise InterventionNotAllowed(f"An operator who is {current} can't be approved.")
+        before, after = operators_directory.set_state(operator_id, "ACTIVE")
+        reason = (note or "").strip() or "Approved after verification review."
+        record = AdminIntervention.objects.create(
+            account_type=AccountType.OPERATOR,
+            account_id=operator_id,
+            action=InterventionAction.APPROVE,
+            admin=user,
+            reason=reason,
+            before_state=before,
+            after_state=after,
+        )
+        audit.record(
+            actor=actor,
+            action="admin.account.approve",
+            entity_type="operator",
+            entity_id=operator_id,
+            before={"state": before},
+            after={"state": after, "reason": reason, "intervention_id": str(record.id)},
+            source_channel="ADMIN_UI",
+        )
+    return {"id": str(record.id), "before_state": before, "after_state": after}
+
+
+# ─── Cargo categories (assessment 2026-10-19 D-5) ───────────────────────
+_CATEGORY_CODE = re.compile(r"^[A-Z][A-Z_]{2,39}$")
+
+
+def uncategorised_cargo(*, actor: Any) -> list[dict[str, Any]]:
+    """What the keyword matcher filed under OTHER and still can't place."""
+    from fikisha.jobs import cargo_categories
+
+    _require(actor, "admin.config.read")
+    return cargo_categories.uncategorised()
+
+
+def _keyword(value: str) -> str:
+    kw = " ".join((value or "").lower().split())
+    if not 2 <= len(kw) <= 40:
+        raise InvalidConfigChange("A keyword is 2 to 40 characters.")
+    return kw
+
+
+def _apply_cargo_patch(*, actor: Any, patch: dict[str, Any], rationale: str) -> dict[str, Any]:
+    from fikisha.platform_config import services as config_services
+
+    rationale = (rationale or "").strip()
+    if len(rationale) < REASON_MIN_LENGTH:
+        raise InvalidConfigChange(f"Give a reason of at least {REASON_MIN_LENGTH} characters.")
+    require_step_up(actor)
+    version = config_services.apply_change(
+        patch=patch, changed_by=_user(actor), rationale=rationale
+    )
+    return {"version": version.version}
+
+
+def add_cargo_keyword(
+    *, actor: Any, category_code: str, keyword: str, rationale: str
+) -> dict[str, Any]:
+    """Teach the matcher: descriptions containing ``keyword`` now suggest
+    ``category_code``. A versioned, audited config change behind step-up.
+    A keyword belongs to one category, so suggestions stay predictable."""
+    from fikisha.jobs import cargo_categories
+
+    _require(actor, "admin.config.change")
+    if category_code not in cargo_categories.categories() or category_code == "OTHER":
+        raise InvalidConfigChange("Pick one of the cargo categories (not Other).")
+    kw = _keyword(keyword)
+    current = cargo_categories.keywords()
+    for code, words in current.items():
+        if kw in {w.lower() for w in words}:
+            raise InvalidConfigChange(f"'{kw}' is already a keyword for {code}.")
+    patch = {"cargo_category_keywords": {**current, category_code: [*current[category_code], kw]}}
+    return _apply_cargo_patch(actor=actor, patch=patch, rationale=rationale) | {
+        "category_code": category_code,
+        "keyword": kw,
+    }
+
+
+def add_cargo_category(
+    *, actor: Any, code: str, keywords: list[str], rationale: str
+) -> dict[str, Any]:
+    """Add a cargo category (listed before Other) with its first keywords.
+    Never done automatically: categories are platform rules (FR-ADM-6)."""
+    from fikisha.jobs import cargo_categories
+
+    _require(actor, "admin.config.change")
+    code = (code or "").strip().upper()
+    if not _CATEGORY_CODE.match(code):
+        raise InvalidConfigChange("A category code is 3 to 40 capital letters or underscores.")
+    existing = cargo_categories.categories()
+    if code in existing:
+        raise InvalidConfigChange(f"{code} already exists.")
+    words = [_keyword(k) for k in keywords or []]
+    current = cargo_categories.keywords()
+    taken = {w.lower(): c for c, ws in current.items() for w in ws}
+    for w in words:
+        if w in taken:
+            raise InvalidConfigChange(f"'{w}' is already a keyword for {taken[w]}.")
+    ordered = (
+        [c for c in existing if c != "OTHER"] + [code] + (["OTHER"] if "OTHER" in existing else [])
+    )
+    patch = {"cargo_categories": ordered, "cargo_category_keywords": {**current, code: words}}
+    return _apply_cargo_patch(actor=actor, patch=patch, rationale=rationale) | {"code": code}
 
 
 # ─── Configuration (§19.3, D-3) ─────────────────────────────────────────
