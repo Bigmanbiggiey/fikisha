@@ -446,6 +446,34 @@ class ProofOfDelivery(_ProofBase):
         db_table = "proof_of_delivery"
 
 
+class CustodyConfirmation(AppendOnlyModel):
+    """The other party's own confirmation of a handover (founder assessment
+    2026-10-20 L-5): the sender pressing "Confirm pickup" in their app, or the
+    recipient confirming with their code through the delivery link. It counts
+    towards the step; the driver's call completes it, so both parties take
+    part. Append-only."""
+
+    job = models.ForeignKey(Job, on_delete=models.PROTECT, related_name="custody_confirmations")
+    stage = models.CharField(
+        max_length=10, choices=[("PICKUP", "Pickup"), ("DELIVERY", "Delivery")]
+    )
+    #: ``IN_APP`` (the sender, signed in), ``OTP`` (the recipient's code) or
+    #: ``SIGNATURE`` (signed on the recipient's own phone through the link)
+    method = models.CharField(max_length=10)
+    evidence_ids = models.JSONField(default=list, blank=True)
+    captured_by = models.CharField(max_length=20, choices=ProofCapturedBy.choices)
+    actor = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.PROTECT, related_name="+"
+    )
+    party_name = models.CharField(max_length=120, blank=True, default="")
+
+    objects = AppendOnlyQuerySet.as_manager()
+
+    class Meta:
+        db_table = "custody_confirmation"
+        indexes = [models.Index(fields=["job", "stage"])]
+
+
 class OtpChallengeBase(TimestampedModel):
     job = models.ForeignKey(Job, on_delete=models.PROTECT, related_name="+")
     purpose = models.CharField(max_length=20, choices=OtpPurpose.choices)

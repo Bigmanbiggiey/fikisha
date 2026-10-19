@@ -286,6 +286,19 @@ def job_detail(job: Job, viewer: Any = None) -> dict[str, Any]:
     view["recipient_phone"] = "" if hide_recipient else job.recipient_phone
     view["contacts_hidden"] = hide_pickup or hide_recipient
     view["hidden_contacts"] = hidden
+    # What pickup and delivery need for this job's band, and what the other
+    # party has already confirmed on their own device (assessment 2026-10-20
+    # L-5), so the driver's screen can show both.
+    from fikisha.jobs import custody_rules
+    from fikisha.jobs.models import CustodyConfirmation
+
+    view["custody_requirements"] = custody_rules.requirements_view(job)
+    recorded = set(CustodyConfirmation.objects.filter(job=job).values_list("stage", "method"))
+    view["custody_confirmations"] = {
+        "sender_in_app": ("PICKUP", "IN_APP") in recorded,
+        "recipient_code": ("DELIVERY", "OTP") in recorded,
+        "recipient_signature": ("DELIVERY", "SIGNATURE") in recorded,
+    }
     if viewer is not None and job.is_high_value and job_authz.is_admin(viewer):
         # staff only: the effective high-value decision, so the console can
         # offer a Platform Admin the reversal of a rejection

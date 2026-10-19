@@ -90,12 +90,20 @@ class TestRecipientTokenBruteForce:
 
 class TestRecipientConfirm:
     def test_recipient_confirms_receipt_with_the_real_otp(
-        self, api: APIClient, at_destination: Callable
+        self, api: APIClient, at_destination: Callable, client_for: Callable, driver_actor: Any
     ) -> None:
         job, token = at_destination()
         r = api.post(
             f"/api/v1/r/{token}/confirm",
             {"code": "000000", "party_name": "A. Recipient"},
+            format="json",
+        )
+        assert r.status_code == 200, r.content
+        # Recorded; the driver completes delivery (assessment 2026-10-20 L-5).
+        assert r.data["status"] == "AT_DESTINATION"
+        r = client_for(driver_actor.user).post(
+            f"/api/v1/jobs/{job.id}/custody/confirm-delivery",
+            {"party_name": "A. Recipient"},
             format="json",
         )
         assert r.status_code == 200, r.content
@@ -221,6 +229,6 @@ def test_concurrent_recipient_confirmations_produce_exactly_one_delivery(
     successes = [code for code in results if code == 200]
     assert len(successes) == 1, results
 
-    from fikisha.jobs.models import Job
+    from fikisha.jobs.models import CustodyConfirmation
 
-    assert Job.objects.get(id=job.id).status == "DELIVERED"
+    assert CustodyConfirmation.objects.filter(job_id=job.id, method="OTP").count() == 1

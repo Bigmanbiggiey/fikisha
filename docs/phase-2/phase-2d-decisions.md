@@ -1493,6 +1493,70 @@ coarsened area while the business sees the exact pin; the assigned driver
 sees the exact pin. Frontend: locations card (2), create-job destination
 pin (updated), job map exact / area / none and the driver link (4).
 
+## ADR-2D-50 — Assessment 2026-10-20: live progress, Kenyan phones, contact timing, two-party custody — CONFIRMED (founder approval 2026-10-20, LD-1..LD-5)
+
+Plan and decisions: `docs/assessment-2026-10-20-plan.md`.
+
+**Live progress (L-1, LD-1).** Queries for jobs, offers, incidents,
+disputes, job events, the recipient link, messages and the Ops monitor
+re-check every 10 s while the tab is visible, and at once on focus or
+reconnect. Set once in the query client by key prefix
+(`LIVE_QUERY_PREFIXES`). No server push.
+
+**Destination (L-2).** The sender chooses "Use the map pin" or "Name the
+destination". The server refuses a destination with neither
+(`422 destination_required`); before, an empty one was accepted.
+
+**Kenyan phones (L-3, LD-2).** `identity.phone.normalize_phone` is now the
+one rule: `07…`/`01…`, or `+254…` standing for the `0`; exactly 10 digits
+after conversion; everything else refused (it used to accept any
+international number). `KenyanPhoneField` applies it to business,
+location, member, operator and job contact phones and the recipient phone,
+none of which were checked before. Stored `+254…`, shown `07…`.
+`manage.py phones_report` lists stored numbers that break the rule,
+read-only.
+
+**Contact timing (L-4, LD-3).** `job_authz.hidden_contacts`: the assigned
+side sees the sender's number from assignment, the recipient's only from
+`PICKED_UP`, and neither once the job is completed, cancelled, failed or
+disputed. Business and staff always see both. `job_detail` adds
+`hidden_contacts` (a reason per contact). This **changes founder decision 7**
+(2026-10-14: all contacts from assignment), by the founder. Exact map pins
+still follow assignment (MD-2).
+
+**Two-party custody (L-5, LD-4 / LD-5).** Changes chain-of-custody §4 and
+user flows §38–44 (marked superseded there):
+- Config `custody_proof_rules`: per stage and band, groups that must all be
+  met, each by any one of `OTP`, `SIGNATURE`, `PHOTO`, `IN_APP` (table in
+  the plan and chain-of-custody §4).
+- **The driver's call completes the step.** `POST .../confirm-pickup` (also
+  the old `/otp` path) takes any of the code, a signature file and photos.
+- The sender's "Confirm pickup" (`.../confirm-pickup/business`) and the
+  recipient's link confirmation now **record** an append-only
+  `custody_confirmation` row (migration `jobs/0012`, trigger `0013`),
+  audited, and no longer change the job's status. The guards read these
+  from the database, never from the caller.
+- Both are row-locked, so a double tap or two devices record once.
+- The operator-attested fallback is **retired**: the endpoint answers
+  `410 pickup_fallback_retired`, and attested proofs no longer cap the band.
+- The proof rows record every method present.
+- `job_detail` adds `custody_requirements` and `custody_confirmations`. The
+  driver's pickup and delivery screens show a checklist and open "Complete"
+  only when it's met.
+
+**Note for review:** the approved table lets a STANDARD pickup complete on
+the driver's photo alone. The driver's call is still the sender's handover
+moment, but no sender action is recorded on that path. A one-line config
+change removes `PHOTO` from the STANDARD pickup group if that's not wanted.
+
+**Tests:** backend `test_maps.py` (+4 destination), `identity/tests/
+test_phone.py` (rule table + entry points), `jobs/tests/test_phone_rule.py`,
+`test_contact_timing.py` (per status), `test_pickup_proof.py` (14),
+`test_delivery_proof.py` (8), `test_recipient_actions.py` (19, incl.
+rollback and concurrency); frontend live-refresh (2), phone rule (3),
+destination choice, hidden-contact note, checklist pickup (4) / delivery
+(3), business confirmed state.
+
 ## Self-caught defects fixed during implementation
 
 Every one of these was found by the implementation's own review or test

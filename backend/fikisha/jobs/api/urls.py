@@ -58,13 +58,19 @@ urlpatterns = [
         name="arrive-pickup",
     ),
     path(
+        "jobs/<uuid:job_id>/custody/confirm-pickup",
+        views.ConfirmPickupView.as_view(),
+        name="confirm-pickup",
+    ),
+    # Older path for the same driver call (the code is now optional).
+    path(
         "jobs/<uuid:job_id>/custody/confirm-pickup/otp",
-        views.ConfirmPickupOtpView.as_view(),
+        views.ConfirmPickupView.as_view(),
         name="confirm-pickup-otp",
     ),
     path(
         "jobs/<uuid:job_id>/custody/confirm-pickup/business",
-        views.ConfirmPickupByBusinessView.as_view(),
+        views.SenderConfirmPickupView.as_view(),
         name="confirm-pickup-business",
     ),
     path(

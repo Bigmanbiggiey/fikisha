@@ -36,7 +36,8 @@
     "photoAdded": "Picha imeongezwa",
     "confirm": "Thibitisha nimepokea mzigo",
     "proofIncomplete": "Ufikishaji huu unahitaji picha ya mzigo pia — tafadhali ongeza moja hapa chini.",
-    "otpHint": "Tulikutumia kwa SMS kwenye nambari aliyotoa mtumaji."
+    "otpHint": "Tulikutumia kwa SMS kwenye nambari aliyotoa mtumaji.",
+    "thanksDriverCompletes": "Asante. Dereva sasa atakamilisha kufikisha kwenye simu yake."
   },
   "reportIssue": {
     "title": "Ripoti tatizo",

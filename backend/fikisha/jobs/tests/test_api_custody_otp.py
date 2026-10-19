@@ -92,6 +92,12 @@ class TestArrivalAndCustodyFlow:
         client = client_for(business_actor.user)
         r = client.post(f"/api/v1/jobs/{job.id}/custody/confirm-pickup/business", {}, format="json")
         assert r.status_code == 200, r.content
+        # Recorded; the driver completes pickup (assessment 2026-10-20 L-5).
+        assert r.data["status"] == "AT_PICKUP"
+        r = client_for(driver_actor.user).post(
+            f"/api/v1/jobs/{job.id}/custody/confirm-pickup", {}, format="json"
+        )
+        assert r.status_code == 200, r.content
         assert r.data["status"] == "PICKED_UP"
 
     def test_fail_at_pickup_requires_a_reason(

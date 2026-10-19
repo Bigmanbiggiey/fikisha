@@ -76,18 +76,18 @@ class ArriveSerializer(serializers.Serializer[dict[str, Any]]):
     geo = GeoSerializer(required=False)
 
 
-class ConfirmPickupOtpSerializer(serializers.Serializer[dict[str, Any]]):
-    code = serializers.CharField(max_length=12)
+class ConfirmPickupSerializer(serializers.Serializer[dict[str, Any]]):
+    """The driver completes pickup with what the sender gave (assessment
+    2026-10-20 L-5): any of the code, a signature file, photos; the sender's
+    in-app confirmation counts on its own."""
+
+    code = serializers.CharField(max_length=12, required=False, allow_blank=True)
+    party_name = serializers.CharField(max_length=120, required=False, allow_blank=True)
     condition_note = serializers.CharField(max_length=2000, required=False, allow_blank=True)
 
 
-class ConfirmPickupBusinessSerializer(serializers.Serializer[dict[str, Any]]):
-    condition_note = serializers.CharField(max_length=2000, required=False, allow_blank=True)
-
-
-class ConfirmPickupAttestedSerializer(serializers.Serializer[dict[str, Any]]):
-    pickup_contact_name = serializers.CharField(max_length=120)
-    condition_note = serializers.CharField(max_length=2000, required=False, allow_blank=True)
+class SenderConfirmPickupSerializer(serializers.Serializer[dict[str, Any]]):
+    party_name = serializers.CharField(max_length=120, required=False, allow_blank=True)
 
 
 class FailAtPickupSerializer(serializers.Serializer[dict[str, Any]]):

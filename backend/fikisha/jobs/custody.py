@@ -18,11 +18,15 @@ from __future__ import annotations
 
 from typing import Any
 
+from django.db import transaction
+
+from fikisha.audit import services as audit
 from fikisha.business import authz as business_authz
 from fikisha.business.models import BusinessRole
+from fikisha.common.exceptions import DomainError
 from fikisha.jobs import otp as otp_service
 from fikisha.jobs.constants import JobStatus, ValueBand
-from fikisha.jobs.errors import GuardFailed, PickupConfirmationRequired
+from fikisha.jobs.errors import GuardFailed
 from fikisha.jobs.selectors import get_job
 from fikisha.jobs.service import TransitionContext
 from fikisha.jobs.service import transition as job_transition
@@ -100,7 +104,106 @@ def arrive_at_destination(
     }
 
 
-# ─── pickup proof (AT_PICKUP -> PICKED_UP) ──────────────────────────
+# ─── two-party custody (founder assessment 2026-10-20 L-5, LD-4/LD-5) ──
+# The driver's call completes pickup and delivery; the other party takes part
+# by giving the code, signing on the driver's phone, or confirming on their
+# own device (the sender in the app, the recipient through the link), which
+# is recorded first as a ``CustodyConfirmation``. ``custody_rules`` says which
+# methods each value band needs.
+
+
+def _recorded_methods(job: Any, stage: str) -> set[str]:
+    from fikisha.jobs.models import CustodyConfirmation
+
+    return set(
+        CustodyConfirmation.objects.filter(job=job, stage=stage).values_list("method", flat=True)
+    )
+
+
+class SenderConfirmationNotAllowed(GuardFailed):
+    default_code = "sender_confirmation_not_allowed"
+    default_detail = "The sender can confirm pickup only once the driver is assigned or at pickup."
+
+
+@transaction.atomic
+def sender_confirm_pickup(*, actor: Any, job_id: Any, party_name: str = "") -> dict[str, Any]:
+    """The sender (business owner/dispatcher) confirms the handover in their
+    own app. Recorded once; it counts as ``IN_APP`` when the driver completes
+    pickup."""
+    from fikisha.jobs.constants import ProofCapturedBy
+    from fikisha.jobs.dto import job_view
+    from fikisha.jobs.models import CustodyConfirmation
+    from fikisha.jobs.selectors import job_for_update
+
+    job = job_for_update(job_id)  # a double tap records once
+    if not _actor_is_business_party(actor, job):
+        raise GuardFailed(
+            "In-app pickup confirmation must come from the business owner or dispatcher.",
+            code="not_a_business_party",
+        )
+    if job.status not in {JobStatus.ASSIGNED, JobStatus.AT_PICKUP}:
+        raise SenderConfirmationNotAllowed()
+    if not CustodyConfirmation.objects.filter(job=job, stage="PICKUP", method="IN_APP").exists():
+        user = getattr(actor, "user", None)
+        CustodyConfirmation.objects.create(
+            job=job,
+            stage="PICKUP",
+            method="IN_APP",
+            captured_by=ProofCapturedBy.BUSINESS_CONTACT,
+            actor=user if getattr(user, "pk", None) else None,
+            party_name=(party_name or "").strip(),
+        )
+        audit.record(
+            actor=actor,
+            action="job.custody.sender_confirmed",
+            entity_type="job",
+            entity_id=job.id,
+            after={"method": "IN_APP"},
+        )
+    return job_view(job)
+
+
+def confirm_pickup(
+    *,
+    actor: Any,
+    job_id: Any,
+    code: str | None = None,
+    signature_evidence_id: Any = None,
+    photo_evidence_ids: list[Any] | None = None,
+    party_name: str = "",
+    condition_note: str = "",
+    idempotency_key: str = "",
+) -> dict[str, Any]:
+    """The driver completes pickup (``AT_PICKUP -> PICKED_UP``) with whatever
+    the sender gave (code, signature) and the driver's photos; the sender's
+    in-app confirmation counts if recorded. The band guard refuses it, naming
+    what is missing, until the rule is met."""
+    job = get_job(job_id)
+    cid = None
+    if code:
+        # validated now (own txn: a wrong code's attempt count sticks),
+        # consumed only when the transition commits
+        cid = otp_service.verify_otp(
+            job=job, purpose="PICKUP_HANDOVER", code=code, actor=actor, consume=False
+        )
+    view, _ = _advance(
+        actor=actor,
+        job_id=job.id,
+        to=JobStatus.PICKED_UP,
+        data={
+            "initiator_tokens": [],
+            "_otp_challenge_id": cid,
+            "_otp_purpose": "PICKUP_HANDOVER",
+            "signature_evidence_id": signature_evidence_id,
+            "photo_evidence_ids": photo_evidence_ids or [],
+            "pickup_contact_name": (party_name or "").strip(),
+            "condition_note": condition_note,
+        },
+        idempotency_key=idempotency_key,
+    )
+    return view
+
+
 def confirm_pickup_with_otp(
     *,
     actor: Any,
@@ -110,98 +213,30 @@ def confirm_pickup_with_otp(
     photo_evidence_ids: list[Any] | None = None,
     idempotency_key: str = "",
 ) -> dict[str, Any]:
-    job = get_job(job_id)
-    # validate now (own txn — a wrong code's attempt count sticks); consume only
-    # when the transition commits
-    cid = otp_service.verify_otp(
-        job=job, purpose="PICKUP_HANDOVER", code=code, actor=actor, consume=False
-    )
-    view, _ = _advance(
+    """The driver completes pickup with the sender's code (and any photos):
+    ``confirm_pickup`` with a code."""
+    return confirm_pickup(
         actor=actor,
-        job_id=job.id,
-        to=JobStatus.PICKED_UP,
-        data={
-            "initiator_tokens": [],
-            "pickup_method": "OTP",
-            "_otp_challenge_id": cid,
-            "_otp_purpose": "PICKUP_HANDOVER",
-            "condition_note": condition_note,
-            "photo_evidence_ids": photo_evidence_ids or [],
-        },
+        job_id=job_id,
+        code=code,
+        photo_evidence_ids=photo_evidence_ids,
+        condition_note=condition_note,
         idempotency_key=idempotency_key,
     )
-    return view
 
 
-def confirm_pickup_by_business(
-    *,
-    actor: Any,
-    job_id: Any,
-    condition_note: str = "",
-    photo_evidence_ids: list[Any] | None = None,
-    idempotency_key: str = "",
-) -> dict[str, Any]:
-    """Server-confirmed in-app pickup confirmation by the business owner/
-    dispatcher — same authoritative transition and proof model as the OTP path
-    (Founder Increment-4 condition 6)."""
-    job = get_job(job_id)
-    if not _actor_is_business_party(actor, job):
-        raise GuardFailed(
-            "In-app pickup confirmation must come from the business owner or dispatcher.",
-            code="not_a_business_party",
-        )
-    view, _ = _advance(
-        actor=actor,
-        job_id=job.id,
-        to=JobStatus.PICKED_UP,
-        data={
-            "initiator_tokens": ["BUSINESS_OWNER_OR_DISPATCHER"],
-            "pickup_method": "BUSINESS_CONFIRM",
-            "actor_is_business_party": True,
-            "condition_note": condition_note,
-            "photo_evidence_ids": photo_evidence_ids or [],
-        },
-        idempotency_key=idempotency_key,
+class PickupFallbackRetired(DomainError):
+    status_code = 410
+    default_code = "pickup_fallback_retired"
+    default_detail = (
+        "The operator-only pickup was retired: the sender must confirm too "
+        "(code, signature or in-app)."
     )
-    return view
 
 
-def confirm_pickup_attested(
-    *,
-    actor: Any,
-    job_id: Any,
-    fallback_photo_id: Any,
-    pickup_contact_name: str,
-    condition_note: str = "",
-    idempotency_key: str = "",
-) -> dict[str, Any]:
-    """STANDARD-band-only operator-attested fallback for an undeliverable OTP:
-    goods photo + pickup-contact name -> attestation OPERATOR_ATTESTED_UNVERIFIED,
-    the job is capped at STANDARD (D-CUS-2). Refused for ELEVATED+."""
-    job = get_job(job_id)
-    if (job.value_band or ValueBand.STANDARD) in _HIGH_OR_ELEVATED:
-        raise PickupConfirmationRequired(
-            "This value band requires a verified pickup (OTP or in-app business "
-            "confirmation); the operator-attested fallback is not allowed."
-        )
-    if not fallback_photo_id or not (pickup_contact_name or "").strip():
-        raise PickupConfirmationRequired(
-            "The attested fallback needs a goods photo and the pickup-contact's name."
-        )
-    view, _ = _advance(
-        actor=actor,
-        job_id=job.id,
-        to=JobStatus.PICKED_UP,
-        data={
-            "initiator_tokens": [],
-            "pickup_method": "ATTESTED",
-            "fallback_photo_id": fallback_photo_id,
-            "pickup_contact_name": pickup_contact_name.strip(),
-            "condition_note": condition_note,
-        },
-        idempotency_key=idempotency_key,
-    )
-    return view
+def confirm_pickup_attested(**_: Any) -> dict[str, Any]:
+    """Retired (LD-4): one party can no longer confirm a pickup alone."""
+    raise PickupFallbackRetired()
 
 
 # ─── delivery proof (AT_DESTINATION -> DELIVERED) ───────────────────
@@ -217,9 +252,9 @@ def confirm_delivery(
     geo: dict[str, Any] | None = None,
     idempotency_key: str = "",
 ) -> dict[str, Any]:
-    """Driver-side proof of delivery. STANDARD: name + >=1 of {OTP, SIGNATURE,
-    PHOTO}. ELEVATED/HIGH/VERY_HIGH: name + recipient OTP **and** >=1 photo
-    (D-TRU-5). The recipient-via-link path is plan §19 Step 7."""
+    """The driver completes delivery with the recipient's name and whatever the
+    band needs (code or signature, and the driver's photo for ELEVATED+). A
+    code or signature the recipient already gave through their link counts."""
     job = get_job(job_id)
     cid = None
     if code:

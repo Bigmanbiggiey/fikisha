@@ -377,5 +377,25 @@
     "not_assigned": "Number shown once the job is assigned to you",
     "until_pickup": "Number shown once pickup is confirmed",
     "job_closed": "Job closed: contact through Fikisha"
+  },
+  "proof": {
+    "method": {
+      "OTP": "the code",
+      "SIGNATURE": "a signature",
+      "PHOTO": "a photo",
+      "IN_APP": "the sender confirms in their app"
+    },
+    "or": " or ",
+    "done": "done",
+    "todo": "still needed",
+    "pickupNeeds": "This pickup needs",
+    "deliveryNeeds": "This delivery needs",
+    "senderConfirmed": "The sender has confirmed the handover in their app.",
+    "senderCanConfirm": "The sender can also confirm the handover in their own Fikisha app.",
+    "senderSigns": "Sender signs here",
+    "senderName": "Sender's name (optional)",
+    "completePickup": "Complete pickup",
+    "recipientConfirmed": "The recipient has confirmed with their code.",
+    "youConfirmed": "You've confirmed the handover. The driver completes the pickup on their phone."
   }
 }

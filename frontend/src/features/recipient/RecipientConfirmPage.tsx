@@ -52,7 +52,8 @@ export function RecipientConfirmPage(): JSX.Element {
         },
         crypto.randomUUID(),
       ),
-    onSuccess: () => navigate(`/r/${token}`, { replace: true }),
+    // Recorded; the driver completes the delivery (assessment 2026-10-20 L-5).
+    onSuccess: () => navigate(`/r/${token}`, { replace: true, state: { confirmed: true } }),
   });
 
   const proofIncomplete =

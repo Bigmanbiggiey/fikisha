@@ -44,10 +44,11 @@ export function PickupConfirmPage(): JSX.Element {
 
   const confirm = useMutation({
     mutationFn: () => jobsApi.confirmPickupBusiness(jobId!, {}, crypto.randomUUID()),
+    // Recorded, not completed: the driver completes pickup on their phone,
+    // so both parties take part (assessment 2026-10-20 L-5).
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['jobs', jobId] });
       void qc.invalidateQueries({ queryKey: ['jobs'] });
-      navigate(`/jobs/${jobId}`, { replace: true });
     },
   });
 
@@ -67,6 +68,18 @@ export function PickupConfirmPage(): JSX.Element {
           </Button>
         </div>
       </Card>
+    );
+  }
+
+  if (data.custody_confirmations?.sender_in_app) {
+    return (
+      <div className="mx-auto max-w-lg space-y-4">
+        <h1 className="text-h1 text-fg">{t('jobs:pickupConfirm.confirmPickup')}</h1>
+        <Alert tone="success">{t('jobs:proof.youConfirmed')}</Alert>
+        <Button variant="secondary" onClick={() => navigate(`/jobs/${jobId}`, { replace: true })}>
+          {t('jobs:pickupConfirm.backToJob')}
+        </Button>
+      </div>
     );
   }
 

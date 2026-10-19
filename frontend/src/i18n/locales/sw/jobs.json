@@ -377,5 +377,25 @@
     "not_assigned": "Namba itaonekana safari ikikabidhiwa kwako",
     "until_pickup": "Namba itaonekana kuchukua kukithibitishwa",
     "job_closed": "Safari imefungwa: wasiliana kupitia Fikisha"
+  },
+  "proof": {
+    "method": {
+      "OTP": "msimbo",
+      "SIGNATURE": "sahihi",
+      "PHOTO": "picha",
+      "IN_APP": "mtumaji athibitishe kwenye programu yake"
+    },
+    "or": " au ",
+    "done": "imekamilika",
+    "todo": "bado inahitajika",
+    "pickupNeeds": "Kuchukua huku kunahitaji",
+    "deliveryNeeds": "Kufikisha huku kunahitaji",
+    "senderConfirmed": "Mtumaji amethibitisha makabidhiano kwenye programu yake.",
+    "senderCanConfirm": "Mtumaji anaweza pia kuthibitisha makabidhiano kwenye programu yake ya Fikisha.",
+    "senderSigns": "Mtumaji atie sahihi hapa",
+    "senderName": "Jina la mtumaji (si lazima)",
+    "completePickup": "Kamilisha kuchukua",
+    "recipientConfirmed": "Mpokeaji amethibitisha kwa msimbo wake.",
+    "youConfirmed": "Umethibitisha makabidhiano. Dereva atakamilisha kuchukua kwenye simu yake."
   }
 }

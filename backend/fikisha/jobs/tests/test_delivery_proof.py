@@ -1,4 +1,6 @@
-"""Delivery proof band matrix (D-TRU-5, chain-of-custody.md §2)."""
+"""Delivery proof by band (founder assessment 2026-10-20 L-5, LD-4): the
+recipient's name, plus STANDARD code or signature; ELEVATED code and the
+driver's photo; HIGH and VERY_HIGH code, signature and photo."""
 
 from __future__ import annotations
 
@@ -22,7 +24,9 @@ def at_destination(make_assigned_job: Callable, driver_actor: Any) -> Callable[.
     def _make(*, declared_value_kes: int = 1_200_000) -> Any:
         job = make_assigned_job(declared_value_kes=declared_value_kes)
         custody.arrive_at_pickup(actor=driver_actor, job_id=job.id)
-        custody.confirm_pickup_with_otp(actor=driver_actor, job_id=job.id, code="000000")
+        custody.confirm_pickup(
+            actor=driver_actor, job_id=job.id, code="000000", photo_evidence_ids=["ev-goods"]
+        )
         custody.start_transit(actor=driver_actor, job_id=job.id)
         custody.arrive_at_destination(actor=driver_actor, job_id=job.id)
         job.refresh_from_db()
@@ -31,14 +35,18 @@ def at_destination(make_assigned_job: Callable, driver_actor: Any) -> Callable[.
     return _make
 
 
-# ─── STANDARD: name + >=1 of {OTP, SIGNATURE, PHOTO} ──────────────
-def test_standard_photo_only(at_destination: Callable, driver_actor: Any) -> None:
+# ─── STANDARD: name + the code or a signature ────────────────────
+def test_standard_a_photo_alone_is_not_enough(at_destination: Callable, driver_actor: Any) -> None:
+    """The recipient has to take part: the driver's photo alone no longer
+    completes a delivery (LD-4)."""
     job = at_destination()
-    out = custody.confirm_delivery(
-        actor=driver_actor, job_id=job.id, party_name="R. Recipient", photo_evidence_ids=["ev-1"]
-    )
-    assert out["status"] == JobStatus.DELIVERED
-    assert ProofOfDelivery.objects.get(job=job).methods == ["PHOTO"]
+    with pytest.raises(DeliveryProofIncomplete, match="the code or a signature"):
+        custody.confirm_delivery(
+            actor=driver_actor,
+            job_id=job.id,
+            party_name="R. Recipient",
+            photo_evidence_ids=["ev-1"],
+        )
 
 
 def test_standard_signature_only(at_destination: Callable, driver_actor: Any) -> None:
@@ -129,13 +137,13 @@ def test_first_valid_delivery_proof_wins(at_destination: Callable, driver_actor:
 
     job = at_destination()
     custody.confirm_delivery(
-        actor=driver_actor, job_id=job.id, party_name="R. Recipient", photo_evidence_ids=["ev-1"]
+        actor=driver_actor, job_id=job.id, party_name="R. Recipient", code="000000"
     )
-    with pytest.raises(TransitionNotAllowed):
+    with pytest.raises((TransitionNotAllowed, DeliveryProofIncomplete)):
         custody.confirm_delivery(
             actor=driver_actor,
             job_id=job.id,
             party_name="R. Recipient",
-            photo_evidence_ids=["ev-2"],
+            signature_evidence_id=str(__import__("uuid").uuid4()),
         )
     assert ProofOfDelivery.objects.filter(job=job).count() == 1

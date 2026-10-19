@@ -85,6 +85,27 @@ DEFAULT_CONFIG: dict[str, Any] = {
         "OTHER",
     ],
     "latent_risk_categories": ["ELECTRONICS", "FOOD_BEVERAGE", "FURNITURE_APPLIANCES"],
+    # What completes a pickup and a delivery, per value band (founder
+    # assessment 2026-10-20, LD-4). Each band lists groups; every group must be
+    # met, and a group is met by any one of its methods. OTP = the code, given
+    # to the driver or through the recipient link; SIGNATURE = signed on the
+    # driver's phone; PHOTO = taken by the driver; IN_APP = the sender
+    # confirmed in their own app. The driver always makes the final call, so
+    # both parties take part.
+    "custody_proof_rules": {
+        "pickup": {
+            "STANDARD": [["OTP", "SIGNATURE", "PHOTO", "IN_APP"]],
+            "ELEVATED": [["OTP", "IN_APP"], ["PHOTO"]],
+            "HIGH": [["OTP"], ["SIGNATURE"], ["PHOTO"]],
+            "VERY_HIGH": [["OTP"], ["SIGNATURE"], ["PHOTO"]],
+        },
+        "delivery": {
+            "STANDARD": [["OTP", "SIGNATURE"]],
+            "ELEVATED": [["OTP"], ["PHOTO"]],
+            "HIGH": [["OTP"], ["SIGNATURE"], ["PHOTO"]],
+            "VERY_HIGH": [["OTP"], ["SIGNATURE"], ["PHOTO"]],
+        },
+    },
     # Keywords (English + Swahili) that suggest a cargo category from the
     # description when the business picks none (assessment 2026-10-19 D-5).
     # A Platform Admin adds to them from the "uncategorised" list.

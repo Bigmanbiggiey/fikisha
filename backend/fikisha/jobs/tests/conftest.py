@@ -334,13 +334,18 @@ def delivered_job(make_assigned_job: Callable, driver_actor: Any) -> Callable[..
     def _make(*, declared_value_kes: int = 1_200_000) -> Any:
         job = make_assigned_job(declared_value_kes=declared_value_kes)
         custody.arrive_at_pickup(actor=driver_actor, job_id=job.id)
-        custody.confirm_pickup_with_otp(actor=driver_actor, job_id=job.id, code="000000")
+        # Code + photo meets the pickup and delivery rules up to ELEVATED
+        # (assessment 2026-10-20 L-5).
+        custody.confirm_pickup(
+            actor=driver_actor, job_id=job.id, code="000000", photo_evidence_ids=["ev-goods"]
+        )
         custody.start_transit(actor=driver_actor, job_id=job.id)
         custody.arrive_at_destination(actor=driver_actor, job_id=job.id)
         custody.confirm_delivery(
             actor=driver_actor,
             job_id=job.id,
             party_name="R. Recipient",
+            code="000000",
             photo_evidence_ids=["ev-1"],
         )
         job.refresh_from_db()

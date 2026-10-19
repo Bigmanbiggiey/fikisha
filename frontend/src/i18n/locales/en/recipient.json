@@ -36,7 +36,8 @@
     "photoAdded": "Photo added",
     "confirm": "Confirm I received the goods",
     "proofIncomplete": "This delivery needs a photo of the goods too — please add one below.",
-    "otpHint": "We sent it by SMS to the number the sender gave for you."
+    "otpHint": "We sent it by SMS to the number the sender gave for you.",
+    "thanksDriverCompletes": "Thank you. The driver now completes the delivery on their phone."
   },
   "reportIssue": {
     "title": "Report a problem",

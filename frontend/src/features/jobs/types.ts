@@ -1,3 +1,5 @@
+import type { ProofGroups } from './custodyProof';
+
 /**
  * Field names and shapes here are taken directly from the backend's actual
  * projections — `fikisha.jobs.dto.job_view()` / `creation.job_detail()` for
@@ -112,6 +114,15 @@ export interface Job extends JobTransitionResult {
   contacts_hidden?: boolean;
   /** per contact: why it is hidden from this viewer, or null when shown
    * (assessment 2026-10-20 item 4) */
+  /** what pickup and delivery need for this job's band (assessment
+   * 2026-10-20 L-5): groups, all required, any one method per group */
+  custody_requirements?: { pickup: ProofGroups; delivery: ProofGroups };
+  /** the other party's own confirmations already recorded */
+  custody_confirmations?: {
+    sender_in_app: boolean;
+    recipient_code: boolean;
+    recipient_signature: boolean;
+  };
   hidden_contacts?: {
     pickup: ContactHiddenReason | null;
     recipient: ContactHiddenReason | null;
@@ -241,13 +252,14 @@ export interface ConfirmPickupBusinessBody extends GeoBody {
   condition_note?: string;
 }
 
-/** No `geo` field — `ConfirmPickupAttestedSerializer` doesn't accept one
- * (only the arrive-pickup event captures a reading). */
-export interface ConfirmPickupAttestedBody {
-  pickup_contact_name: string;
+/** The driver completes pickup with what the sender gave (L-5): any of the
+ * code, the sender's signature on this phone, the driver's photos. */
+export interface ConfirmPickupBody {
+  code?: string;
+  party_name?: string;
   condition_note?: string;
-  /** STANDARD-only fallback proof (`chain-of-custody.md` §4) — required. */
-  photo: File;
+  photos?: File[];
+  signature?: File;
 }
 
 export interface FailAtPickupBody {
