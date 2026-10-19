@@ -23,9 +23,12 @@ interface LocationLike {
 export function JobMap({
   pickup,
   destination,
+  showDirections = true,
 }: {
   pickup: LocationLike | null | undefined;
   destination: LocationLike | null | undefined;
+  /** off where the screen already has its own "go" buttons (driver view) */
+  showDirections?: boolean;
 }): JSX.Element | null {
   const { t } = useTranslation('common');
   const points = useMemo(() => {
@@ -55,7 +58,7 @@ export function JobMap({
             <span className="font-semibold text-fg">
               {p.letter} · {t(`map.${p.kind}`)}
             </span>
-            {!p.approximate && (
+            {showDirections && !p.approximate && (
               <a
                 href={googleMapsDirectionsUrl(p.point)}
                 target="_blank"

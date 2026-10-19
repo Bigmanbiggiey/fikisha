@@ -14,6 +14,7 @@ import { PageLoader } from '@/components/PageLoader';
 import { negotiationApi } from '@/features/negotiation/negotiationApi';
 import { localizeError } from '@/services/errorMessage';
 import { useWorkspaces } from '@/shell/useWorkspaces';
+import { JobMap } from '@/features/maps/JobMap';
 
 import { jobReference } from './jobHelpers';
 import { jobsApi } from './jobsApi';
@@ -110,6 +111,9 @@ export function JobOpportunityPage(): JSX.Element {
             <dd className="text-fg">{data.destination_location?.address_text || '—'}</dd>
           </div>
         </dl>
+        <div className="mt-3">
+          <JobMap pickup={data.pickup_location} destination={data.destination_location} />
+        </div>
       </Card>
 
       <Card>

@@ -1448,6 +1448,51 @@ endpoints; the uncategorised list until a keyword is taught (and existing
 jobs unchanged); a new category; teaching needs step-up and Platform Admin.
 Frontend: the picker fills in and stops once picked (2); the admin page (1).
 
+## ADR-2D-49 — Maps: pinned locations, destination picker, navigation — CONFIRMED (founder approval 2026-10-19, MD-1..MD-6)
+
+Plan and decisions: `docs/maps-plan.md`.
+
+**Provider (MD-1).** Leaflet in the PWA, loaded only by screens that show a
+map (its own chunk). Tiles come from `VITE_MAP_TILE_URL` /
+`VITE_MAP_ATTRIBUTION`: MapTiler in production; in local dev with nothing
+set, OpenStreetMap's public tiles (dev only, by their usage policy). With no
+provider configured, or tiles failing, the screen says so and takes a typed
+address (MD-3). The privacy notice must name the provider and the
+cross-border transfer needs legal sign-off before production (REQUIRES
+VALIDATION, legal-scope §3).
+
+**Business locations (M-2).** A new location is placed on the map and
+named, with its type and an optional landmark; the pin is required while
+the map can load. Locations saved earlier show "No pin on the map yet" and
+"Add the pin" (existing PATCH). No backend change: the fields existed.
+
+**Destination (M-3).** The create-job destination step has the picker; a pin
+is required while the map can load; a pin outside Kitengela and environs
+warns (MD-5). The pickup step warns when the chosen saved location has no
+pin. Backend: a job location with coordinates is stored `geo_state =
+CAPTURED`, ad-hoc or copied from a saved location.
+
+**Who sees the exact pin (MD-2).** `job_detail` (job detail, job lists,
+Work discovery) rounds coordinates to two decimals (~1 km) and marks them
+`COARSENED` for anyone `may_see_contact_phones` refuses, i.e. an operator
+still looking or negotiating. The business, staff and the assigned operator,
+group manager and driver get exact coordinates. The address text is
+unchanged (it was already shown).
+
+**Navigation (M-4, MD-6).** Job detail, the Work opportunity page and the
+driver view show the pins (an area circle where coarsened). "Open in Google
+Maps" gives directions to an exact pin, built only when tapped; nothing is
+shown for a coarsened one. The driver's existing "go" links no longer use
+rounded coordinates. No tracking, no routing in Fikisha, no stored trails.
+
+**Not done:** place-name search (MD-4, later); offline tile caching.
+
+**Tests:** `jobs/tests/test_maps.py` (4): pinned destination captured;
+saved-location pin copied as captured; an operator browsing work sees the
+coarsened area while the business sees the exact pin; the assigned driver
+sees the exact pin. Frontend: locations card (2), create-job destination
+pin (updated), job map exact / area / none and the driver link (4).
+
 ## Self-caught defects fixed during implementation
 
 Every one of these was found by the implementation's own review or test

@@ -31,10 +31,24 @@ export function whatsappHref(phone: string | null | undefined): string | null {
 /** Opens the place in the phone's map app: coordinates when present, else
  * the address text. Null when there's nothing to search for. */
 export function mapsHref(
-  location: { address_text?: string | null; lat?: string | number | null; lng?: string | number | null } | null | undefined,
+  location:
+    | {
+        address_text?: string | null;
+        lat?: string | number | null;
+        lng?: string | number | null;
+        geo_state?: string;
+      }
+    | null
+    | undefined,
 ): string | null {
   if (!location) return null;
-  const hasCoords = location.lat != null && location.lat !== '' && location.lng != null && location.lng !== '';
+  // Rounded coordinates (maps MD-2) would send someone to the wrong spot.
+  const hasCoords =
+    location.geo_state !== 'COARSENED' &&
+    location.lat != null &&
+    location.lat !== '' &&
+    location.lng != null &&
+    location.lng !== '';
   const query = hasCoords ? `${location.lat},${location.lng}` : (location.address_text ?? '').trim();
   return query ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}` : null;
 }

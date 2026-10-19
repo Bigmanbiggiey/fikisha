@@ -35,6 +35,7 @@ import { formatKes } from './money';
 import type { Job, JobStatus } from './types';
 import { useJobViewerRole } from './useJobViewerRole';
 import { JobEarningsCard } from '@/features/statements/JobEarningsCard';
+import { JobMap } from '@/features/maps/JobMap';
 
 /** A timeline row's time: just the time today, date and time before that
  * (P-14), always in Kenya time. */
@@ -143,6 +144,9 @@ export function JobDetailPage(): JSX.Element {
             </dd>
           </div>
         </dl>
+        <div className="mt-3">
+          <JobMap pickup={data.pickup_location} destination={data.destination_location} />
+        </div>
       </Card>
 
       <Card>

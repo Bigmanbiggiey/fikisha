@@ -10,6 +10,7 @@ import { NextActionCard } from '@/components/NextActionCard';
 import { cn } from '@/components/cn';
 import { Icon } from '@/design/Icon';
 import { vehiclesApi } from '@/features/vehicles/vehiclesApi';
+import { JobMap } from '@/features/maps/JobMap';
 
 import { mapsHref, telHref, whatsappHref } from './contactLinks';
 import { jobReference } from './jobHelpers';
@@ -103,6 +104,7 @@ export function DriverJobView({
 
       {/* The contact for the current step comes first: the sender until
           the goods are collected, then the receiver. */}
+      <JobMap pickup={job.pickup_location} destination={job.destination_location} showDirections={false} />
       <div className="space-y-3">{pickedUp ? [receiver, sender] : [sender, receiver]}</div>
 
       <Card>

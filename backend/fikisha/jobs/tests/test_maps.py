@@ -82,7 +82,9 @@ def test_an_operator_looking_at_work_sees_only_the_area(
     for url in (f"/api/v1/jobs/{job.id}/opportunity", "/api/v1/jobs/opportunities"):
         r = client.get(url)
         assert r.status_code == 200, r.content
-        view = r.data if "id" in r.data else next(j for j in r.data["data"] if j["id"] == str(job.id))
+        view = (
+            r.data if "id" in r.data else next(j for j in r.data["data"] if j["id"] == str(job.id))
+        )
         dest = view["destination_location"]
         assert dest["geo_state"] == "COARSENED"
         assert (Decimal(str(dest["lat"])), Decimal(str(dest["lng"]))) == (
