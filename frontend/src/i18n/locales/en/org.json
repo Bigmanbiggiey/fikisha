@@ -48,7 +48,25 @@
     "queueEmpty": "Nothing awaiting review.",
     "noRecords": "No verification records yet.",
     "expiresAt": "Expires",
-    "submitDetails": "Submit for verification"
+    "submitDetails": "Submit for verification",
+    "review": "Review",
+    "noAction": "No review action in this state.",
+    "now": "Now: {{state}}",
+    "superseded": "replaced",
+    "noEvidence": "No documents attached.",
+    "kind": {
+      "NATIONAL_ID": "National ID",
+      "PASSPORT": "Passport",
+      "SELFIE": "Photo",
+      "DRIVING_LICENCE": "Driving licence",
+      "GOOD_CONDUCT_CERT": "Certificate of Good Conduct",
+      "LOGBOOK": "Logbook",
+      "INSPECTION_CERT": "Inspection certificate",
+      "INSURANCE_CERT": "Insurance certificate",
+      "BUSINESS_REGISTRATION_CERT": "Business registration certificate",
+      "KRA_PIN_CERT": "KRA PIN certificate",
+      "OTHER": "Other document"
+    }
   },
   "common": {
     "create": "Create",
@@ -150,5 +168,54 @@
       "LICENCE": "Driving licence",
       "GOOD_CONDUCT": "Certificate of Good Conduct"
     }
+  },
+  "applicants": {
+    "tabsLabel": "Kind of applicant",
+    "tab": {
+      "OPERATOR": "Operators",
+      "BUSINESS": "Businesses",
+      "GROUP": "Groups"
+    },
+    "status": {
+      "PENDING": "Awaiting approval",
+      "ACTIVE": "Approved",
+      "SUSPENDED": "Suspended",
+      "RESTRICTED": "Restricted",
+      "OFFBOARDED": "Offboarded",
+      "UNVERIFIED": "Not verified",
+      "VERIFIED": "Verified"
+    },
+    "openCount_one": "{{count}} to review",
+    "openCount_other": "{{count}} to review",
+    "checks": "{{done}} of {{total}} checks verified",
+    "waitingSince": "Waiting since {{when}}",
+    "registered": "Registered",
+    "groupType": "Group type",
+    "checksTitle": "Required checks",
+    "approveTitle": "Approve this operator",
+    "approveBody": "Approving opens work, jobs and messages to this operator. Check their records below first.",
+    "notAllVerified": "Only {{done}} of {{total}} required checks are verified. They still cannot take jobs above what their verified checks allow.",
+    "approveOperator": "Approve operator",
+    "approved": "Approved: this operator can see and take work.",
+    "ownRecords": {
+      "OPERATOR": "The operator",
+      "BUSINESS": "The business",
+      "GROUP": "The group"
+    },
+    "domain": {
+      "IDENTITY": "Identity",
+      "LICENCE": "Driving licence",
+      "GOOD_CONDUCT": "Certificate of Good Conduct",
+      "VEHICLE": "Vehicle registration and roadworthiness",
+      "HEAVY_CLASS_COMPLIANCE": "Heavy-class compliance",
+      "ASSOCIATION": "Vehicle and operator association",
+      "BASE": "Operating location",
+      "BUSINESS": "Business details",
+      "GROUP": "Group details",
+      "DOCUMENT": "Supporting document"
+    },
+    "vehicles": "Vehicles",
+    "noVehicles": "No vehicles registered.",
+    "noLocations": "No active location: the business cannot be verified until it adds one."
   }
 }

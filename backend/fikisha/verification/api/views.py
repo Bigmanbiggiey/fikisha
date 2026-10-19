@@ -11,9 +11,10 @@ from __future__ import annotations
 
 from typing import Any
 
-from django.http import HttpResponse
+from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404
 from rest_framework import status
+from rest_framework.exceptions import ValidationError
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -265,6 +266,44 @@ class QueueView(OrgApiView):
         if request.query_params.get("domain"):
             qs = qs.filter(domain=request.query_params["domain"])
         return paginated(request, qs, RecordSerializer)
+
+
+class ApplicantsView(OrgApiView):
+    """``GET /verification/applicants?kind=OPERATOR|BUSINESS|GROUP`` — one row
+    per applicant needing review, oldest first (assessment 2026-10-19 part 5).
+    Pilot-sized, so not cursor-paginated; the shape matches a single page."""
+
+    action_get = "verification.queue"
+
+    def get(self, request: Request) -> Response:
+        from fikisha.verification import applicants
+
+        kind = request.query_params.get("kind", "OPERATOR")
+        if kind not in applicants.KINDS:
+            raise ValidationError({"kind": f"One of {', '.join(applicants.KINDS)}."})
+        return Response(
+            {
+                "data": applicants.applicants(kind),
+                "page": {"next_cursor": None, "prev_cursor": None},
+            }
+        )
+
+
+class ApplicantDetailView(OrgApiView):
+    """``GET /verification/applicants/<kind>/<id>`` — the applicant's details
+    and every record about them or what they own, with evidence and history."""
+
+    action_get = "verification.queue"
+
+    def get(self, request: Request, kind: str, applicant_id: str) -> Response:
+        from fikisha.verification import applicants
+
+        detail = applicants.applicant_detail(
+            kind, applicant_id, lambda r: RecordDetailSerializer(r).data
+        )
+        if detail is None:
+            raise Http404("No such applicant.")
+        return Response(detail)
 
 
 class SubjectStatusView(OrgApiView):

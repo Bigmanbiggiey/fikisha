@@ -1362,6 +1362,47 @@ self-approval; no back door via interventions; no work while pending
 (then visible once approved); offers refused; assignment refused. Frontend:
 the pending tab bars (`RoleNav.test`), the route guard (3).
 
+## ADR-2D-47 — The verification queue by applicant — CONFIRMED (founder approval 2026-10-19, D-6)
+
+From the founder's assessment (finding F-7): the queue was a flat list of
+records ("OPERATOR · IDENTITY"), so a reviewer could not see one applicant's
+submissions together, and businesses were not in it.
+
+**Backend (read-only).** `fikisha.verification.applicants` and two
+endpoints, both behind the existing `verification.queue` policy (reviewers
+and queue viewers only; the applicant themselves gets 403):
+- `GET /verification/applicants?kind=OPERATOR|BUSINESS|GROUP`: one row per
+  applicant with an open record (`SUBMITTED`, `IN_REVIEW`,
+  `INFO_REQUESTED`) on themselves or on what they own, plus every operator
+  still awaiting approval. Oldest waiting first. Rows carry status, open
+  count and, for operators, mandatory checks verified out of how many.
+  Pilot-sized, so not cursor-paginated; the response has the one-page shape.
+- `GET /verification/applicants/<kind>/<id>`: the applicant's details and
+  every record with its evidence and decision history, grouped: the
+  operator's own records, each vehicle they own, each operating location
+  they created; a business's record and its locations; a group's record and
+  its vehicles.
+- Nothing about deciding changed: actions still go through the per-record
+  endpoints (append-only decisions, `reviewer_is_submitter`), and evidence
+  bytes are still fetched one document at a time, authorised and logged.
+  Phones are not included (the admin directory's audited reveal stays the
+  only way to see them).
+
+**Frontend.** `/verification` has tabs Operators · Businesses · Groups and
+lists applicants. `/verification/applicants/<kind>/<id>` shows the
+applicant, their required checks, every record as a review card (documents,
+actions, history; `RecordReview`, shared with the single-record page), and
+for a pending operator the Approve action (ADR-2D-46), with a warning when
+not every required check is verified yet. The single-record page's
+hard-coded English is now translated.
+
+**Tests:** `verification/tests/test_applicants.py` (7): one row per
+operator counting their vehicle's record; business and group tabs; a pending
+operator with nothing submitted still listed; reviewers only; records
+grouped under operator and vehicle; business locations; unknown → 404.
+Frontend `ApplicantQueue.test.tsx` (2): tabs and rows; the grouped
+applicant page and Approve.
+
 ## Self-caught defects fixed during implementation
 
 Every one of these was found by the implementation's own review or test

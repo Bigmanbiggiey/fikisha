@@ -49,6 +49,7 @@ import { StatementDetailPage } from '@/features/statements/StatementDetailPage';
 import { StatementsPage } from '@/features/statements/StatementsPage';
 import { VehicleDetailPage } from '@/features/vehicles/VehicleDetailPage';
 import { VehiclesPage } from '@/features/vehicles/VehiclesPage';
+import { ApplicantPage } from '@/features/verification/ApplicantPage';
 import { VerificationQueuePage } from '@/features/verification/VerificationQueuePage';
 import { VerificationRecordPage } from '@/features/verification/VerificationRecordPage';
 import { AppShell } from '@/shell/AppShell';
@@ -121,6 +122,7 @@ export function AppRoutes(): JSX.Element {
           <Route path="vehicles/:vehicleId" element={<VehicleDetailPage />} />
           <Route path="verification" element={<VerificationQueuePage />} />
           <Route path="verification/:recordId" element={<VerificationRecordPage />} />
+          <Route path="verification/applicants/:kind/:applicantId" element={<ApplicantPage />} />
           <Route path="diagnostics" element={<DiagnosticsPage />} />
           {/* Operations Officer console (Design Phase 6 Increment 8, P3 §18). */}
           <Route

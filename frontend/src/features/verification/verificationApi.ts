@@ -48,6 +48,46 @@ export interface SubjectStatus {
   required_domains: string[];
 }
 
+export type ApplicantKind = 'OPERATOR' | 'BUSINESS' | 'GROUP';
+
+/** One row of the queue by applicant (assessment 2026-10-19 part 5). */
+export interface ApplicantRow {
+  kind: ApplicantKind;
+  id: string;
+  name: string;
+  /** operator status, or a business's / group's verification status */
+  status: string;
+  open_count: number;
+  oldest_open_at: string | null;
+  created_at: string;
+  /** operators only: mandatory checks verified, of how many */
+  required_count?: number;
+  verified_count?: number;
+}
+
+export interface ApplicantAsset {
+  id: string;
+  records: VerificationRecord[];
+  registration?: string;
+  vehicle_class?: string;
+  status?: string;
+  name?: string;
+  type?: string;
+}
+
+export interface ApplicantDetail extends ApplicantRow {
+  full_name?: string;
+  standing?: string;
+  category?: string;
+  group_type?: string;
+  member_count?: number;
+  requirements?: SubjectStatus['requirements'];
+  records: VerificationRecord[];
+  vehicles?: ApplicantAsset[];
+  bases?: ApplicantAsset[];
+  locations?: { id: string; label: string; type: string; address_text: string }[];
+}
+
 export const EVIDENCE_KINDS = [
   'NATIONAL_ID',
   'PASSPORT',
@@ -119,6 +159,16 @@ export const verificationApi = {
       body: { note },
     }),
   queue: () => apiRequest<Paged<VerificationRecord>>('/verification/queue'),
+  applicants: (kind: ApplicantKind) =>
+    apiRequest<Paged<ApplicantRow>>(`/verification/applicants?kind=${kind}`),
+  applicant: (kind: ApplicantKind, id: string) =>
+    apiRequest<ApplicantDetail>(`/verification/applicants/${kind}/${id}`),
+  /** PENDING -> ACTIVE, by a verification reviewer (D-2) */
+  approveOperator: (operatorId: string, note = '') =>
+    apiRequest<{ before_state: string; after_state: string }>(`/admin/operators/${operatorId}/approve`, {
+      method: 'POST',
+      body: { note },
+    }),
   subjectStatus: (subjectType: SubjectType, subjectId: string) =>
     apiRequest<SubjectStatus>(`/verification/subjects/${subjectType}/${subjectId}/status`),
   evidenceBlob: (evidenceId: string) =>
