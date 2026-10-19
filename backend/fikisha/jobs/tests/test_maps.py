@@ -108,3 +108,31 @@ def test_the_assigned_driver_sees_the_exact_pin(
     dest = r.data["destination_location"]
     assert dest["geo_state"] == "CAPTURED"
     assert (Decimal(str(dest["lat"])), Decimal(str(dest["lng"]))) == EXACT
+
+
+@pytest.mark.parametrize(
+    ("destination", "status"),
+    [
+        ({"lat": "-1.477512", "lng": "36.960148"}, 201),  # the pin alone
+        ({"address_text": "Shop 4, Namanga Rd"}, 201),  # the name alone
+        ({"address_text": "  "}, 422),  # neither
+        ({}, 422),
+    ],
+)
+def test_the_destination_needs_a_pin_or_a_name(
+    client_for: Callable,
+    business_actor: Any,
+    verified_business: Any,
+    destination: dict[str, Any],
+    status: int,
+) -> None:
+    payload = {
+        "business_id": str(verified_business.id),
+        "pickup_location": {"address_text": "Depot"},
+        "destination_location": destination,
+        "cargo": {"description": "cement", "declared_value_kes": 1_000_000},
+    }
+    r = client_for(business_actor.user).post("/api/v1/jobs", payload, format="json")
+    assert r.status_code == status, r.content
+    if status == 422:
+        assert r.data["code"] == "destination_required"

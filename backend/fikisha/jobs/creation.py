@@ -56,6 +56,11 @@ def _actor_user(actor: Any) -> Any:
     return user if getattr(user, "pk", None) else None
 
 
+class DestinationRequired(DomainError):
+    default_code = "destination_required"
+    default_detail = "Pin the destination on the map or name it."
+
+
 class UnknownBusinessLocation(DomainError):
     default_code = "unknown_business_location"
     default_detail = "That saved location is not an active location of this business."
@@ -145,7 +150,12 @@ def create_draft(*, actor: Any, business_id: Any, data: dict[str, Any]) -> Job:
         if pickup_data.get("business_location_id")
         else _make_location(type_=LocationType.PICKUP, data=pickup_data)
     )
-    destination = _make_location(type_=LocationType.DESTINATION, data=data["destination_location"])
+    dest_data = data["destination_location"]
+    # A pin or a name: the sender chooses (assessment 2026-10-20 L-2).
+    has_pin = dest_data.get("lat") is not None and dest_data.get("lng") is not None
+    if not has_pin and not (dest_data.get("address_text") or "").strip():
+        raise DestinationRequired()
+    destination = _make_location(type_=LocationType.DESTINATION, data=dest_data)
     vehicle_requirement = VehicleRequirement.objects.create(
         required_vehicle_class_codes=list(
             data.get("vehicle_requirement", {}).get("required_vehicle_class_codes") or []

@@ -114,7 +114,14 @@
       "recipientName": "Jina la mpokezi",
       "recipientPhone": "Simu ya mpokezi",
       "phoneHint": "Inatumika kwa kiungo cha kufuatilia na mawasiliano ya kuchukua/kukabidhi.",
-      "mapLabel": "Ramani: mizigo inakokwenda"
+      "mapLabel": "Ramani: mizigo inakokwenda",
+      "how": "Ungependa kutoa mahali pa kufikisha vipi?",
+      "usePin": "Tumia alama ya ramani",
+      "usePinHint": "Weka alama mahali mizigo inakokwenda. Dereva ataelekezwa huko.",
+      "useName": "Taja mahali pa kufikisha",
+      "useNameHint": "Andika jina la mahali au anwani, kwa mfano \"Kitengela Mall, Duka 12\".",
+      "landmark": "Alama ya eneo (si lazima)",
+      "pinnedOnMap": "Imewekwa kwenye ramani"
     },
     "cargo": {
       "description": "Maelezo",

@@ -114,7 +114,14 @@
       "recipientName": "Recipient name",
       "recipientPhone": "Recipient phone",
       "phoneHint": "Used for the delivery link and pickup/handover contact.",
-      "mapLabel": "Map: where the goods are going"
+      "mapLabel": "Map: where the goods are going",
+      "how": "How do you want to give the destination?",
+      "usePin": "Use the map pin",
+      "usePinHint": "Drop a pin where the goods are going. The driver navigates to it.",
+      "useName": "Name the destination",
+      "useNameHint": "Type the place or address, for example \"Kitengela Mall, Shop 12\".",
+      "landmark": "Landmark (optional)",
+      "pinnedOnMap": "Pinned on the map"
     },
     "cargo": {
       "description": "Description",
