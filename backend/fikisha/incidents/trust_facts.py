@@ -15,8 +15,14 @@ from typing import Any
 
 from django.db.models import Q
 
-from fikisha.incidents.constants import IncidentStatus, IncidentType, PartyKind
-from fikisha.incidents.models import Incident
+from fikisha.incidents.constants import (
+    FindingOutcome,
+    FindingPartyKind,
+    IncidentStatus,
+    IncidentType,
+    PartyKind,
+)
+from fikisha.incidents.models import Incident, IncidentFindingParty
 
 SERIOUS_TYPES = (
     IncidentType.LOSS,
@@ -45,4 +51,29 @@ def incident_facts(job_ids: list[Any], *, driver_user_id: Any = None) -> dict[st
         "serious_unresolved": open_qs.filter(type__in=SERIOUS_TYPES).count(),
         "unresolved_ids": [str(i) for i in open_qs.values_list("id", flat=True)],
         "job_ids_with_incidents": {str(j) for j in qs.values_list("job_id", flat=True)},
+    }
+
+
+def finding_facts(driver_profile_id: Any, *, recent_job_ids: list[Any]) -> dict[str, Any]:
+    """Current at-fault findings that name this driver (trust-and-disputes
+    plan A5): ``at_fault_recent`` / ``at_fault_recent_ids`` (on the given
+    recent jobs) and ``serious_at_fault`` / ``serious_at_fault_ids`` (on a
+    serious incident type, any job). A finding naming the group never
+    counts against the driver."""
+    rows = list(
+        IncidentFindingParty.objects.filter(
+            kind=FindingPartyKind.DRIVER,
+            subject_id=driver_profile_id,
+            finding__outcome=FindingOutcome.AT_FAULT,
+            finding__superseded_by__isnull=True,
+        ).values_list("finding_id", "finding__incident__job_id", "finding__incident__type")
+    )
+    recent = {str(j) for j in recent_job_ids}
+    recent_ids = [str(f) for f, job_id, _t in rows if str(job_id) in recent]
+    serious_ids = [str(f) for f, _j, kind in rows if kind in SERIOUS_TYPES]
+    return {
+        "at_fault_recent": len(recent_ids),
+        "at_fault_recent_ids": recent_ids,
+        "serious_at_fault": len(serious_ids),
+        "serious_at_fault_ids": serious_ids,
     }

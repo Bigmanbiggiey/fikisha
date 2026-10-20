@@ -156,7 +156,15 @@ def tier_view(profile: Any, *, staff: bool = False) -> dict[str, Any]:
         "ready_for_review": prog["ready"],
         "open_proposal": _change_view(proposal, staff=staff) if proposal else None,
         "history": history(profile.id, staff=staff),
+        **(_staff_extras(prog) if staff else {}),
     }
+
+
+def _staff_extras(prog: dict[str, Any]) -> dict[str, Any]:
+    """For the confirming admin: how many of the counted ratings came from a
+    single business (T-5, information only)."""
+    f = prog.get("facts") or {}
+    return {"rating_concentration": f.get("rating_concentration")}
 
 
 def open_proposals(limit: int = 100) -> list[dict[str, Any]]:
@@ -201,6 +209,17 @@ def _snapshot(profile: Any, level: str) -> tuple[dict[str, Any], list[str], list
         "level": level,
         "next_level": prog["next_level"],
         "criteria": prog["criteria"],
+        "evidence": {
+            "rating_ids": list(f.get("rating_ids") or []),
+            "rating_concentration": f.get("rating_concentration"),
+            "at_fault_finding_ids": list(f.get("at_fault_recent_ids") or [])
+            + [
+                i
+                for i in f.get("serious_at_fault_ids") or []
+                if i not in (f.get("at_fault_recent_ids") or [])
+            ],
+        },
+        "live_criteria": criteria.live(),
         "evaluated_at": timezone.now().isoformat(),
     }
     return (

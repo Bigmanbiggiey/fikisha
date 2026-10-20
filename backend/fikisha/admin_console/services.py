@@ -407,7 +407,11 @@ EDITABLE_CONFIG_PATHS = (
     "timeouts.post_completion_window.default_hours",
     "timeouts.post_completion_window.high_and_latent_days",
     "timeouts.stale_assignment_alert_minutes",
+    "trust_tiers.live_criteria",
 )
+
+#: Editable yes/no values (everything else is a number).
+BOOLEAN_CONFIG_PATHS = ("trust_tiers.live_criteria",)
 
 
 def _patch_from(changes: dict[str, Any]) -> dict[str, Any]:
@@ -419,9 +423,12 @@ def _patch_from(changes: dict[str, Any]) -> dict[str, Any]:
     for path, value in changes.items():
         if path not in EDITABLE_CONFIG_PATHS:
             raise ConfigKeyNotEditable(f"{path} can't be changed from the console.")
-        if isinstance(value, bool) or not isinstance(value, int | float):
+        if path in BOOLEAN_CONFIG_PATHS:
+            if not isinstance(value, bool):
+                raise InvalidConfigChange(f"{path} must be true or false.")
+        elif isinstance(value, bool) or not isinstance(value, int | float):
             raise InvalidConfigChange(f"{path} must be a number.")
-        if path != "commission.rate" and (not isinstance(value, int) or value < 0):
+        elif path != "commission.rate" and (not isinstance(value, int) or value < 0):
             raise InvalidConfigChange(f"{path} must be a whole number, 0 or more.")
         node = patch
         *parents, leaf = path.split(".")

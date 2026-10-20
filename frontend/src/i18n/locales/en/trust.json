@@ -6,7 +6,10 @@
     "L3": "L3 · Trusted",
     "RESTRICTED": "Restricted"
   },
-  "title": { "self": "Your tier", "staff": "Tier" },
+  "title": {
+    "self": "Your tier",
+    "staff": "Tier"
+  },
   "allowed": {
     "none": "No jobs yet: verification isn't complete.",
     "upTo": "Jobs with goods worth up to {{amount}}.",
@@ -24,20 +27,30 @@
   "seeProgress": "See your progress toward {{level}}",
   "seeTier": "See your tier",
   "notMeasured": "not measured yet",
-  "status": { "MET": "done", "NOT_MET": "not yet", "NOT_MEASURED": "not measured yet" },
+  "status": {
+    "MET": "done",
+    "NOT_MET": "not yet",
+    "NOT_MEASURED": "not measured yet",
+    "INSUFFICIENT_DATA": "not enough data yet"
+  },
   "criterion": {
     "verified_identity": "ID verified",
     "verified_licence": "Driving licence verified",
     "verified_good_conduct": "Certificate of Good Conduct verified",
     "completed_jobs": "Completed jobs: {{current}} of {{target}}",
     "days_active": "Days since your first completed job: {{current}} of {{target}}",
-    "avg_rating": "Average rating of {{target}} or more",
+    "avg_rating": "Average rating of {{target}} or more (yours: {{current}})",
     "unresolved_incidents": "No open issue on your jobs ({{current}} open)",
     "serious_unresolved_incidents": "No open loss, damage or misconduct issue ({{current}} open)",
     "clean_elevated_jobs": "Larger jobs completed with no issue: {{current}} of {{target}}",
-    "at_fault_findings": "No at-fault findings",
+    "at_fault_findings": "At most {{target}} fault finding in your last 20 jobs (you have {{current}})",
     "good_conduct": "Certificate of Good Conduct verified",
-    "no_cancellation_flag": "Few late cancellations or no-shows"
+    "no_cancellation_flag": "Few late cancellations or no-shows",
+    "avg_rating_unmeasured": "Average rating of {{target}} or more",
+    "avg_rating_insufficient": "Average rating of {{target}} or more",
+    "at_fault_findings_unmeasured": "Few fault findings in your last 20 jobs",
+    "serious_at_fault_findings": "No loss, damage or misconduct finding against you ({{current}})",
+    "serious_at_fault_findings_unmeasured": "No loss, damage or misconduct finding against you"
   },
   "ready": {
     "self": "You meet everything we measure for {{level}}. Fikisha will review it.",
@@ -48,10 +61,13 @@
     "staff": "Proposed for {{level}}: waiting for a Platform Admin."
   },
   "howItWorks": {
-    "self": "A new tier always needs Fikisha's review. Ratings aren't measured yet.",
-    "staff": "Fikisha proposes a tier when every measured criterion is met; a Platform Admin confirms it. Ratings and at-fault findings aren't measured yet."
+    "self": "A new tier always needs Fikisha's review.",
+    "staff": "Fikisha proposes a tier when every measured criterion is met; a Platform Admin confirms it. Ratings and fault findings count once switched on in Configuration."
   },
-  "history": { "title": "History", "none": "No changes yet." },
+  "history": {
+    "title": "History",
+    "none": "No changes yet."
+  },
   "trigger": {
     "AUTO_PROPOSED": "Proposed",
     "ADMIN_CONFIRMED": "Confirmed after review",
@@ -77,5 +93,9 @@
     "demote": "Demote",
     "hint": "A demotion applies to new assignments; jobs already assigned keep their driver."
   },
-  "reviews": { "title": "Tier reviews" }
+  "reviews": {
+    "title": "Tier reviews"
+  },
+  "insufficient": "not enough ratings yet ({{current}} so far, 3 needed)",
+  "concentration": "{{top}} of {{of}} counted ratings came from one business."
 }

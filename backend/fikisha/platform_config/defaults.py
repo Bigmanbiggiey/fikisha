@@ -48,7 +48,18 @@ DEFAULT_CONFIG: dict[str, Any] = {
     # plan). Ratings and at-fault findings aren't measured yet (TD-3), so
     # the rating values are recorded for when they are, and block nothing.
     "trust_tiers": {
-        "L2": {"min_completed_jobs": 8, "min_days_active": 14, "min_avg_rating": 4.2},
+        # Ratings and at-fault findings count toward tiers only once a
+        # Platform Admin turns this on (trust-and-disputes plan A5), so
+        # ratings can build up first; until then those rows are "not
+        # measured yet" and block nothing (TD-3).
+        "live_criteria": False,
+        "L2": {
+            "min_completed_jobs": 8,
+            "min_days_active": 14,
+            "min_avg_rating": 4.2,
+            "max_at_fault_findings": 1,
+            "at_fault_window_jobs": 20,
+        },
         "L3": {
             "min_completed_jobs": 30,
             "min_days_active": 60,

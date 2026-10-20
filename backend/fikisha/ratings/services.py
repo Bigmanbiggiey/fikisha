@@ -267,3 +267,13 @@ def job_ratings_view(actor: Any, job: Any, *, now: datetime | None = None) -> di
             else None
         ),
     }
+
+
+def businesses_of(rating_ids: list[str]) -> dict[str, int]:
+    """``{business_id: how many of these ratings came from its jobs}``."""
+    out: dict[str, int] = {}
+    for business_id in Rating.objects.filter(id__in=rating_ids).values_list(
+        "job__business_id", flat=True
+    ):
+        out[str(business_id)] = out.get(str(business_id), 0) + 1
+    return out

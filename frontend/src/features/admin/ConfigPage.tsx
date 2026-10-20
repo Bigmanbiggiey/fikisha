@@ -29,11 +29,16 @@ const UNIT: Record<string, Unit> = {
 };
 const unitOf = (path: string): Unit => UNIT[path] ?? 'hours';
 
+/** Yes/no values (trust plan A5), shown as a checkbox. */
+const BOOLEAN_PATHS = new Set(['trust_tiers.live_criteria']);
+const isBoolean = (path: string): boolean => BOOLEAN_PATHS.has(path);
+
 function read(config: Record<string, unknown>, path: string): unknown {
   return path.split('.').reduce<unknown>((node, key) => (node as Record<string, unknown> | undefined)?.[key], config);
 }
 
 function toInput(path: string, value: unknown): string {
+  if (isBoolean(path)) return value === true ? 'true' : 'false';
   if (typeof value !== 'number') return '';
   switch (unitOf(path)) {
     case 'percent':
@@ -46,7 +51,8 @@ function toInput(path: string, value: unknown): string {
 }
 
 /** Typed text → config units, or null when it isn't a valid number. */
-function fromInput(path: string, text: string): number | null {
+function fromInput(path: string, text: string): number | boolean | null {
+  if (isBoolean(path)) return text === 'true';
   const trimmed = text.trim();
   if (!/^\d+(\.\d+)?$/.test(trimmed)) return null;
   const n = Number(trimmed);
@@ -61,6 +67,7 @@ function fromInput(path: string, text: string): number | null {
 }
 
 function display(path: string, value: unknown, t: (key: string, o?: Record<string, unknown>) => string): string {
+  if (isBoolean(path)) return t(value === true ? 'admin:config.on' : 'admin:config.off');
   if (typeof value !== 'number') return String(value ?? '—');
   switch (unitOf(path)) {
     case 'percent':
@@ -89,11 +96,11 @@ export function ConfigPage(): JSX.Element {
   const view = useQuery({ queryKey: ['admin', 'config'], queryFn: adminApi.config, retry: false });
 
   const previewMutation = useMutation({
-    mutationFn: (changes: Record<string, number>) => adminApi.previewConfig(changes),
+    mutationFn: (changes: Record<string, number | boolean>) => adminApi.previewConfig(changes),
     onSuccess: (data) => setPreview(data),
   });
   const apply = useMutation({
-    mutationFn: ({ changes, rationale }: { changes: Record<string, number>; rationale: string }) =>
+    mutationFn: ({ changes, rationale }: { changes: Record<string, number | boolean>; rationale: string }) =>
       adminApi.applyConfig(changes, rationale),
     onSuccess: () => {
       setApplyOpen(false);
@@ -109,7 +116,7 @@ export function ConfigPage(): JSX.Element {
   }
   const { config, editable_paths: paths, versions, version } = view.data;
 
-  const changes: Record<string, number> = {};
+  const changes: Record<string, number | boolean> = {};
   const invalid: string[] = [];
   for (const path of paths) {
     const text = draft[path];
@@ -144,14 +151,25 @@ export function ConfigPage(): JSX.Element {
                 <label htmlFor={id} className="block text-label text-fg-secondary">
                   {t(`admin:config.key.${path}`, { defaultValue: path })}
                 </label>
-                <Input
-                  id={id}
-                  inputMode="decimal"
-                  value={draft[path] ?? toInput(path, current)}
-                  invalid={invalid.includes(path)}
-                  aria-describedby={`${id}-hint`}
-                  onChange={(e) => edit(path, e.target.value)}
-                />
+                {isBoolean(path) ? (
+                  <input
+                    id={id}
+                    type="checkbox"
+                    className="h-5 w-5 rounded border-line-strong"
+                    checked={(draft[path] ?? toInput(path, current)) === 'true'}
+                    aria-describedby={`${id}-hint`}
+                    onChange={(e) => edit(path, e.target.checked ? 'true' : 'false')}
+                  />
+                ) : (
+                  <Input
+                    id={id}
+                    inputMode="decimal"
+                    value={draft[path] ?? toInput(path, current)}
+                    invalid={invalid.includes(path)}
+                    aria-describedby={`${id}-hint`}
+                    onChange={(e) => edit(path, e.target.value)}
+                  />
+                )}
                 <p id={`${id}-hint`} className="text-body-sm text-fg-muted">
                   {t('admin:config.live', { value: display(path, current, t) })}
                 </p>

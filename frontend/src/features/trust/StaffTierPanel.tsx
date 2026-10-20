@@ -91,6 +91,11 @@ export function StaffTierPanel({ operatorId }: { operatorId: string }): JSX.Elem
   return (
     <div className="space-y-3">
       <TierCard view={view} staff />
+      {view.rating_concentration && view.rating_concentration.of > 0 && (
+        <p className="text-body-sm text-fg-secondary">
+          {t('trust:concentration', view.rating_concentration)}
+        </p>
+      )}
       {admin && (
         <Card className="space-y-3">
           <h2 className="text-h3 text-fg">{t('trust:admin.title')}</h2>

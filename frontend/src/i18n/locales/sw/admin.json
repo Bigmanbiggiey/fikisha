@@ -148,8 +148,13 @@
           "high_and_latent_days": "Muda wa kuripoti, thamani ya juu au hatari iliyofichika (siku)"
         },
         "stale_assignment_alert_minutes": "Tahadhari ya kazi iliyokwama (dakika)"
+      },
+      "trust_tiers": {
+        "live_criteria": "Ukadiriaji na maamuzi ya kosa yahesabiwe kwa madaraja"
       }
-    }
+    },
+    "on": "Imewashwa",
+    "off": "Imezimwa"
   },
   "commission": {
     "title": "Kamisheni",

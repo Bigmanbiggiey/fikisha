@@ -44,5 +44,8 @@ class ProposedBy(models.TextChoices):
 class CriterionStatus(models.TextChoices):
     MET = "MET", "Met"
     NOT_MET = "NOT_MET", "Not met"
-    #: Ratings and at-fault findings don't exist yet (TD-3): shown, never blocking.
+    #: Not recordable yet (or not switched on): shown, never blocking (TD-3).
     NOT_MEASURED = "NOT_MEASURED", "Not yet measured"
+    #: measurable, but too little data yet (e.g. fewer than 3 counted
+    #: ratings); blocks a proposal like NOT_MET (TE-11)
+    INSUFFICIENT_DATA = "INSUFFICIENT_DATA", "Not enough data yet"

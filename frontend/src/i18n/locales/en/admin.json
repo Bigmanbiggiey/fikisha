@@ -148,8 +148,13 @@
           "high_and_latent_days": "Issue window, high value or latent risk (days)"
         },
         "stale_assignment_alert_minutes": "Stale assignment alert (minutes)"
+      },
+      "trust_tiers": {
+        "live_criteria": "Ratings and fault findings count toward tiers"
       }
-    }
+    },
+    "on": "On",
+    "off": "Off"
   },
   "commission": {
     "title": "Commission",

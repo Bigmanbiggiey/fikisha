@@ -52,9 +52,9 @@ export const adminApi = {
     }),
 
   config: () => apiRequest<ConfigView>('/admin/config'),
-  previewConfig: (changes: Record<string, number>) =>
+  previewConfig: (changes: Record<string, number | boolean>) =>
     apiRequest<ConfigPreview>('/admin/config/preview', { method: 'POST', body: { changes } }),
-  applyConfig: (changes: Record<string, number>, rationale: string) =>
+  applyConfig: (changes: Record<string, number | boolean>, rationale: string) =>
     apiRequest<{ version: number }>('/admin/config', { method: 'POST', body: { changes, rationale } }),
 
   commission: (filters: { since?: string; until?: string } = {}, cursor?: string | null) => {

@@ -36,3 +36,13 @@ def driver_record(operator_id: Any) -> dict[str, Any]:
         ],
         "driven_job_ids": [str(i) for i in driven.values_list("id", flat=True)],
     }
+
+
+def recent_driven_job_ids(operator_id: Any, *, limit: int) -> list[str]:
+    """The ``limit`` jobs the driver was most recently assigned to drive."""
+    return [
+        str(i)
+        for i in Job.objects.filter(assignment__assigned_driver_profile_id=operator_id)
+        .order_by("-assigned_at", "-id")
+        .values_list("id", flat=True)[:limit]
+    ]
