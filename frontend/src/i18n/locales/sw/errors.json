@@ -65,5 +65,9 @@
   "incident_in_open_dispute": "Tukio hili ni sehemu ya mzozo ulio wazi; litafungwa mzozo ukitatuliwa.",
   "invalid_finding": "Kagua uamuzi: uamuzi wa kosa unamtaja angalau mhusika mmoja wa kazi hii.",
   "finding_reason_required": "Toa sababu ya angalau herufi 10.",
-  "unfounded_not_allowed": "Ripoti inaweza kuwekwa alama haina msingi baada tu ya kufungwa na Fikisha kutokuta kosa."
+  "unfounded_not_allowed": "Ripoti inaweza kuwekwa alama haina msingi baada tu ya kufungwa na Fikisha kutokuta kosa.",
+  "not_rating_party": "Biashara au upande wa mhudumu wa kazi hii pekee ndio wanaweza kuikadiria.",
+  "rating_not_open": "Kazi hii haiwezi kukadiriwa sasa.",
+  "already_rated": "Upande wako umeshaikadiria kazi hii.",
+  "invalid_rating": "Toa alama kuanzia 1 hadi 5; maoni yasizidi herufi 1,000."
 }

@@ -58,6 +58,11 @@ DEFAULT_CONFIG: dict[str, Any] = {
         "late_cancellation_flag": {"count": 3, "window_days": 30},
         "reproposal_cooldown_days": 30,
     },
+    # Ratings (trust-and-disputes plan TE-1, TE-4): each side may rate until
+    # the job has spent `window_days` in COMPLETED in total (time DISPUTED
+    # doesn't count); an average needs `min_counted` counted ratings and
+    # uses the newest `average_of`.
+    "ratings": {"window_days": 7, "min_counted": 3, "average_of": 10},
     # ─── Enumerations (admin-extensible later) ──────────────────────
     # Vehicle classes moved to the `config_vehicle_class` lookup table in
     # Phase 2C (ADR-2C-01); `ConfigService`/`ConfigPublicView` expose the codes.

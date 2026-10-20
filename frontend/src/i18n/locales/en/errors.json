@@ -65,5 +65,9 @@
   "incident_in_open_dispute": "This incident is part of an open dispute; it closes when the dispute is resolved.",
   "invalid_finding": "Check the finding: an at-fault finding names at least one party of this job.",
   "finding_reason_required": "Give a reason of at least 10 characters.",
-  "unfounded_not_allowed": "A report can be marked unfounded only once it is closed and Fikisha found no fault."
+  "unfounded_not_allowed": "A report can be marked unfounded only once it is closed and Fikisha found no fault.",
+  "not_rating_party": "Only the job's business or operator side can rate it.",
+  "rating_not_open": "This job can't be rated now.",
+  "already_rated": "Your side has already rated this job.",
+  "invalid_rating": "Give a score from 1 to 5; a comment can be up to 1,000 characters."
 }

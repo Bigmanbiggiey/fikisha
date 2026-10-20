@@ -1,0 +1,24 @@
+{
+  "titleOperator": "Mkadirie mhudumu",
+  "titleBusiness": "Ikadirie biashara",
+  "staffTitle": "Ukadiriaji",
+  "none": "Bado hakuna ukadiriaji.",
+  "scoreLabel": "Ukadiriaji wako",
+  "scoreOption": "{{score}} kati ya 5",
+  "scale": "1 ni duni, 5 ni bora kabisa.",
+  "comment": "Maoni (si lazima)",
+  "commentHint": "Wafanyakazi wa Fikisha pekee wanasoma maoni.",
+  "submit": "Tuma ukadiriaji",
+  "yourRating": "Umekadiria {{score}} kati ya 5.",
+  "theirRating": "Ukadiriaji wao kwako: {{score}} kati ya 5.",
+  "waiting": "Ukadiriaji wa upande mwingine utaonekana wakishakadiria au muda wa kukadiria ukiisha.",
+  "closed": "Muda wa kukadiria kazi hii umepita.",
+  "notCounted": "Haihesabiwi: matokeo ya kazi yanakaguliwa au yamebadilika.",
+  "counted": "Inahesabiwa",
+  "unpublished": "Bado haionyeshwi",
+  "outOf5": "{{score}}/5",
+  "side": {
+    "BUSINESS_RATES_OPERATOR": "Biashara → mhudumu",
+    "OPERATOR_RATES_BUSINESS": "Mhudumu → biashara"
+  }
+}
