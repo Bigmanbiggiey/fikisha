@@ -139,6 +139,7 @@ def record_finding(
     for kind in named:
         IncidentFindingParty.objects.create(finding=finding, kind=kind, subject_id=allowed[kind])
 
+    _propose_restriction(actor=actor, finding=finding)
     audit.record(
         actor=actor,
         action="incident.finding.superseded" if previous else "incident.finding.recorded",
@@ -161,6 +162,23 @@ def record_finding(
         },
     )
     return finding
+
+
+def _propose_restriction(*, actor: Any, finding: IncidentFinding) -> None:
+    """TE-5: a serious at-fault finding naming the driver (not the business)
+    proposes Restricted, in this same transaction; a Platform Admin confirms
+    it on Tier reviews (FR-T-4: administrator-applied)."""
+    from fikisha.incidents.trust_facts import qualifying_restriction
+    from fikisha.trust import services as trust
+
+    driver_id = qualifying_restriction(finding)
+    if driver_id is not None:
+        trust.propose_restriction(
+            actor=actor,
+            operator_id=driver_id,
+            finding_id=finding.id,
+            incident_id=finding.incident_id,
+        )
 
 
 @transaction.atomic

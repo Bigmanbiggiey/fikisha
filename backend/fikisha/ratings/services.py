@@ -25,6 +25,7 @@ from rest_framework import status
 
 from fikisha.audit import services as audit
 from fikisha.common.exceptions import AuthorizationError, ConflictError, DomainError
+from fikisha.common.logging_setup import get_logger
 from fikisha.incidents import authz as incidents_authz
 from fikisha.jobs import job_authz
 from fikisha.jobs import rating_facts as job_facts
@@ -42,6 +43,8 @@ from fikisha.ratings.constants import (
     SubjectKind,
 )
 from fikisha.ratings.models import Rating
+
+log = get_logger("fikisha.ratings")
 
 
 class NotRatingParty(AuthorizationError):
@@ -151,6 +154,9 @@ def submit(
         entity_id=job.id,
         after={"rating_id": str(rating.id), "side": side_code, "score": score},
     )
+    driver_id = fields.get("driver_profile_id")
+    if driver_id is not None:
+        transaction.on_commit(lambda: _evaluate_driver(driver_id))
     emit(
         event_type="RatingSubmitted",
         aggregate_type="job",
@@ -163,6 +169,18 @@ def submit(
         },
     )
     return rating
+
+
+def _evaluate_driver(driver_id: Any) -> None:
+    """After a rating commits: re-evaluate the driver's tier (a rating drop
+    may now be due, TE-6). Proposes only; a failure is logged and never
+    undoes the rating."""
+    from fikisha.trust import services as trust
+
+    try:
+        trust.evaluate_operator_id(driver_id)
+    except Exception:
+        log.exception("trust.evaluate_after_rating_failed", operator_id=str(driver_id))
 
 
 # ─── publication and counting ─────────────────────────────────────────

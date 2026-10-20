@@ -72,7 +72,10 @@
     "AUTO_PROPOSED": "Limependekezwa",
     "ADMIN_CONFIRMED": "Limethibitishwa baada ya ukaguzi",
     "ADMIN_REJECTED": "Ukaguzi: bado",
-    "ADMIN_OVERRIDE": "Limebadilishwa na Fikisha (kwa mkono)"
+    "ADMIN_OVERRIDE": "Limebadilishwa na Fikisha (kwa mkono)",
+    "INCIDENT": "Limependekezwa baada ya uamuzi wa kosa",
+    "RATING_DROP": "Limependekezwa baada ya ukadiriaji kushuka",
+    "REMEDIATION_EXIT": "Kizuizi kimeondolewa"
   },
   "admin": {
     "title": "Badilisha daraja",
@@ -91,7 +94,14 @@
     "setRestate": "Badilisha {{name}} kutoka {{from}} hadi {{to}} (linarekodiwa kama badiliko la mkono)",
     "promote": "Pandisha",
     "demote": "Shusha",
-    "hint": "Kushushwa kunahusu kazi mpya; kazi zilizokwisha kupewa zinabaki na dereva wake."
+    "hint": "Kushushwa kunahusu kazi mpya; kazi zilizokwisha kupewa zinabaki na dereva wake.",
+    "confirmDemotion": "Thibitisha badiliko",
+    "confirmDemoteRestate": "Mhamishe {{name}} hadi {{to}} (kazi mpya pekee; kazi zilizokwisha kupewa zinabaki na dereva wake)",
+    "rejectDemoteRestate": "Mbakishe {{name}} kwenye {{from}}",
+    "proposalReason": "Sababu: {{reason}}",
+    "liftTitle": "Ondoa kizuizi",
+    "liftRestate": "Mrudishe {{name}} kwenye {{to}} (inarekodiwa kama kizuizi kilichoondolewa)",
+    "lift": "Ondoa kizuizi"
   },
   "reviews": {
     "title": "Ukaguzi wa madaraja"

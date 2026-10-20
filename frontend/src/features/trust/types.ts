@@ -14,7 +14,14 @@ export interface TierChange {
   id: string;
   from_level: TierLevel;
   to_level: TierLevel;
-  trigger: 'AUTO_PROPOSED' | 'ADMIN_CONFIRMED' | 'ADMIN_REJECTED' | 'ADMIN_OVERRIDE';
+  trigger:
+    | 'AUTO_PROPOSED'
+    | 'ADMIN_CONFIRMED'
+    | 'ADMIN_REJECTED'
+    | 'ADMIN_OVERRIDE'
+    | 'INCIDENT'
+    | 'RATING_DROP'
+    | 'REMEDIATION_EXIT';
   status: 'PROPOSED' | 'APPLIED' | 'REJECTED';
   reason: string;
   created_at: string;

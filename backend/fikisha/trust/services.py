@@ -5,18 +5,24 @@ ADR-2D-52). The only writer of ``trust_level_state`` and
 - **Effective tier** = the stored tier, but ``L0`` while the verification
   floor isn't met (a lapsed licence stops banded work whatever the tier).
 - **Proposals**: ``evaluate`` writes a ``PROPOSED`` change when every
-  measured criterion for the next tier is met. Nothing advances on its own.
+  measured criterion for the next tier is met, or one tier down when the
+  rating average has fallen (TE-6); recording a serious at-fault finding
+  that names the driver proposes Restricted (``propose_restriction``,
+  TE-5). Nothing changes on its own: a Platform Admin confirms (FR-T-4).
+  At confirmation the evidence is checked again; a proposal whose evidence
+  no longer holds is refused as out of date.
 - **Platform Admin levers** (TD-1): confirm or reject a proposal, or change
   the tier directly (``ADMIN_OVERRIDE``, shown as manual). Each needs a
   reason and a fresh step-up, writes an append-only change and an audit row
   in one transaction, and can't target the admin's own operator profile.
 
 A demotion affects new assignments only; jobs already assigned keep their
-driver (staff can reassign).
+driver. Leaving Restricted is a ``REMEDIATION_EXIT`` to L1 only (TD-4).
 """
 
 from __future__ import annotations
 
+import hashlib
 from datetime import timedelta
 from typing import Any
 
@@ -33,6 +39,8 @@ from fikisha.outbox.services import emit
 from fikisha.platform_config import services as config_service
 from fikisha.trust import criteria
 from fikisha.trust.constants import (
+    DEMOTION_TRIGGERS,
+    LOWER_TIER,
     STORED_TIERS,
     TIER_ORDER,
     ChangeStatus,
@@ -106,6 +114,26 @@ def _open_proposal(operator_id: Any, current: str) -> TrustLevelChange | None:
     )
 
 
+def _open_demotion(operator_id: Any, current: str) -> TrustLevelChange | None:
+    return (
+        TrustLevelChange.objects.filter(
+            operator_id=operator_id,
+            status=ChangeStatus.PROPOSED,
+            trigger__in=DEMOTION_TRIGGERS,
+            from_level=current,
+            decisions__isnull=True,
+        )
+        .order_by("-created_at")
+        .first()
+    )
+
+
+def _is_demotion(change: TrustLevelChange) -> bool:
+    return TIER_ORDER.get(change.to_level, 0) < TIER_ORDER.get(change.from_level, 0) or (  # type: ignore[call-overload]
+        change.to_level == Tier.RESTRICTED
+    )
+
+
 def _change_view(change: TrustLevelChange, *, staff: bool) -> dict[str, Any]:
     out = {
         "id": str(change.id),
@@ -143,6 +171,10 @@ def tier_view(profile: Any, *, staff: bool = False) -> dict[str, Any]:
     state = TrustLevelState.objects.filter(operator_id=profile.id).first()
     prog = criteria.progress(profile, level)
     proposal = _open_proposal(profile.id, stored) if floor else None
+    if proposal is not None and not staff and _is_demotion(proposal):
+        # a pending demotion shows to the operator once a Platform Admin
+        # decides it, with the reason (it may yet be rejected)
+        proposal = None
     return {
         "operator_id": str(profile.id),
         "operator_name": profile.display_name or profile.full_name,
@@ -238,7 +270,12 @@ def evaluate(profile: Any) -> TrustLevelChange | None:
         state.last_evaluated_at = timezone.now()
         state.save(update_fields=["last_evaluated_at", "updated_at"])
         current = state.level
-        if current not in (Tier.L1, Tier.L2) or not criteria.floor_met(profile):
+        if not criteria.floor_met(profile):
+            return None
+        drop = _propose_rating_drop(profile, current)
+        if drop is not None or _open_demotion(profile.id, current) is not None:
+            return drop
+        if current not in (Tier.L1, Tier.L2):
             return None
         prog = criteria.progress(profile, current)
         target = prog["next_level"]
@@ -280,6 +317,156 @@ def evaluate(profile: Any) -> TrustLevelChange | None:
             source_channel="SCHEDULER",
         )
     return change
+
+
+def _rating_drop_evidence(profile: Any) -> tuple[list[str], float] | None:
+    """The counted rating ids and their mean when a drop is due (TE-6):
+    ratings count toward tiers, at least ``over_last`` are counted, and the
+    mean of the newest ``over_last`` is below ``below``. Else ``None``."""
+    from fikisha.ratings import services as ratings
+
+    if not criteria.live():
+        return None
+    rule = criteria.tier_config().get("rating_drop") or {}
+    over_last = int(rule.get("over_last", 10))
+    rows = ratings.counted("DRIVER", profile.id)[:over_last]
+    if len(rows) < over_last:
+        return None
+    mean = sum(r.score for r in rows) / len(rows)
+    if mean >= float(rule.get("below", 3.5)):
+        return None
+    return [str(r.id) for r in rows], round(mean, 2)
+
+
+def _evidence_key(rating_ids: list[str]) -> str:
+    return hashlib.sha256(",".join(rating_ids).encode("utf-8")).hexdigest()
+
+
+def _propose_rating_drop(profile: Any, current: str) -> TrustLevelChange | None:
+    """Inside ``evaluate``'s lock: propose one tier down when the rating
+    average has fallen, unless a demotion is already open, the same evidence
+    was already proposed, or one was rejected within the cooldown."""
+    target = LOWER_TIER.get(current)
+    if target is None or _open_demotion(profile.id, current) is not None:
+        return None
+    evidence = _rating_drop_evidence(profile)
+    if evidence is None:
+        return None
+    rating_ids, mean = evidence
+    key = _evidence_key(rating_ids)
+    if TrustLevelChange.objects.filter(
+        operator_id=profile.id, trigger=ChangeTrigger.RATING_DROP, evidence_key=key
+    ).exists():
+        return None
+    cooldown = int(criteria.tier_config().get("reproposal_cooldown_days", 30))
+    if TrustLevelChange.objects.filter(
+        operator_id=profile.id,
+        trigger=ChangeTrigger.ADMIN_REJECTED,
+        from_level=current,
+        to_level=target,
+        created_at__gte=timezone.now() - timedelta(days=cooldown),
+    ).exists():
+        return None
+    snapshot, job_ids, incident_ids = _snapshot(profile, current)
+    snapshot["rating_drop"] = {"rating_ids": rating_ids, "mean": mean}
+    try:
+        with transaction.atomic():
+            change = TrustLevelChange.objects.create(
+                operator_id=profile.id,
+                from_level=current,
+                to_level=target,
+                trigger=ChangeTrigger.RATING_DROP,
+                status=ChangeStatus.PROPOSED,
+                reason=f"The average of the last {len(rating_ids)} ratings is {mean}.",
+                proposed_by=ProposedBy.SYSTEM,
+                criteria_snapshot=snapshot,
+                evidence_job_ids=job_ids,
+                evidence_incident_ids=incident_ids,
+                config_version=config_service.current_version(),
+                evidence_key=key,
+            )
+    except IntegrityError:  # made concurrently from the same evidence
+        return None
+    audit.record(
+        actor=None,
+        action="trust.change.proposed",
+        entity_type="operator",
+        entity_id=profile.id,
+        before={"level": current},
+        after={"proposed_level": target, "change_id": str(change.id), "trigger": "RATING_DROP"},
+        source_channel="SCHEDULER",
+    )
+    emit(
+        event_type="TrustLevelChangeProposed",
+        aggregate_type="operator",
+        aggregate_id=str(profile.id),
+        payload={"from_level": current, "to_level": target, "trigger": "RATING_DROP"},
+    )
+    return change
+
+
+def propose_restriction(
+    *, actor: Any, operator_id: Any, finding_id: Any, incident_id: Any
+) -> TrustLevelChange | None:
+    """TE-5: a serious at-fault finding naming the driver proposes Restricted.
+    Called by ``incidents.findings`` inside the finding's transaction; a
+    Platform Admin confirms. One proposal per finding (database)."""
+    profile = _profile(operator_id)
+    state = _locked_state(profile.id)
+    current = state.level
+    if current == Tier.RESTRICTED:
+        return None
+    snapshot, job_ids, _incidents = _snapshot(profile, current)
+    snapshot["finding_id"] = str(finding_id)
+    try:
+        with transaction.atomic():
+            change = TrustLevelChange.objects.create(
+                operator_id=profile.id,
+                from_level=current,
+                to_level=Tier.RESTRICTED,
+                trigger=ChangeTrigger.INCIDENT,
+                status=ChangeStatus.PROPOSED,
+                reason="A serious at-fault finding names this driver.",
+                proposed_by=ProposedBy.SYSTEM,
+                criteria_snapshot=snapshot,
+                evidence_job_ids=job_ids,
+                evidence_incident_ids=[str(incident_id)],
+                config_version=config_service.current_version(),
+                evidence_key=str(finding_id),
+            )
+    except IntegrityError:  # already proposed for this finding
+        return None
+    audit.record(
+        actor=actor,
+        action="trust.change.proposed",
+        entity_type="operator",
+        entity_id=profile.id,
+        before={"level": current},
+        after={
+            "proposed_level": Tier.RESTRICTED,
+            "change_id": str(change.id),
+            "trigger": "INCIDENT",
+            "finding_id": str(finding_id),
+        },
+    )
+    emit(
+        event_type="TrustLevelChangeProposed",
+        aggregate_type="operator",
+        aggregate_id=str(profile.id),
+        payload={"from_level": current, "to_level": Tier.RESTRICTED, "trigger": "INCIDENT"},
+    )
+    return change
+
+
+def _still_holds(proposal: TrustLevelChange, profile: Any) -> bool:
+    """Re-check a demotion proposal's evidence at confirmation (plan A6)."""
+    if proposal.trigger == ChangeTrigger.INCIDENT:
+        from fikisha.incidents.trust_facts import finding_still_restricts
+
+        return finding_still_restricts(proposal.evidence_key, profile.id)
+    if proposal.trigger == ChangeTrigger.RATING_DROP:
+        return _rating_drop_evidence(profile) is not None
+    return True
 
 
 def evaluate_operator_id(operator_id: Any) -> TrustLevelChange | None:
@@ -371,9 +558,20 @@ def set_level(*, actor: Any, operator_id: Any, level: str, reason: str) -> Trust
         state = _locked_state(profile.id)
         if state.level == level:
             raise TierChangeNotAllowed(f"This operator is already {level}.")
-        if state.level == Tier.RESTRICTED and level != Tier.L1:
-            # TD-4: leaving Restricted goes back to L1 only.
-            raise TierChangeNotAllowed("An operator leaves Restricted to L1 only.")
+        if state.level == Tier.RESTRICTED:
+            if level != Tier.L1:
+                # TD-4: leaving Restricted goes back to L1 only.
+                raise TierChangeNotAllowed("An operator leaves Restricted to L1 only.")
+            return _apply(
+                actor=actor,
+                profile=profile,
+                state=state,
+                to_level=level,
+                trigger=ChangeTrigger.REMEDIATION_EXIT,
+                reason=reason,
+                decides=None,
+                audit_action="trust.change.remediation_exit",
+            )
         return _apply(
             actor=actor,
             profile=profile,
@@ -398,9 +596,13 @@ def decide_proposal(*, actor: Any, change_id: Any, confirm: bool, reason: str) -
         if proposal.decisions.exists() or state.level != proposal.from_level:
             raise ProposalNotOpen("This proposal has already been decided or is out of date.")
         if confirm:
-            if not criteria.floor_met(profile):
+            if not _is_demotion(proposal) and not criteria.floor_met(profile):
                 raise TierChangeNotAllowed(
                     "The operator's verification isn't current; renew it before promoting."
+                )
+            if not _still_holds(proposal, profile):
+                raise ProposalNotOpen(
+                    "The evidence behind this proposal has changed; it is out of date."
                 )
             return _apply(
                 actor=actor,

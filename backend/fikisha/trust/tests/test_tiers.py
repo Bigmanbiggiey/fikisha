@@ -287,7 +287,8 @@ def test_manual_demotion_to_restricted_and_back(driver: Any, stepped_admin: Any)
     services.set_level(actor=stepped_admin, operator_id=driver.id, level="L1", reason=REASON)
     history = services.tier_view(driver)["history"]
     assert [h["to_level"] for h in history] == ["L1", "RESTRICTED"]
-    assert all(h["trigger"] == "ADMIN_OVERRIDE" for h in history)
+    # leaving Restricted is a remediation exit (trust-and-disputes plan A6)
+    assert [h["trigger"] for h in history] == ["REMEDIATION_EXIT", "ADMIN_OVERRIDE"]
     assert "by" not in history[0]  # the operator doesn't see staff names
 
 

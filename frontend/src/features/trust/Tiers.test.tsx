@@ -204,4 +204,29 @@ describe('staff tier panel (operator-tiers T-4)', () => {
       expect(api.decide).toHaveBeenCalledWith('c1', { decision: 'REJECT', reason: 'Wait for the open complaint to close.' }),
     );
   });
+
+  it('a restriction proposal is worded as a demotion, with its reason', async () => {
+    meMock.mockResolvedValue(user(['PLATFORM_ADMIN']));
+    api.tier.mockResolvedValue(
+      view({
+        open_proposal: {
+          id: 'c9',
+          from_level: 'L2',
+          to_level: 'RESTRICTED',
+          trigger: 'INCIDENT',
+          status: 'PROPOSED',
+          reason: 'A serious at-fault finding names this driver.',
+          created_at: '2026-10-20T08:00:00Z',
+        },
+      }),
+    );
+    api.decide.mockResolvedValue(view());
+    const u = userEvent.setup();
+    renderWithProviders(<StaffTierPanel operatorId="op-1" />);
+    expect(await screen.findByText('Why: A serious at-fault finding names this driver.')).toBeInTheDocument();
+    await u.click(screen.getByRole('button', { name: 'Confirm the change' }));
+    await u.type(screen.getByLabelText('Reason'), 'Damage confirmed by both parties.');
+    await u.click(screen.getByRole('button', { name: 'Continue' }));
+    expect(screen.getByText(/Move A. Dereva to Restricted \(new assignments only/)).toBeInTheDocument();
+  });
 });

@@ -34,6 +34,21 @@ class ChangeTrigger(models.TextChoices):
     ADMIN_REJECTED = "ADMIN_REJECTED", "Proposal rejected"
     #: A Platform Admin's direct promote / demote (TD-1, shown as "manual").
     ADMIN_OVERRIDE = "ADMIN_OVERRIDE", "Manual change"
+    #: Proposed to Restricted after a serious at-fault finding naming the
+    #: driver (TE-5); a Platform Admin confirms (FR-T-4).
+    INCIDENT = "INCIDENT", "Proposed after a fault finding"
+    #: Proposed one tier down after the rating average fell (TE-6).
+    RATING_DROP = "RATING_DROP", "Proposed after a rating drop"
+    #: A Platform Admin lifts a restriction, back to L1 only (TD-4).
+    REMEDIATION_EXIT = "REMEDIATION_EXIT", "Restriction lifted"
+
+
+#: Proposals that move an operator down; while one is open no promotion is
+#: proposed.
+DEMOTION_TRIGGERS = (ChangeTrigger.INCIDENT, ChangeTrigger.RATING_DROP)
+
+#: One tier down (TE-6).
+LOWER_TIER = {"L3": "L2", "L2": "L1", "L1": "RESTRICTED"}
 
 
 class ProposedBy(models.TextChoices):

@@ -68,6 +68,9 @@ DEFAULT_CONFIG: dict[str, Any] = {
         },
         "late_cancellation_flag": {"count": 3, "window_days": 30},
         "reproposal_cooldown_days": 30,
+        # TE-6: a demotion is proposed when the mean of the newest
+        # `over_last` counted ratings falls below `below`.
+        "rating_drop": {"below": 3.5, "over_last": 10},
     },
     # Ratings (trust-and-disputes plan TE-1, TE-4): each side may rate until
     # the job has spent `window_days` in COMPLETED in total (time DISPUTED

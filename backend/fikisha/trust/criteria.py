@@ -111,8 +111,21 @@ def facts(profile: Any) -> dict[str, Any]:
 
     cfg = tier_config()
     window = int((cfg.get("L2") or {}).get("at_fault_window_jobs", 20))
+    from fikisha.trust.constants import ChangeTrigger
+    from fikisha.trust.models import TrustLevelChange
+
+    remediated = (
+        TrustLevelChange.objects.filter(
+            operator_id=profile.id, trigger=ChangeTrigger.REMEDIATION_EXIT
+        )
+        .order_by("-created_at")
+        .values_list("created_at", flat=True)
+        .first()
+    )
     findings = finding_facts(
-        profile.id, recent_job_ids=recent_driven_job_ids(profile.id, limit=window)
+        profile.id,
+        recent_job_ids=recent_driven_job_ids(profile.id, limit=window),
+        serious_since=remediated,
     )
     record = driver_record(profile.id)
     incidents = incident_facts(record["driven_job_ids"], driver_user_id=profile.user_id)

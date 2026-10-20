@@ -72,7 +72,10 @@
     "AUTO_PROPOSED": "Proposed",
     "ADMIN_CONFIRMED": "Confirmed after review",
     "ADMIN_REJECTED": "Review: not yet",
-    "ADMIN_OVERRIDE": "Changed by Fikisha (manual)"
+    "ADMIN_OVERRIDE": "Changed by Fikisha (manual)",
+    "INCIDENT": "Proposed after a fault finding",
+    "RATING_DROP": "Proposed after a rating drop",
+    "REMEDIATION_EXIT": "Restriction lifted"
   },
   "admin": {
     "title": "Change tier",
@@ -91,7 +94,14 @@
     "setRestate": "Change {{name}} from {{from}} to {{to}} (recorded as a manual change)",
     "promote": "Promote",
     "demote": "Demote",
-    "hint": "A demotion applies to new assignments; jobs already assigned keep their driver."
+    "hint": "A demotion applies to new assignments; jobs already assigned keep their driver.",
+    "confirmDemotion": "Confirm the change",
+    "confirmDemoteRestate": "Move {{name}} to {{to}} (new assignments only; jobs already assigned keep their driver)",
+    "rejectDemoteRestate": "Keep {{name}} at {{from}}",
+    "proposalReason": "Why: {{reason}}",
+    "liftTitle": "Lift the restriction",
+    "liftRestate": "Return {{name}} to {{to}} (recorded as a lifted restriction)",
+    "lift": "Lift restriction"
   },
   "reviews": {
     "title": "Tier reviews"

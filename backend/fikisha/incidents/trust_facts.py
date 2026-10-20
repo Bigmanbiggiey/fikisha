@@ -54,7 +54,35 @@ def incident_facts(job_ids: list[Any], *, driver_user_id: Any = None) -> dict[st
     }
 
 
-def finding_facts(driver_profile_id: Any, *, recent_job_ids: list[Any]) -> dict[str, Any]:
+def qualifying_restriction(finding: Any) -> str | None:
+    """The driver profile id a finding would restrict (TE-5): a current
+    AT_FAULT finding on a serious incident type that names the driver and
+    not the business (a shared finding never does, Q3). Else ``None``."""
+    if finding.outcome != FindingOutcome.AT_FAULT or finding.incident.type not in SERIOUS_TYPES:
+        return None
+    if hasattr(finding, "superseded_by"):
+        return None
+    kinds = {p.kind: p.subject_id for p in finding.parties.all()}
+    if FindingPartyKind.BUSINESS in kinds or FindingPartyKind.DRIVER not in kinds:
+        return None
+    return str(kinds[FindingPartyKind.DRIVER])
+
+
+def finding_still_restricts(finding_id: Any, driver_profile_id: Any) -> bool:
+    from fikisha.incidents.models import IncidentFinding
+
+    finding = (
+        IncidentFinding.objects.select_related("incident")
+        .prefetch_related("parties")
+        .filter(id=finding_id)
+        .first()
+    )
+    return finding is not None and qualifying_restriction(finding) == str(driver_profile_id)
+
+
+def finding_facts(
+    driver_profile_id: Any, *, recent_job_ids: list[Any], serious_since: Any = None
+) -> dict[str, Any]:
     """Current at-fault findings that name this driver (trust-and-disputes
     plan A5): ``at_fault_recent`` / ``at_fault_recent_ids`` (on the given
     recent jobs) and ``serious_at_fault`` / ``serious_at_fault_ids`` (on a
@@ -66,11 +94,22 @@ def finding_facts(driver_profile_id: Any, *, recent_job_ids: list[Any]) -> dict[
             subject_id=driver_profile_id,
             finding__outcome=FindingOutcome.AT_FAULT,
             finding__superseded_by__isnull=True,
-        ).values_list("finding_id", "finding__incident__job_id", "finding__incident__type")
+        ).values_list(
+            "finding_id",
+            "finding__incident__job_id",
+            "finding__incident__type",
+            "finding__created_at",
+        )
     )
     recent = {str(j) for j in recent_job_ids}
-    recent_ids = [str(f) for f, job_id, _t in rows if str(job_id) in recent]
-    serious_ids = [str(f) for f, _j, kind in rows if kind in SERIOUS_TYPES]
+    recent_ids = [str(f) for f, job_id, _t, _at in rows if str(job_id) in recent]
+    # L3: none unless remediated: findings before the latest lifted
+    # restriction don't count (trust-and-disputes plan A5).
+    serious_ids = [
+        str(f)
+        for f, _j, kind, at in rows
+        if kind in SERIOUS_TYPES and (serious_since is None or at > serious_since)
+    ]
     return {
         "at_fault_recent": len(recent_ids),
         "at_fault_recent_ids": recent_ids,
