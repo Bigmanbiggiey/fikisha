@@ -18,7 +18,7 @@ authoritative copy; the form was only the means of collecting it.
 | 7 | Phones visible to operators who are only negotiating (ADR-2D-36) | **Hide phones until the job is assigned to them** | A backend change to the job payload (contact phones masked for non-assigned operator parties), with tests. Closes the ADR-2D-36 open item |
 | 8 | High-value rejection | **A Platform Admin can reverse it, with a reason** | A reversal action: Platform Admin only, reasoned, audited, step-up (after 9a) |
 | 9 | Job reference length | **6 characters everywhere** | The recipient page moves from 8 to 6 |
-| 10 | Resuming a disputed job (`RESUME_PRIOR`, O-P1) | **Keep it disabled for now** | No change; O-P1 stays open |
+| 10 | Resuming a disputed job (`RESUME_PRIOR`, O-P1) | **Keep it disabled for now** — *lifted by the founder 2026-10-20 (ADR-2D-54)* | Resume built under `docs/trust-and-disputes-plan.md` Part B |
 | 11 | Ratings | **Keep deferred** | — |
 | 12 | Trust & Reputation engine | **Keep the interim rule for the pilot** (ADR-2D-05) | — |
 | 13 | Operator "Restricted" status | **Leave it unused** | — |

@@ -8,12 +8,15 @@ import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { ErrorState } from '@/components/ErrorState';
 import { PageLoader } from '@/components/PageLoader';
+import { Select } from '@/components/Select';
 import { Textarea } from '@/components/Textarea';
 import { useAuth } from '@/features/auth/useAuth';
 import { jobReference } from '@/features/jobs/jobHelpers';
 import { localizeError } from '@/services/errorMessage';
 
+import { FindingPanel } from './FindingPanel';
 import { disputesApi, incidentsApi } from './incidentsApi';
+import { type ClosureReason, MANUAL_CLOSURE_REASONS } from './types';
 
 /**
  * IncidentDetailPage — §17.2 "Incident / dispute review". Reachable right
@@ -37,6 +40,8 @@ export function IncidentDetailPage(): JSX.Element {
 
   const [statementText, setStatementText] = useState('');
   const [escalateReason, setEscalateReason] = useState('');
+  const [closeReason, setCloseReason] = useState<ClosureReason | ''>('');
+  const [closeNote, setCloseNote] = useState('');
   const [downloadError, setDownloadError] = useState<string | null>(null);
 
   const incident = useQuery({
@@ -85,6 +90,15 @@ export function IncidentDetailPage(): JSX.Element {
       invalidate();
     },
   });
+  const closeIncident = useMutation({
+    mutationFn: () =>
+      incidentsApi.close(incidentId!, { reason_code: closeReason as ClosureReason, note: closeNote }),
+    onSuccess: () => {
+      setCloseReason('');
+      setCloseNote('');
+      invalidate();
+    },
+  });
   const addStatement = useMutation({
     mutationFn: () => incidentsApi.addStatement(incidentId!, statementText),
     onSuccess: () => {
@@ -111,6 +125,7 @@ export function IncidentDetailPage(): JSX.Element {
   const inc = incident.data;
   const linkedDispute = disputes.data?.data.find((d) => d.incident_ids.includes(inc.id));
   const canAct = inc.status !== 'RESOLVED';
+  const inOpenDispute = Boolean(linkedDispute && linkedDispute.status !== 'RESOLVED');
 
   return (
     <div className="mx-auto max-w-2xl space-y-5">
@@ -126,6 +141,22 @@ export function IncidentDetailPage(): JSX.Element {
           {t('detail.viewJob')}
         </Link>
       </Card>
+
+      {inc.closure && (
+        <Card className="space-y-1">
+          <h2 className="text-label text-fg-secondary">{t('detail.closure.title')}</h2>
+          <p className="text-body text-fg">
+            {t('detail.closure.reasonLine', {
+              reason: t(`detail.closure.reason.${inc.closure.reason_code}`),
+            })}
+          </p>
+          {inc.closure.note && (
+            <p className="text-body-sm text-fg-secondary">
+              {t('detail.closure.note')}: {inc.closure.note}
+            </p>
+          )}
+        </Card>
+      )}
 
       {inc.description && (
         <Card>
@@ -182,6 +213,13 @@ export function IncidentDetailPage(): JSX.Element {
         </Button>
       </Card>
 
+      <FindingPanel
+        incident={inc}
+        isStaff={isAdminViewer}
+        isPlatformAdmin={isPlatformAdmin}
+        onChanged={invalidate}
+      />
+
       {linkedDispute && (
         <Alert tone="info">
           <Link to={`/disputes/${linkedDispute.id}`} className="underline">
@@ -223,6 +261,47 @@ export function IncidentDetailPage(): JSX.Element {
             )}
           </div>
 
+          {canAct &&
+            (inOpenDispute ? (
+              <p className="border-t border-line pt-3 text-body-sm text-fg-secondary">
+                {t('detail.close.inDispute')}
+              </p>
+            ) : (
+              <div className="space-y-2 border-t border-line pt-3">
+                <h3 className="text-label text-fg">{t('detail.close.title')}</h3>
+                <label htmlFor="close-reason" className="block text-body-sm text-fg-secondary">
+                  {t('detail.close.reason')}
+                </label>
+                <Select
+                  id="close-reason"
+                  value={closeReason}
+                  onChange={(e) => setCloseReason(e.target.value as ClosureReason | '')}
+                >
+                  <option value="">{t('detail.close.choose')}</option>
+                  {MANUAL_CLOSURE_REASONS.map((r) => (
+                    <option key={r} value={r}>
+                      {t(`detail.closure.reason.${r}`)}
+                    </option>
+                  ))}
+                </Select>
+                <Textarea
+                  aria-label={t('detail.close.note')}
+                  placeholder={t('detail.close.note')}
+                  value={closeNote}
+                  onChange={(e) => setCloseNote(e.target.value)}
+                />
+                <p className="text-caption text-fg-muted">{t('detail.close.noteHint')}</p>
+                <Button
+                  variant="secondary"
+                  disabled={!closeReason || closeNote.trim().length < 10}
+                  loading={closeIncident.isPending}
+                  onClick={() => closeIncident.mutate()}
+                >
+                  {t('detail.close.submit')}
+                </Button>
+              </div>
+            ))}
+
           {/* Escalate is Platform-Admin-only — hidden, not disabled, for an
               Ops Officer viewer (§17.2's explicit requirement). */}
           {isPlatformAdmin && canAct && (
@@ -247,10 +326,15 @@ export function IncidentDetailPage(): JSX.Element {
           {(startReview.isError ||
             startAmicable.isError ||
             openDispute.isError ||
+            closeIncident.isError ||
             escalate.isError) && (
             <Alert tone="danger">
               {localizeError(
-                (startReview.error ?? startAmicable.error ?? openDispute.error ?? escalate.error)!,
+                (startReview.error ??
+                  startAmicable.error ??
+                  openDispute.error ??
+                  closeIncident.error ??
+                  escalate.error)!,
                 t,
               )}
             </Alert>

@@ -1,4 +1,5 @@
 import { screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Route, Routes } from 'react-router-dom';
 
@@ -10,11 +11,15 @@ const getDispute = vi.fn();
 const getJob = vi.fn();
 const listIncidentsForJob = vi.fn();
 const meMock = vi.fn();
+const resumeChecks = vi.fn();
+const resume = vi.fn();
 
 vi.mock('./incidentsApi', () => ({
   disputesApi: {
     get: (...a: unknown[]) => getDispute(...a),
     resolve: vi.fn(),
+    resumeChecks: (...a: unknown[]) => resumeChecks(...a),
+    resume: (...a: unknown[]) => resume(...a),
   },
   incidentsApi: {
     listForJob: (...a: unknown[]) => listIncidentsForJob(...a),
@@ -53,10 +58,21 @@ function baseJob(overrides: Record<string, unknown> = {}): Record<string, unknow
   return { id: 'job1', value_band: 'STANDARD', ...overrides };
 }
 
+const okChecks = {
+  target_status: 'AT_DESTINATION',
+  window_ends_at: '2026-10-27T08:00:00Z',
+  ok: true,
+  checks: ['dispute_open', 'resumable_state', 'within_window', 'serious_findings', 'assignment_eligible'].map(
+    (key) => ({ key, ok: true, detail: '' }),
+  ),
+};
+
 describe('DisputeDetailPage', () => {
   beforeEach(() => {
     getDispute.mockReset();
     getJob.mockReset();
+    resume.mockReset();
+    resumeChecks.mockReset().mockResolvedValue(okChecks);
     listIncidentsForJob.mockReset();
     meMock.mockReset();
     listIncidentsForJob.mockResolvedValue({ data: [] });
@@ -83,8 +99,9 @@ describe('DisputeDetailPage', () => {
 
     expect(await screen.findByText('Resolve this dispute')).toBeInTheDocument();
     expect(screen.queryByText('Commission treatment')).not.toBeInTheDocument();
-    // No Resume shell for an Ops Officer, regardless of band.
-    expect(screen.queryByText('Resume when the authoritative system permits it — not available yet.')).not.toBeInTheDocument();
+    // An Ops Officer reads the resume checklist but can't resume (trust plan B3)
+    expect(await screen.findByText('Only a Platform Administrator can resume a job.')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Resume this job/ })).not.toBeInTheDocument();
   });
 
   it('an Ops Officer on an above-STANDARD dispute sees the escalation exception, not resolve controls', async () => {
@@ -100,20 +117,53 @@ describe('DisputeDetailPage', () => {
     expect(screen.queryByText('Resolve this dispute')).not.toBeInTheDocument();
   });
 
-  it('a Platform Admin sees full resolve controls plus the permanently-disabled Resume shell', async () => {
+  it('a Platform Admin resumes once every check is met and both agreements are recorded', async () => {
     meMock.mockResolvedValue({
       id: 'u2', phone: '+254700000002', display_name: 'Admin', locale: 'en', status: 'ACTIVE',
       roles: ['PLATFORM_ADMIN'], is_admin: true,
     });
     getDispute.mockResolvedValue(baseDispute());
     getJob.mockResolvedValue(baseJob({ value_band: 'VERY_HIGH' }));
+    resume.mockResolvedValue({ resolution_id: 'r1', job: {} });
+    const u = userEvent.setup();
     renderAtDispute('dis1');
 
     expect(await screen.findByText('Commission treatment')).toBeInTheDocument();
-    const resumeButton = await screen.findByRole('button', { name: 'Resume this Job to At destination' });
-    expect(resumeButton).toBeDisabled();
-    expect(
-      screen.getByText('Resume when the authoritative system permits it — not available yet.'),
-    ).toBeInTheDocument();
+    const button = await screen.findByRole('button', { name: 'Resume this job to At destination' });
+    expect(button).toBeDisabled();
+    expect(screen.getByText('The same driver and vehicle could still be assigned today')).toBeInTheDocument();
+    await u.selectOptions(screen.getByLabelText('How the sender agreed to carry on'), 'PHONE');
+    await u.selectOptions(screen.getByLabelText('How the operator agreed to carry on'), 'IN_PERSON');
+    await u.type(screen.getByLabelText('Reason for resuming (at least 10 characters)'), 'Both agreed to finish today.');
+    await u.click(button);
+    expect(resume).toHaveBeenCalledWith(
+      'dis1',
+      { sender_method: 'PHONE', operator_method: 'IN_PERSON', reason: 'Both agreed to finish today.' },
+      expect.any(String),
+    );
+  });
+
+  it('a failed check keeps the resume button disabled and says why', async () => {
+    meMock.mockResolvedValue({
+      id: 'u2', phone: '+254700000002', display_name: 'Admin', locale: 'en', status: 'ACTIVE',
+      roles: ['PLATFORM_ADMIN'], is_admin: true,
+    });
+    getDispute.mockResolvedValue(baseDispute());
+    getJob.mockResolvedValue(baseJob({ value_band: 'STANDARD' }));
+    resumeChecks.mockResolvedValue({
+      ...okChecks,
+      ok: false,
+      checks: okChecks.checks.map((c) =>
+        c.key === 'assignment_eligible' ? { ...c, ok: false, detail: "The driver's account is not active." } : c,
+      ),
+    });
+    const u = userEvent.setup();
+    renderAtDispute('dis1');
+
+    expect(await screen.findByText("The driver's account is not active.")).toBeInTheDocument();
+    await u.selectOptions(screen.getByLabelText('How the sender agreed to carry on'), 'PHONE');
+    await u.selectOptions(screen.getByLabelText('How the operator agreed to carry on'), 'PHONE');
+    await u.type(screen.getByLabelText('Reason for resuming (at least 10 characters)'), 'Both agreed to finish today.');
+    expect(screen.getByRole('button', { name: 'Resume this job to At destination' })).toBeDisabled();
   });
 });

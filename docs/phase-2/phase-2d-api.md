@@ -294,12 +294,46 @@ stored_level, floor_met, since, bands, max_value_kes, next_level,
 criteria: [{key, status: MET|NOT_MET|NOT_MEASURED, current, target}],
 ready_for_review, open_proposal, history}`.
 
+### Trust engine (ADR-2D-53)
+
+| Method | Path | Authorization | Notes |
+| --- | --- | --- | --- |
+| POST | `/incidents/<id>/close` | `incident.intake`; Platform Admin above STANDARD | `{reason_code: RESOLVED_BETWEEN_PARTIES\|PAYMENT_MADE\|WITHDRAWN\|NO_ACTION_NEEDED\|OTHER, note}` → incident. 422 `invalid_closure_reason` / `closure_note_required`; 409 `incident_already_resolved` / `incident_in_open_dispute` |
+| POST | `/incidents/<id>/findings` | `incident.intake`; Platform Admin for AT_FAULT above STANDARD | `{outcome: AT_FAULT\|NO_FAULT\|UNDETERMINED, parties: [BUSINESS\|DRIVER\|GROUP], reason}` → incident (201). 422 `invalid_finding` / `finding_reason_required` |
+| POST | `/incidents/<id>/unfounded` | Platform Admin + step-up | `{reason}` → incident (201). 409 `unfounded_not_allowed` |
+| GET | `/jobs/<id>/ratings` | the job's business or operator side; staff | party: `{can_rate, side, closes_in_seconds, mine, about_me}` (about_me published score only); staff: `{ratings: [... with comment]}` |
+| POST | `/jobs/<id>/ratings` | the job's business or operator side | `{score: 1-5, comment?}` → the party view (201). 403 `not_rating_party`; 409 `rating_not_open` / `already_rated`; 422 `invalid_rating` |
+| GET | `/ops/cancellation-flags` | `job.monitor.view` | `{data: [{id, business_id, business_name, count, created_at}]}` (open only) |
+| POST | `/ops/cancellation-flags/<id>/review` | `job.intervene` | `{outcome: CLEARED\|MISTAKEN, note}`. 409 `cancellation_flag_not_open`; 422 `flag_note_required` |
+| GET | `/admin/directory/businesses/<id>/record` | `admin.directory.read` | `{open_reports, closed_incidents, findings_against, unfounded_reports, rating, cancellation_flags}` |
+
+The incident view adds `closure` (`{reason_code, created_at}`; staff also
+`note`), `finding` (current: `{id, outcome, parties, created_at}`; staff
+also `reason`, `decided_by_is_platform_admin`, `supersedes_id`) and, for
+staff, `finding_history`, `finding_candidates`, `unfounded`. A dispute's
+resolution adds `recorded_actions` (pre-findings intent flags). A business's
+negotiation thread adds `operator_summary` (`{completed_jobs,
+average_rating, rating_count}`; null for the operator side). The tier view's
+criterion `status` adds `INSUFFICIENT_DATA`; staff tier views add
+`rating_concentration`; history triggers add `INCIDENT`, `RATING_DROP`,
+`REMEDIATION_EXIT`. Config: `ratings`, `trust_tiers.live_criteria`,
+`trust_tiers.rating_drop`.
+
+### Resuming a disputed job (ADR-2D-54)
+
+| Method | Path | Authorization | Notes |
+| --- | --- | --- | --- |
+| GET | `/disputes/<id>/resume` | staff (`dispute.resolve`) | `{target_status, window_ends_at, checks: [{key: dispute_open\|resumable_state\|within_window\|serious_findings\|assignment_eligible, ok, detail}], ok}` |
+| POST | `/disputes/<id>/resume` | Platform Admin + step-up | `{sender_method, operator_method: PHONE\|IN_PERSON\|IN_APP_MESSAGE, sender_confirmed_at?, operator_confirmed_at?, reason}` + `Idempotency-Key` → `{resolution_id, job}`. 409 `resume_not_allowed` (names the first failing check) / `dispute_already_resolved`; 422 `invalid_agreement_method` / `rationale_required` |
+
+A dispute's resolution adds `resumed`. Job detail adds `resumed_at`.
+
 ---
 
 ## 5. What is deliberately absent
 
 No route exposes: a raw scheduler/lifecycle transition (sweeps run only as
 `SystemActor`, confirmed by `test_no_http_endpoint_exposes_a_raw_scheduler_
-transition`) · `DISPUTED → RESUME`/`RESUME_PRIOR` (not implemented, ADR-2D-07)
-· a rating read or write of any kind (tiers: ADR-2D-52) · any M-Pesa/eTIMS/SMS/WhatsApp
+transition`) · replacing the driver or vehicle when a job is resumed (ADR-2D-54)
+· any M-Pesa/eTIMS/SMS/WhatsApp
 provider callback · a wallet/escrow/fare-custody operation.

@@ -15,6 +15,7 @@ import { disputesApi } from '@/features/incidents/incidentsApi';
 import { JobNotesSection } from '@/features/ops/JobNotesSection';
 import { StaffJobContext } from '@/features/ops/StaffJobContext';
 import { StaffJobPanel } from '@/features/ops/StaffJobPanel';
+import { formatDateTime } from '@/services/datetime';
 import { localizeError } from '@/services/errorMessage';
 import { formatStamp } from '@/services/datetime';
 
@@ -35,6 +36,7 @@ import {
 import { formatKes } from './money';
 import type { Job, JobStatus } from './types';
 import { useJobViewerRole } from './useJobViewerRole';
+import { RateJobCard } from '@/features/ratings/RateJobCard';
 import { JobEarningsCard } from '@/features/statements/JobEarningsCard';
 import { JobMap } from '@/features/maps/JobMap';
 
@@ -130,6 +132,9 @@ export function JobDetailPage(): JSX.Element {
 
   const detailCards = (
     <>
+      {data.resumed_at && !['COMPLETED', 'CANCELLED', 'FAILED', 'DISPUTED'].includes(data.status) && (
+        <Alert tone="info">{t('jobs:detail.resumedNotice', { when: formatDateTime(data.resumed_at) })}</Alert>
+      )}
       {/* Close-off (founder 2026-10-20, PD-3 / PD-4): the sender closes the
           job once paid; the operator sees it waiting or what was recorded. */}
       {viewer.role === 'BUSINESS' && data.status === 'DELIVERED' && <SenderCloseOffCard job={data} />}
@@ -184,6 +189,10 @@ export function JobDetailPage(): JSX.Element {
 
       {/* "Earnings for this Job" (P3 §7.4): the payee's view once completed */}
       {isOperatorViewer && data.status === 'COMPLETED' && <JobEarningsCard jobId={data.id} />}
+
+      {/* Ratings (trust plan A4): each side rates the other once the job has
+          completed; staff see them all. The server hides it from anyone else. */}
+      {data.timestamps.completed_at && <RateJobCard jobId={data.id} />}
 
       <JobNotesSection jobId={data.id} />
     </>

@@ -51,7 +51,29 @@
     "startAmicable": "Start amicable resolution",
     "openDispute": "Open a dispute (freeze this Job)",
     "escalateReason": "Reason for escalating",
-    "escalate": "Escalate to Platform Admin"
+    "escalate": "Escalate to Platform Admin",
+    "close": {
+      "title": "Close this incident",
+      "reason": "Why it's being closed",
+      "choose": "Choose a reason",
+      "note": "Note for Fikisha staff",
+      "noteHint": "At least 10 characters. Only staff see this note.",
+      "submit": "Close incident",
+      "inDispute": "This incident is part of an open dispute. It closes when the dispute is resolved."
+    },
+    "closure": {
+      "title": "Closed",
+      "reasonLine": "Reason: {{reason}}",
+      "note": "Staff note",
+      "reason": {
+        "RESOLVED_BETWEEN_PARTIES": "Resolved between the parties",
+        "PAYMENT_MADE": "Payment made",
+        "WITHDRAWN": "Withdrawn by the reporter",
+        "NO_ACTION_NEEDED": "No action needed",
+        "DISPUTE_RESOLVED": "Dispute resolved",
+        "OTHER": "Other"
+      }
+    }
   },
   "dispute": {
     "title": "Dispute",
@@ -60,7 +82,13 @@
     "noLinkedIncidents": "No linked incidents.",
     "resolution": {
       "title": "Resolution",
-      "outcome": "Resolved — Job {{status}}"
+      "outcome": "Resolved — Job {{status}}",
+      "recordedIntent": "Recorded intent (before findings): {{actions}}",
+      "action": {
+        "RATING_IMPACT": "rating impact",
+        "TRUST_CHANGE": "trust change",
+        "SUSPENSION": "suspension"
+      }
     },
     "underReview": "Fikisha is reviewing this. You'll be notified when it's resolved.",
     "needsPlatformAdmin": "This needs a Platform Administrator.",
@@ -85,10 +113,63 @@
       "apply": "Apply resolution"
     },
     "resume": {
-      "title": "Resume this Job to {{status}}",
-      "reason": "Reason for resuming",
-      "action": "Resume this Job to {{status}}",
-      "notAvailable": "Resume when the authoritative system permits it — not available yet."
+      "title": "Resume this job to {{status}}",
+      "explain": "The job carries on from where it stopped, with the same driver and vehicle. Every incident in the dispute is closed.",
+      "reason": "Reason for resuming (at least 10 characters)",
+      "action": "Resume this job to {{status}}",
+      "met": "met",
+      "notMet": "not met",
+      "check": {
+        "dispute_open": "The dispute is still open",
+        "resumable_state": "The job was disputed before it completed",
+        "within_window": "Within 7 days of the dispute opening (until {{when}})",
+        "serious_findings": "Every loss, damage, missing-goods or misconduct incident has a finding",
+        "assignment_eligible": "The same driver and vehicle could still be assigned today"
+      },
+      "senderAgreed": "How the sender agreed to carry on",
+      "operatorAgreed": "How the operator agreed to carry on",
+      "chooseMethod": "Choose how",
+      "method": {
+        "PHONE": "By phone",
+        "IN_PERSON": "In person",
+        "IN_APP_MESSAGE": "By message in the app"
+      },
+      "afterwards": "The step that was waiting is confirmed again: fresh codes are sent, and earlier confirmations no longer count.",
+      "platformAdminOnly": "Only a Platform Administrator can resume a job."
+    }
+  },
+  "finding": {
+    "title": "Fikisha's finding",
+    "disclaimer": "This is Fikisha's finding on this job, not a legal ruling.",
+    "none": "No finding recorded.",
+    "outcome": {
+      "AT_FAULT": "At fault",
+      "NO_FAULT": "No fault found",
+      "UNDETERMINED": "Couldn't be determined"
+    },
+    "atFault": "Found at fault: {{parties}}",
+    "party": {
+      "BUSINESS": "Business",
+      "DRIVER": "Driver",
+      "GROUP": "Group"
+    },
+    "reason": "Reason",
+    "history": "Earlier findings",
+    "replaced": "Replaced",
+    "record": "Record a finding",
+    "replace": "Replace the finding",
+    "outcomeLabel": "Finding",
+    "choose": "Choose a finding",
+    "partiesLabel": "Who was at fault",
+    "groupHint": "Naming the group doesn't name the driver, and naming the driver doesn't name the group.",
+    "reasonLabel": "Reason (at least 10 characters)",
+    "submit": "Save finding",
+    "unfounded": {
+      "title": "Report unfounded",
+      "explain": "Only after closing with \"No fault found\". Recorded against the reporter; it has no automatic effect.",
+      "reason": "Why the report was unfounded",
+      "submit": "Mark report unfounded",
+      "recorded": "This report was marked unfounded."
     }
   }
 }

@@ -68,6 +68,40 @@ export interface IncidentStatementItem {
   created_at: string;
 }
 
+/** Reasons staff may choose when closing an incident by hand
+ * (`MANUAL_CLOSURE_REASONS`); `DISPUTE_RESOLVED` is written only by
+ * resolving a dispute. */
+export const MANUAL_CLOSURE_REASONS = [
+  'RESOLVED_BETWEEN_PARTIES',
+  'PAYMENT_MADE',
+  'WITHDRAWN',
+  'NO_ACTION_NEEDED',
+  'OTHER',
+] as const;
+export type ClosureReason = (typeof MANUAL_CLOSURE_REASONS)[number] | 'DISPUTE_RESOLVED';
+
+export interface IncidentClosure {
+  reason_code: ClosureReason;
+  created_at: string;
+  /** staff only */
+  note?: string;
+}
+
+export const FINDING_OUTCOMES = ['AT_FAULT', 'NO_FAULT', 'UNDETERMINED'] as const;
+export type FindingOutcome = (typeof FINDING_OUTCOMES)[number];
+export type FindingPartyKind = 'BUSINESS' | 'DRIVER' | 'GROUP';
+
+/** Fikisha's finding (trust plan A2). `reason` and the rest are staff-only. */
+export interface IncidentFinding {
+  id: string;
+  outcome: FindingOutcome;
+  parties: FindingPartyKind[];
+  created_at: string;
+  reason?: string;
+  decided_by_is_platform_admin?: boolean;
+  supersedes_id?: string | null;
+}
+
 export interface Incident {
   id: string;
   job_id: string;
@@ -83,6 +117,12 @@ export interface Incident {
   sla_resolution_due_at: string | null;
   evidence: IncidentEvidenceItem[];
   statements: IncidentStatementItem[];
+  closure: IncidentClosure | null;
+  finding: IncidentFinding | null;
+  /** staff only */
+  finding_history?: IncidentFinding[];
+  finding_candidates?: FindingPartyKind[];
+  unfounded?: { reason: string; created_at: string } | null;
 }
 
 export interface Resolution {
@@ -91,6 +131,10 @@ export interface Resolution {
   rationale: string;
   routed_job_status: RoutableJobStatus;
   commission_treatment: CommissionTreatment;
+  /** intent flags recorded before findings existed; history only */
+  recorded_actions?: string[];
+  /** resolved by resuming the job to `routed_job_status` (trust plan B1) */
+  resumed?: boolean;
   created_at: string;
 }
 
@@ -110,6 +154,34 @@ export interface ReportIncidentBody {
   severity?: IncidentSeverity;
   description?: string;
   other_label?: string;
+}
+
+export interface CloseIncidentBody {
+  reason_code: ClosureReason;
+  note: string;
+}
+
+export interface RecordFindingBody {
+  outcome: FindingOutcome;
+  parties: FindingPartyKind[];
+  reason: string;
+}
+
+export const AGREEMENT_METHODS = ['PHONE', 'IN_PERSON', 'IN_APP_MESSAGE'] as const;
+export type AgreementMethod = (typeof AGREEMENT_METHODS)[number];
+
+/** `GET /disputes/:id/resume` (trust plan B1). */
+export interface ResumeChecks {
+  target_status: string;
+  window_ends_at: string;
+  checks: { key: string; ok: boolean; detail: string }[];
+  ok: boolean;
+}
+
+export interface ResumeDisputeBody {
+  sender_method: AgreementMethod;
+  operator_method: AgreementMethod;
+  reason: string;
 }
 
 export interface ResolveDisputeBody {

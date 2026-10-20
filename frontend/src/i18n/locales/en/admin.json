@@ -148,8 +148,13 @@
           "high_and_latent_days": "Issue window, high value or latent risk (days)"
         },
         "stale_assignment_alert_minutes": "Stale assignment alert (minutes)"
+      },
+      "trust_tiers": {
+        "live_criteria": "Ratings and fault findings count toward tiers"
       }
-    }
+    },
+    "on": "On",
+    "off": "Off"
   },
   "commission": {
     "title": "Commission",
@@ -204,5 +209,24 @@
     "newKeywords": "Keywords, comma separated",
     "addCategory": "Add category",
     "categoryAdded": "Added {{code}}."
+  },
+  "record": {
+    "title": "Track record",
+    "rating": "Rating from operators: {{average}} ({{count}} counted)",
+    "ratingNone": "Rating from operators: not enough ratings yet ({{count}} counted)",
+    "openReports": "Reports open",
+    "closed": "Incidents closed",
+    "findings": "Findings against this business",
+    "unfounded": "Reports by this business found unfounded",
+    "flags": "Cancellation flags",
+    "none": "None.",
+    "noClosure": "closed before closure reasons were recorded",
+    "superseded": "replaced",
+    "flagRow": "{{count}} late cancellations or wasted trips",
+    "flagStatus": {
+      "OPEN": "open",
+      "CLEARED": "cleared",
+      "MISTAKEN": "closed as mistaken"
+    }
   }
 }

@@ -487,6 +487,26 @@ def test_config_apply_behind_the_gate(stepped_up_admin: Any) -> None:
         )
 
 
+def test_the_live_criteria_switch_is_a_yes_no_value(stepped_up_admin: Any) -> None:
+    """trust-and-disputes plan A5: a Platform Admin turns ratings and
+    findings on for the tiers."""
+    from fikisha.platform_config import services as config_services
+
+    for bad in (1, "true", None):
+        with pytest.raises(services.InvalidConfigChange):
+            services.apply_config_change(
+                actor=stepped_up_admin,
+                changes={"trust_tiers.live_criteria": bad},
+                rationale="Turn ratings on for the tiers",
+            )
+    services.apply_config_change(
+        actor=stepped_up_admin,
+        changes={"trust_tiers.live_criteria": True},
+        rationale="Turn ratings on for the tiers",
+    )
+    assert config_services.get("trust_tiers.live_criteria") is True
+
+
 # ─── Commission ledger ─────────────────────────────────────────────────
 def test_commission_ledger(
     client_for: Callable,

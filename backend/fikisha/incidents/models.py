@@ -24,9 +24,14 @@ from django.db import models
 
 from fikisha.common.models import AppendOnlyModel, AppendOnlyQuerySet, TimestampedModel
 from fikisha.incidents.constants import (
+    RESUMABLE_STATUSES,
     ROUTABLE_JOB_STATUSES,
+    AgreementMethod,
+    ClosureReason,
     CommissionTreatment,
     DisputeStatus,
+    FindingOutcome,
+    FindingPartyKind,
     IncidentSeverity,
     IncidentStatus,
     IncidentType,
@@ -62,6 +67,13 @@ class Incident(TimestampedModel):
     # append-only-survives-the-link-lifecycle reasoning as
     # RecipientReportedIssue.reported_via_link_id.
     reported_by_link_id = models.UUIDField(null=True, blank=True)
+    #: The reporter's side of the job when they reported it (BUSINESS /
+    #: OPERATOR / GROUP / RECIPIENT / ADMIN), fixed at creation so later
+    #: membership changes never re-attribute it. Blank on incidents reported
+    #: before it existed (trust-and-disputes plan A5).
+    reporter_party = models.CharField(
+        max_length=16, choices=PartyKind.choices, blank=True, default=""
+    )
     # The originating recipient report, if this incident was intake'd from one
     # (plan §19 Step 8 brief §7) — never mutated, only referenced.
     source_report_id = models.UUIDField(null=True, blank=True)
@@ -143,6 +155,103 @@ class IncidentStatement(AppendOnlyModel):
         indexes = [models.Index(fields=["incident", "created_at"])]
 
 
+class IncidentClosure(AppendOnlyModel):
+    """Why and by whom an incident was closed (trust-and-disputes plan A1).
+    One per incident, append-only. Says nothing about fault."""
+
+    incident = models.OneToOneField(Incident, on_delete=models.PROTECT, related_name="closure")
+    reason_code = models.CharField(max_length=32, choices=ClosureReason.choices)
+    note = models.TextField()
+    closed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="+"
+    )
+    closed_by_is_platform_admin = models.BooleanField(default=False)
+    #: Set when the closure came from resolving this dispute.
+    dispute = models.ForeignKey(
+        "Dispute", null=True, blank=True, on_delete=models.PROTECT, related_name="closures"
+    )
+
+    objects = AppendOnlyQuerySet.as_manager()
+
+    class Meta:
+        db_table = "incident_closure"
+
+
+class IncidentFinding(AppendOnlyModel):
+    """Fikisha's finding on an incident (trust-and-disputes plan A2).
+    Append-only; a correction is a new row that ``supersedes`` the current
+    one. The current finding is the one nothing supersedes: the database
+    allows one first finding per incident and each finding to be superseded
+    once, so there is exactly one current finding per incident."""
+
+    incident = models.ForeignKey(Incident, on_delete=models.PROTECT, related_name="findings")
+    outcome = models.CharField(max_length=16, choices=FindingOutcome.choices)
+    reason = models.TextField()
+    decided_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="+"
+    )
+    decided_by_is_platform_admin = models.BooleanField(default=False)
+    supersedes = models.OneToOneField(
+        "self", null=True, blank=True, on_delete=models.PROTECT, related_name="superseded_by"
+    )
+
+    objects = AppendOnlyQuerySet.as_manager()
+
+    class Meta:
+        db_table = "incident_finding"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["incident"],
+                condition=models.Q(supersedes__isnull=True),
+                name="uq_incident_finding_one_first",
+            ),
+        ]
+        indexes = [models.Index(fields=["incident", "created_at"])]
+
+
+class IncidentFindingParty(AppendOnlyModel):
+    """A party an AT_FAULT finding names. ``subject_id`` is the business,
+    the driver's operator profile, or the group, derived from the job."""
+
+    finding = models.ForeignKey(IncidentFinding, on_delete=models.PROTECT, related_name="parties")
+    kind = models.CharField(max_length=10, choices=FindingPartyKind.choices)
+    subject_id = models.UUIDField()
+
+    objects = AppendOnlyQuerySet.as_manager()
+
+    class Meta:
+        db_table = "incident_finding_party"
+        constraints = [
+            models.UniqueConstraint(fields=["finding", "kind"], name="uq_finding_party_kind"),
+        ]
+        indexes = [models.Index(fields=["kind", "subject_id"], name="ix_finding_party_subject")]
+
+
+class UnfoundedReport(AppendOnlyModel):
+    """A Platform Admin's record that a report was unfounded (plan A3, UF-1),
+    against the reporter. Only on a closed incident whose current finding is
+    NO_FAULT. No automatic effect."""
+
+    incident = models.OneToOneField(
+        Incident, on_delete=models.PROTECT, related_name="unfounded_report"
+    )
+    finding = models.ForeignKey(IncidentFinding, on_delete=models.PROTECT, related_name="+")
+    reporter_party = models.CharField(max_length=16, choices=PartyKind.choices, blank=True)
+    reporter_user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.PROTECT, related_name="+"
+    )
+    reporter_link_id = models.UUIDField(null=True, blank=True)
+    reason = models.TextField()
+    decided_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="+"
+    )
+
+    objects = AppendOnlyQuerySet.as_manager()
+
+    class Meta:
+        db_table = "unfounded_report"
+
+
 class Dispute(TimestampedModel):
     """One row per dispute **episode**; a job may have more than one across its
     lifetime (ADR-2D-20). ``pre_dispute_status`` is stamped by
@@ -207,6 +316,9 @@ class Resolution(AppendOnlyModel):
         settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="+"
     )
     resolved_by_is_platform_admin = models.BooleanField(default=False)
+    #: The dispute was resolved by resuming the job to ``routed_job_status``,
+    #: its recorded pre-dispute state (trust-and-disputes plan B1).
+    resumed = models.BooleanField(default=False)
 
     objects = AppendOnlyQuerySet.as_manager()
 
@@ -214,8 +326,11 @@ class Resolution(AppendOnlyModel):
         db_table = "resolution"
         constraints = [
             models.CheckConstraint(
-                condition=models.Q(routed_job_status__in=list(ROUTABLE_JOB_STATUSES)),
-                name="ck_resolution_routed_status_no_resume",
+                condition=(
+                    models.Q(resumed=False, routed_job_status__in=list(ROUTABLE_JOB_STATUSES))
+                    | models.Q(resumed=True, routed_job_status__in=list(RESUMABLE_STATUSES))
+                ),
+                name="ck_resolution_routed_status",
             ),
             models.CheckConstraint(
                 condition=(
@@ -246,3 +361,24 @@ class Escalation(AppendOnlyModel):
 
     class Meta:
         db_table = "escalation"
+
+
+class ResumeAttestation(AppendOnlyModel):
+    """The Platform Admin's record that both parties agreed the job should
+    carry on (trust-and-disputes plan DR-1): how each was confirmed and when,
+    if known. No transcripts or phone numbers."""
+
+    dispute = models.OneToOneField(Dispute, on_delete=models.PROTECT, related_name="resume")
+    resolution = models.OneToOneField(Resolution, on_delete=models.PROTECT, related_name="+")
+    sender_method = models.CharField(max_length=16, choices=AgreementMethod.choices)
+    sender_confirmed_at = models.DateTimeField(null=True, blank=True)
+    operator_method = models.CharField(max_length=16, choices=AgreementMethod.choices)
+    operator_confirmed_at = models.DateTimeField(null=True, blank=True)
+    recorded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="+"
+    )
+
+    objects = AppendOnlyQuerySet.as_manager()
+
+    class Meta:
+        db_table = "resume_attestation"

@@ -119,6 +119,8 @@ export interface Job extends JobTransitionResult {
   custody_requirements?: { pickup: ProofGroups; delivery: ProofGroups };
   /** the sender's record of paying the operator, made on close-off (PD-4) */
   payment_record?: { method: 'CASH' | 'MPESA'; mpesa_reference: string; recorded_at: string } | null;
+  /** when Fikisha last resumed the job after a dispute (trust plan B3) */
+  resumed_at?: string | null;
   /** the other party's own confirmations already recorded */
   custody_confirmations?: {
     sender_in_app: boolean;

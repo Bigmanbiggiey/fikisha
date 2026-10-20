@@ -113,11 +113,9 @@ def arrive_at_destination(
 
 
 def _recorded_methods(job: Any, stage: str) -> set[str]:
-    from fikisha.jobs.models import CustodyConfirmation
+    from fikisha.jobs import confirmations
 
-    return set(
-        CustodyConfirmation.objects.filter(job=job, stage=stage).values_list("method", flat=True)
-    )
+    return set(confirmations.counted(job, stage).values_list("method", flat=True))
 
 
 class SenderConfirmationNotAllowed(GuardFailed):
@@ -143,7 +141,9 @@ def sender_confirm_pickup(*, actor: Any, job_id: Any, party_name: str = "") -> d
         )
     if job.status not in {JobStatus.ASSIGNED, JobStatus.AT_PICKUP}:
         raise SenderConfirmationNotAllowed()
-    if not CustodyConfirmation.objects.filter(job=job, stage="PICKUP", method="IN_APP").exists():
+    from fikisha.jobs import confirmations
+
+    if not confirmations.counted(job, "PICKUP").filter(method="IN_APP").exists():
         user = getattr(actor, "user", None)
         CustodyConfirmation.objects.create(
             job=job,

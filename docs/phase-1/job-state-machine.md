@@ -326,6 +326,14 @@ Platform Admin (D-ADM-1); the guard `ActorIsPlatformAdmin` enforces it.
 
 ### 5.4 RESUME (OPEN in Phase 0)
 
+> **Decided by the founder 2026-10-20 (ADR-2D-54).** Built as described there:
+> Platform Admin with step-up; disputed before COMPLETED; within 7 days;
+> findings on serious incidents; the same assignment still eligible (no
+> replacement); both parties' agreement recorded. There are no paused timers
+> to restore (delivery acceptance was retired, ADR-2D-51); instead the pending
+> pickup or delivery is confirmed again and, at the destination, the recipient
+> link is revoked and reissued — not extended during the dispute as §5.2 said.
+
 `DISPUTED → dispute.pre_dispute_status` is supported by the state machine,
 **gated to Platform Admin**, only when the pre-dispute status is non-terminal and
 `routed_job_status = RESUME_PRIOR`. It writes a `RESUMED` `job_event`, restores

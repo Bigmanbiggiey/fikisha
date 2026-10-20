@@ -63,6 +63,9 @@ export interface NegotiationThread {
    * owner). `null` is a genuine gap (e.g. a since-deleted profile), not
    * "loading". */
   operator_display_name: string | null;
+  /** Business viewer only (trust plan A9): completed jobs and the average
+   * rating once at least 3 count; never the tier or incidents. */
+  operator_summary?: { completed_jobs: number; average_rating: number | null; rating_count: number } | null;
   standing_offer: StandingOffer | null;
   counterparty_offer: CounterpartyOffer | null;
   mutual_acceptance: MutualAcceptance;

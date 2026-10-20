@@ -48,7 +48,18 @@ DEFAULT_CONFIG: dict[str, Any] = {
     # plan). Ratings and at-fault findings aren't measured yet (TD-3), so
     # the rating values are recorded for when they are, and block nothing.
     "trust_tiers": {
-        "L2": {"min_completed_jobs": 8, "min_days_active": 14, "min_avg_rating": 4.2},
+        # Ratings and at-fault findings count toward tiers only once a
+        # Platform Admin turns this on (trust-and-disputes plan A5), so
+        # ratings can build up first; until then those rows are "not
+        # measured yet" and block nothing (TD-3).
+        "live_criteria": False,
+        "L2": {
+            "min_completed_jobs": 8,
+            "min_days_active": 14,
+            "min_avg_rating": 4.2,
+            "max_at_fault_findings": 1,
+            "at_fault_window_jobs": 20,
+        },
         "L3": {
             "min_completed_jobs": 30,
             "min_days_active": 60,
@@ -57,7 +68,18 @@ DEFAULT_CONFIG: dict[str, Any] = {
         },
         "late_cancellation_flag": {"count": 3, "window_days": 30},
         "reproposal_cooldown_days": 30,
+        # TE-6: a demotion is proposed when the mean of the newest
+        # `over_last` counted ratings falls below `below`.
+        "rating_drop": {"below": 3.5, "over_last": 10},
     },
+    # Ratings (trust-and-disputes plan TE-1, TE-4): each side may rate until
+    # the job has spent `window_days` in COMPLETED in total (time DISPUTED
+    # doesn't count); an average needs `min_counted` counted ratings and
+    # uses the newest `average_of`.
+    "ratings": {"window_days": 7, "min_counted": 3, "average_of": 10},
+    # Resuming a disputed job (trust-and-disputes plan DR-4): only within
+    # this many days of the dispute opening; after that it stays DISPUTED.
+    "disputes": {"resume_window_days": 7},
     # ─── Enumerations (admin-extensible later) ──────────────────────
     # Vehicle classes moved to the `config_vehicle_class` lookup table in
     # Phase 2C (ADR-2C-01); `ConfigService`/`ConfigPublicView` expose the codes.

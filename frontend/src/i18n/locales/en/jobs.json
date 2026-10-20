@@ -52,7 +52,8 @@
     "nothingNeeded": "Nothing needed from you right now.",
     "disputeUnderReview": "Fikisha is reviewing this job. You'll be told when there's an update.",
     "draftNote": "This request hasn't been sent yet.",
-    "autoCompleteNote": "This delivery will be marked complete automatically — nothing needed from you."
+    "autoCompleteNote": "This delivery will be marked complete automatically — nothing needed from you.",
+    "resumedNotice": "Fikisha resumed this job after a dispute on {{when}}. The waiting step needs confirming again."
   },
   "pickupConfirm": {
     "whatYoureConfirming": "Confirm that {{cargo}} for Job {{ref}} has been handed to the driver at {{location}}.",

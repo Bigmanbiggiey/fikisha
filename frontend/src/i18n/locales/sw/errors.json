@@ -59,5 +59,20 @@
   "invalid_if_match": "Skrini hii imetuma toleo la kazi lisilosomeka. Onyesha upya ukurasa kisha ujaribu tena.",
   "tier_change_not_allowed": "Badiliko hilo la daraja haliwezekani kwa sasa.",
   "invalid_tier_change": "Kagua daraja na utoe sababu ya angalau herufi 10.",
-  "tier_proposal_not_open": "Pendekezo hili limeshaamuliwa au limepitwa na wakati. Ukurasa una taarifa za karibuni."
+  "tier_proposal_not_open": "Pendekezo hili limeshaamuliwa au limepitwa na wakati. Ukurasa una taarifa za karibuni.",
+  "invalid_closure_reason": "Chagua sababu ya kufunga tukio.",
+  "closure_note_required": "Andika maelezo ya angalau herufi 10.",
+  "incident_in_open_dispute": "Tukio hili ni sehemu ya mzozo ulio wazi; litafungwa mzozo ukitatuliwa.",
+  "invalid_finding": "Kagua uamuzi: uamuzi wa kosa unamtaja angalau mhusika mmoja wa kazi hii.",
+  "finding_reason_required": "Toa sababu ya angalau herufi 10.",
+  "unfounded_not_allowed": "Ripoti inaweza kuwekwa alama haina msingi baada tu ya kufungwa na Fikisha kutokuta kosa.",
+  "not_rating_party": "Biashara au upande wa mhudumu wa kazi hii pekee ndio wanaweza kuikadiria.",
+  "rating_not_open": "Kazi hii haiwezi kukadiriwa sasa.",
+  "already_rated": "Upande wako umeshaikadiria kazi hii.",
+  "invalid_rating": "Toa alama kuanzia 1 hadi 5; maoni yasizidi herufi 1,000.",
+  "cancellation_flag_not_open": "Alama hii imeshakaguliwa.",
+  "flag_note_required": "Andika maelezo ya angalau herufi 10.",
+  "invalid_flag_review": "Chagua kuondoa alama au kuifunga kama kosa.",
+  "resume_not_allowed": "Kazi hii haiwezi kuendelezwa bado. Angalia orodha kwenye ukurasa wa mzozo.",
+  "invalid_agreement_method": "Rekodi jinsi kila upande ulivyokubali: kwa simu, ana kwa ana au kwa ujumbe ndani ya programu."
 }

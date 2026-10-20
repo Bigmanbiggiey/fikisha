@@ -2,11 +2,15 @@ import { jobVersion, rememberJobVersion } from '@/features/jobs/jobVersions';
 import { apiRequest, fetchBlob } from '@/services/apiClient';
 
 import type {
+  CloseIncidentBody,
   Dispute,
   Incident,
   IncidentStatementItem,
+  RecordFindingBody,
   ReportIncidentBody,
   ResolveDisputeBody,
+  ResumeChecks,
+  ResumeDisputeBody,
 } from './types';
 
 // `Paged` isn't used by these list endpoints (both return a plain
@@ -41,6 +45,15 @@ export const incidentsApi = {
     apiRequest<Incident>(`/incidents/${incidentId}/review`, { method: 'POST' }),
   startAmicable: (incidentId: string) =>
     apiRequest<Incident>(`/incidents/${incidentId}/amicable`, { method: 'POST' }),
+  close: (incidentId: string, body: CloseIncidentBody) =>
+    apiRequest<Incident>(`/incidents/${incidentId}/close`, { method: 'POST', body }),
+  recordFinding: (incidentId: string, body: RecordFindingBody) =>
+    apiRequest<Incident>(`/incidents/${incidentId}/findings`, { method: 'POST', body }),
+  markUnfounded: (incidentId: string, reason: string) =>
+    apiRequest<Incident>(`/incidents/${incidentId}/unfounded`, {
+      method: 'POST',
+      body: { reason },
+    }),
   escalate: (incidentId: string, reason: string) =>
     apiRequest<{ id: string; incident_id: string; dispute_id: string | null; escalated_to: string }>(
       `/incidents/${incidentId}/escalate`,
@@ -62,6 +75,13 @@ export const disputesApi = {
     }).then((r) => {
       rememberJobVersion(r.job);
       return r;
+    }),
+  resumeChecks: (disputeId: string) => apiRequest<ResumeChecks>(`/disputes/${disputeId}/resume`),
+  resume: (disputeId: string, body: ResumeDisputeBody, idempotencyKey: string) =>
+    apiRequest<{ resolution_id: string; job: unknown }>(`/disputes/${disputeId}/resume`, {
+      method: 'POST',
+      body,
+      idempotencyKey,
     }),
   resolve: (disputeId: string, body: ResolveDisputeBody, idempotencyKey: string) =>
     apiRequest<{ resolution_id: string; job: unknown }>(`/disputes/${disputeId}/resolve`, {

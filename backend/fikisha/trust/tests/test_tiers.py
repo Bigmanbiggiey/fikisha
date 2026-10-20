@@ -114,21 +114,79 @@ def test_an_unresolved_incident_blocks_but_not_paid_does_not(
     assert view["ready_for_review"] is False
 
 
-def test_three_late_cancellations_in_30_days_block(driver: Any, give_jobs: Callable) -> None:
+def test_operator_cancellations_are_not_measured(driver: Any, give_jobs: Callable) -> None:
+    """Operators can't cancel and no-shows aren't recorded (CF-1): a business
+    user's cancellations never count against an operator who shares the user."""
     from fikisha.jobs.models import CancellationRecord
 
     jobs = give_jobs(driver, 8, days_ago=20)
     for job in jobs[:3]:
         CancellationRecord.objects.create(
             job=job,
-            cancelled_by_role="OPERATOR",
+            cancelled_by_role="USER",
             cancelled_by_user=driver.user,
             at_status="ASSIGNED",
             penalty_class="LATE_CANCELLATION",
         )
     view = services.tier_view(driver)
-    assert _criteria(view)["no_cancellation_flag"]["status"] == "NOT_MET"
-    assert view["ready_for_review"] is False
+    assert _criteria(view)["no_cancellation_flag"]["status"] == "NOT_MEASURED"
+    assert view["ready_for_review"] is True
+
+
+def test_the_operators_own_reports_never_count_against_them(
+    driver: Any, give_jobs: Callable
+) -> None:
+    from fikisha.incidents.models import Incident
+
+    jobs = give_jobs(driver, 8, days_ago=20)
+    Incident.objects.create(
+        job=jobs[0],
+        type="WRONG_PICKUP",
+        severity="LOW",
+        reported_by_kind="USER",
+        reporter_party="OPERATOR",
+    )
+    Incident.objects.create(
+        job=jobs[1],
+        type="DELAY",
+        severity="LOW",
+        reported_by_kind="USER",
+        reporter_party="GROUP",
+    )
+    # reported before the reporter's side was stored, by the driver themself
+    Incident.objects.create(
+        job=jobs[2],
+        type="DELAY",
+        severity="LOW",
+        reported_by_kind="USER",
+        reported_by_user=driver.user,
+    )
+    view = services.tier_view(driver)
+    assert _criteria(view)["unresolved_incidents"]["current"] == 0
+    assert view["ready_for_review"] is True
+    Incident.objects.create(
+        job=jobs[3],
+        type="DELAY",
+        severity="LOW",
+        reported_by_kind="USER",
+        reporter_party="BUSINESS",
+    )
+    assert _criteria(services.tier_view(driver))["unresolved_incidents"]["current"] == 1
+
+
+def test_restricted_exits_to_l1_only(driver: Any, stepped_admin: Any) -> None:
+    from fikisha.trust.services import TierChangeNotAllowed
+
+    services.set_level(
+        actor=stepped_admin, operator_id=driver.id, level="RESTRICTED", reason=REASON
+    )
+    for level in ("L2", "L3"):
+        with pytest.raises(TierChangeNotAllowed):
+            services.set_level(
+                actor=stepped_admin, operator_id=driver.id, level=level, reason=REASON
+            )
+    services.set_level(actor=stepped_admin, operator_id=driver.id, level="L1", reason=REASON)
+    assert services.stored_level(driver.id) == "L1"
 
 
 def test_l3_needs_clean_elevated_jobs(driver: Any, give_jobs: Callable, stepped_admin: Any) -> None:
@@ -229,7 +287,8 @@ def test_manual_demotion_to_restricted_and_back(driver: Any, stepped_admin: Any)
     services.set_level(actor=stepped_admin, operator_id=driver.id, level="L1", reason=REASON)
     history = services.tier_view(driver)["history"]
     assert [h["to_level"] for h in history] == ["L1", "RESTRICTED"]
-    assert all(h["trigger"] == "ADMIN_OVERRIDE" for h in history)
+    # leaving Restricted is a remediation exit (trust-and-disputes plan A6)
+    assert [h["trigger"] for h in history] == ["REMEDIATION_EXIT", "ADMIN_OVERRIDE"]
     assert "by" not in history[0]  # the operator doesn't see staff names
 
 

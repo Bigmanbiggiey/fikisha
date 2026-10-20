@@ -102,6 +102,15 @@ Rules:
 
 ### 3.1 Regression (FR-T-4)
 
+> **Changed by the founder 2026-10-20 (ADR-2D-53, `docs/trust-and-disputes-plan.md`).**
+> FR-T-4 ("administrator-applied") governs: a serious at-fault finding naming
+> the driver, and a rating drop, each create a `PROPOSED` change that a
+> Platform Admin confirms; nothing below is auto-applied. A shared finding
+> proposes nothing. The finding is recorded on the incident (a finding
+> record, not a field on the resolution). Exit from Restricted is a
+> `REMEDIATION_EXIT` to L1. The cancellation flag (§3.2) is a staff review
+> item for businesses; operator cancellations aren't recorded yet.
+
 - **At-fault *serious* incident resolved against the operator** (loss / damage /
   misconduct): `IncidentResolved` triggers an **auto-applied**
   `trust_level_change(trigger=INCIDENT, status=APPLIED)` to **Restricted**
@@ -163,6 +172,14 @@ cover is in place and gates on it; it does not underwrite.
 ---
 
 ## 5. Reputation & ratings (FR-R-1..R-5)
+
+> **Built 2026-10-20 (ADR-2D-53).** One rating per job per side; the window is
+> 7 days *in COMPLETED in total*; published once both sides rate or the window
+> is used up; comments are staff-only; averages need 3 counted ratings and
+> count toward tiers only once `trust_tiers.live_criteria` is on. Businesses
+> see completed jobs and the average while negotiating — not the tier and,
+> for the pilot, not the incident summary. No `reputation_summary` table:
+> averages are computed from the rating rows.
 
 - A `Rating` is only insertable for a job in `COMPLETED`, within
   `config.rating_window` (FR-R-2). Two-way: business↔operator; a **group job**

@@ -15,6 +15,9 @@ import { TierCard } from './TierCard';
 import { trustApi } from './trustApi';
 import { STORED_TIERS, type StoredTier, type TierView } from './types';
 
+/** Proposals that move an operator down (trust plan A6). */
+const DEMOTION_TRIGGERS: string[] = ['INCIDENT', 'RATING_DROP'];
+
 type Pending = { kind: 'set'; level: StoredTier } | { kind: 'decide'; confirm: boolean; changeId: string };
 
 /**
@@ -72,25 +75,44 @@ export function StaffTierPanel({ operatorId }: { operatorId: string }): JSX.Elem
   let restatement = '';
   let confirmLabel = '';
   let destructive = false;
+  const proposalIsDemotion = Boolean(proposal && DEMOTION_TRIGGERS.includes(proposal.trigger));
   if (pending?.kind === 'set') {
-    const down = rank(pending.level) < rank(view.stored_level);
-    title = t(down ? 'trust:admin.demoteTitle' : 'trust:admin.promoteTitle');
-    restatement = t('trust:admin.setRestate', { name, from: lvl(view.stored_level), to: lvl(pending.level) });
-    confirmLabel = t(down ? 'trust:admin.demote' : 'trust:admin.promote');
+    const lifting = view.stored_level === 'RESTRICTED';
+    const down = !lifting && rank(pending.level) < rank(view.stored_level);
+    title = t(lifting ? 'trust:admin.liftTitle' : down ? 'trust:admin.demoteTitle' : 'trust:admin.promoteTitle');
+    restatement = lifting
+      ? t('trust:admin.liftRestate', { name, to: lvl(pending.level) })
+      : t('trust:admin.setRestate', { name, from: lvl(view.stored_level), to: lvl(pending.level) });
+    confirmLabel = t(lifting ? 'trust:admin.lift' : down ? 'trust:admin.demote' : 'trust:admin.promote');
     destructive = down;
   } else if (pending?.kind === 'decide' && proposal) {
     title = t(pending.confirm ? 'trust:admin.confirmTitle' : 'trust:admin.rejectTitle');
-    restatement = t(pending.confirm ? 'trust:admin.confirmRestate' : 'trust:admin.rejectRestate', {
-      name,
-      to: lvl(proposal.to_level),
-    });
-    confirmLabel = t(pending.confirm ? 'trust:admin.confirm' : 'trust:admin.reject');
-    destructive = !pending.confirm;
+    const restateKey = proposalIsDemotion
+      ? pending.confirm
+        ? 'trust:admin.confirmDemoteRestate'
+        : 'trust:admin.rejectDemoteRestate'
+      : pending.confirm
+        ? 'trust:admin.confirmRestate'
+        : 'trust:admin.rejectRestate';
+    restatement = t(restateKey, { name, to: lvl(proposal.to_level), from: lvl(proposal.from_level) });
+    confirmLabel = t(
+      pending.confirm
+        ? proposalIsDemotion
+          ? 'trust:admin.confirmDemotion'
+          : 'trust:admin.confirm'
+        : 'trust:admin.reject',
+    );
+    destructive = pending.confirm ? proposalIsDemotion : true;
   }
 
   return (
     <div className="space-y-3">
       <TierCard view={view} staff />
+      {view.rating_concentration && view.rating_concentration.of > 0 && (
+        <p className="text-body-sm text-fg-secondary">
+          {t('trust:concentration', view.rating_concentration)}
+        </p>
+      )}
       {admin && (
         <Card className="space-y-3">
           <h2 className="text-h3 text-fg">{t('trust:admin.title')}</h2>
@@ -99,9 +121,14 @@ export function StaffTierPanel({ operatorId }: { operatorId: string }): JSX.Elem
               <p className="text-body text-fg">
                 {t('trust:admin.proposal', { from: lvl(proposal.from_level), to: lvl(proposal.to_level) })}
               </p>
+              {proposalIsDemotion && proposal.reason && (
+                <p className="text-body-sm text-fg-secondary">
+                  {t('trust:admin.proposalReason', { reason: proposal.reason })}
+                </p>
+              )}
               <div className="flex flex-wrap gap-2">
                 <Button onClick={() => open({ kind: 'decide', confirm: true, changeId: proposal.id })}>
-                  {t('trust:admin.confirm')}
+                  {t(proposalIsDemotion ? 'trust:admin.confirmDemotion' : 'trust:admin.confirm')}
                 </Button>
                 <Button variant="secondary" onClick={() => open({ kind: 'decide', confirm: false, changeId: proposal.id })}>
                   {t('trust:admin.reject')}
@@ -116,7 +143,10 @@ export function StaffTierPanel({ operatorId }: { operatorId: string }): JSX.Elem
               </label>
               <Select id="tier-target" inline value={target} onChange={(e) => setTarget(e.target.value as StoredTier | '')}>
                 <option value="">{t('trust:admin.choose')}</option>
-                {STORED_TIERS.filter((l) => l !== view.stored_level).map((l) => (
+                {STORED_TIERS.filter((l) =>
+                  // TD-4: leaving Restricted goes back to L1 only
+                  view.stored_level === 'RESTRICTED' ? l === 'L1' : l !== view.stored_level,
+                ).map((l) => (
                   <option key={l} value={l}>
                     {lvl(l)}
                   </option>

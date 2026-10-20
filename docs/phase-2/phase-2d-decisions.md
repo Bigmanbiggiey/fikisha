@@ -72,6 +72,9 @@ later.
 
 ## ADR-2D-07 — `DISPUTED → RESUME` is not implemented — CONFIRMED (Founder Gate E-1)
 
+> **Superseded 2026-10-20 by ADR-2D-54** (founder lifted decision 10; resume
+> built under `docs/trust-and-disputes-plan.md` Part B).
+
 Only `Dispute.pre_dispute_status` is persisted, so a future, separately
 founder-approved `RESUME_PRIOR` rule has a deterministic value to read. No
 resume operation, endpoint, or algorithm exists anywhere in Phase 2D; the
@@ -1687,6 +1690,128 @@ the nightly task. `trust/tests/test_tier_api.py` (6): own read, IDOR (other
 operator, a business user), Ops read-only, self-promotion refused, admin
 promote / demote, proposal decision and a second decision refused.
 Frontend `Tiers.test.tsx` (7).
+
+## ADR-2D-53 — Trust engine: closure, findings, ratings, live criteria, demotion proposals — CONFIRMED (founder approval 2026-10-20, `docs/trust-and-disputes-plan.md` Part A)
+
+Plan approved as recommended after three review rounds. Part A built on
+`feat/trust-engine`, eight increments.
+
+**Closing an incident (A1).** Until now an incident closed only through
+dispute resolution, so one that never froze the job ("I haven't been paid")
+stayed open for ever and blocked L2. Append-only `incident_closure`
+(reason + note), staff with `incident.intake`, Platform Admin above
+STANDARD; resolving a dispute writes one closure per linked incident.
+Closure never changes job status, a tier or a standing. `Incident` gains
+`reporter_party` (fixed at report time): the tier checks no longer count
+incidents the operator side reported itself.
+
+**Findings (A2) and unfounded reports (A3).** Append-only
+`incident_finding` (AT_FAULT / NO_FAULT / UNDETERMINED, one current per
+incident by database constraint; a correction supersedes) and
+`incident_finding_party` (BUSINESS / DRIVER / GROUP, derived from the job,
+never the client; naming the group never names the driver). "Shared" is
+shown, not stored. Above STANDARD only a Platform Admin records AT_FAULT.
+`unfounded_report` (Platform Admin, step-up) only on a closed incident whose
+current finding is NO_FAULT. Supersedes ADR-2D-21: resolutions' old intent
+flags are shown to staff as history and no longer offered. Never worded as
+a legal ruling.
+
+**Ratings (A4).** New module `fikisha.ratings`, one append-only rating per
+job per side. The business's rating records the driver and (group job) the
+group (FR-O-8); on a group job the assigned driver or the group manager
+rates the business, first wins (TE-10). Window: 7 days *in COMPLETED in
+total*, from status events (time DISPUTED doesn't count; TE-1 option C).
+Published once both rated or the window is used up; counted while the job
+is COMPLETED; computed on read. Comments staff-only (TE-3).
+
+**Live criteria (A5).** `trust_tiers.live_criteria` (off by default; a
+Platform Admin's yes/no value in Configuration). On: `avg_rating` uses the
+newest 10 counted ratings (fewer than 3 = `INSUFFICIENT_DATA`, which blocks,
+TE-11); `at_fault_findings` (L2: at most 1 current DRIVER at-fault finding in
+the last 20 jobs) and `serious_at_fault_findings` (L3: none since the latest
+remediation). Off, they stay `NOT_MEASURED` (TD-3). Snapshots record the
+rating and finding ids; staff see rating concentration (T-5).
+
+**Demotion proposals (A6).** TE-5: a current AT_FAULT finding on a serious
+type naming the driver and not the business proposes Restricted in the
+finding's transaction (a shared finding doesn't, Q3). TE-6: a mean below 3.5
+over the newest 10 counted ratings proposes one tier down. A Platform Admin
+confirms (FR-T-4 "administrator-applied" governs over trust-architecture
+§3.1 "auto-applied"); confirmation re-checks the evidence and refuses an
+out-of-date proposal. Partial unique indexes stop duplicate proposals from
+the same evidence (`evidence_key`). An applied restriction is never undone by
+a later correction. Leaving Restricted is `REMEDIATION_EXIT` to L1 only
+(TD-4; my tiers build had allowed any tier). Partly supersedes TD-5.
+
+**Cancellation flags (A7).** `cancellation_record` stores the cancelling
+side and business; older rows are attributed from the role stored at the
+time. Three business late cancellations / wasted trips in 30 days open a
+`cancellation_flag` (one open per business); staff clear it or close it as
+mistaken (append-only review). Staff cancellations count against no one
+(CF-2); operators can't cancel, so their criterion is "not yet measured"
+(CF-1) — the old count used the operator's user and only ever caught
+business cancellations. **Deviation:** the flag's status is a mutable
+workflow column (like `Incident.status`) so the database can enforce one
+open flag per business; each decision is the append-only review row.
+
+**Staff business record (A8)** and **operator summary for businesses
+(A9):** see `phase-2d-api.md`. Businesses still never see the tier (TD-6);
+the incident count is deferred for the pilot (TE-7, a partial supersession
+of FR-R-3).
+
+**Still needs outside sign-off:** Terms of Service wording for findings and
+ratings (dispute-and-liability §7); native Swahili review.
+
+## ADR-2D-54 — Resuming a disputed job — CONFIRMED (founder approval 2026-10-20, `docs/trust-and-disputes-plan.md` Part B; lifts founder decision 10, supersedes ADR-2D-07, closes O-P1)
+
+**Who and when.** A Platform Admin with a fresh step-up (checked in the
+service as well as the view). The dispute is unresolved; the job was disputed
+from ASSIGNED … DELIVERED (a job disputed after COMPLETED is routed, never
+resumed); within `disputes.resume_window_days` (7) of the dispute opening —
+afterwards it stays DISPUTED until routed, no timer changes it (DR-4); every
+serious-type incident in the dispute has a current finding, UNDETERMINED
+counts (FN-1); the existing assignment passes today's assignment checks —
+driver approved and not suspended / restricted / offboarded, group member of
+an unsuspended group, verification current, tier covering the band (the
+override recorded at assignment still applies), vehicle eligible, high-value
+approval still effective (DR-2, DR-5). **No replacement driver or vehicle**
+(DR-3): reassignment isn't built, and confirmations and high-value approvals
+aren't tied to an assignment.
+
+**What it writes, in one transaction** (locks dispute, then job, like
+resolve): a closure (`DISPUTE_RESOLVED`) for every linked open incident; a
+`Resolution` with `resumed = true` and `routed_job_status` = the stored
+pre-dispute status (the check constraint now allows exactly that pairing);
+an append-only `resume_attestation` — how the sender and the operator each
+agreed (phone / in person / message in the app, optional time), no
+transcripts or phone numbers (DR-1); the status change through
+`JobLifecycleService.transition()` on new rules `DISPUTED → <state>`
+(Platform Admin, guards `ResolutionRecorded` + `ResumeAllowed`, seeded into
+`allowed_job_transition` by `jobs/0019`); a `RESUMED` job event; audit
+`dispute.resumed`; outbox `DisputeResolved {resumed}` / `JobResumed`. No
+commission (none exists before COMPLETED). A replay with the same
+idempotency key returns the original result.
+
+**Proof after a resume (DR-7, DR-8).** Confirmations made before the latest
+`RESUMED` event no longer count (`jobs.confirmations`); the rows stay as
+history. Resumed to AT_PICKUP: a fresh pickup code, and the sender confirms
+in the app again. To AT_DESTINATION: a fresh recipient code, and the
+recipient link revoked and reissued with the same actions and a fresh 7-day
+expiry — this replaces job-state-machine §5.2's "extend the link during a
+dispute". To DELIVERED: nothing pending for the recipient, link not
+reissued; the sender closes as usual (no payment record exists yet).
+PICKED_UP / IN_TRANSIT: nothing pending.
+
+**Re-dispute (DR-6).** A resumed job may be disputed again; each dispute is
+its own record.
+
+**Frontend.** The dispute page's disabled Resume shell is now a card: the
+checklist for staff, and for a Platform Admin how each party agreed, a
+reason and the button (enabled only when every check passes). The job page
+says when Fikisha resumed it.
+
+**Tests:** `incidents/tests/test_resume.py` (14). Frontend
+`DisputeDetailPage.test.tsx` updated.
 
 ## Self-caught defects fixed during implementation
 

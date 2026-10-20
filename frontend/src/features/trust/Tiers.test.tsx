@@ -71,6 +71,26 @@ describe('operator tier card (operator-tiers T-3)', () => {
     expect(screen.getByText('No changes yet.')).toBeInTheDocument();
   });
 
+  it('too few ratings shows as not enough yet, not as a pass (TE-11)', () => {
+    renderWithProviders(
+      <TierCard
+        view={view({
+          criteria: [{ key: 'avg_rating', status: 'INSUFFICIENT_DATA', current: 2, target: 4.2 }],
+        })}
+      />,
+    );
+    expect(
+      screen.getByText(/Average rating of 4.2 or more · not enough ratings yet \(2 so far, 3 needed\)/),
+    ).toBeInTheDocument();
+  });
+
+  it('a measured rating shows the operator their average', () => {
+    renderWithProviders(
+      <TierCard view={view({ criteria: [{ key: 'avg_rating', status: 'MET', current: 4.6, target: 4.2 }] })} />,
+    );
+    expect(screen.getByText(/Average rating of 4.2 or more \(yours: 4.6\)/)).toBeInTheDocument();
+  });
+
   it('says when a review is under way, and shows reasons without staff names', () => {
     renderWithProviders(
       <TierCard
@@ -183,5 +203,30 @@ describe('staff tier panel (operator-tiers T-4)', () => {
     await waitFor(() =>
       expect(api.decide).toHaveBeenCalledWith('c1', { decision: 'REJECT', reason: 'Wait for the open complaint to close.' }),
     );
+  });
+
+  it('a restriction proposal is worded as a demotion, with its reason', async () => {
+    meMock.mockResolvedValue(user(['PLATFORM_ADMIN']));
+    api.tier.mockResolvedValue(
+      view({
+        open_proposal: {
+          id: 'c9',
+          from_level: 'L2',
+          to_level: 'RESTRICTED',
+          trigger: 'INCIDENT',
+          status: 'PROPOSED',
+          reason: 'A serious at-fault finding names this driver.',
+          created_at: '2026-10-20T08:00:00Z',
+        },
+      }),
+    );
+    api.decide.mockResolvedValue(view());
+    const u = userEvent.setup();
+    renderWithProviders(<StaffTierPanel operatorId="op-1" />);
+    expect(await screen.findByText('Why: A serious at-fault finding names this driver.')).toBeInTheDocument();
+    await u.click(screen.getByRole('button', { name: 'Confirm the change' }));
+    await u.type(screen.getByLabelText('Reason'), 'Damage confirmed by both parties.');
+    await u.click(screen.getByRole('button', { name: 'Continue' }));
+    expect(screen.getByText(/Move A. Dereva to Restricted \(new assignments only/)).toBeInTheDocument();
   });
 });

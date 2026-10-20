@@ -153,6 +153,19 @@ class PenaltyClass(models.TextChoices):
     WASTED_TRIP = "WASTED_TRIP", "Wasted trip"
 
 
+#: Which side cancelled (trust-and-disputes plan A7), from the initiator
+#: role actually granted. Only a business party or staff can cancel today.
+class CancellingSide(models.TextChoices):
+    BUSINESS = "BUSINESS", "Business"
+    STAFF = "STAFF", "Fikisha staff"
+
+
+class CancellationFlagStatus(models.TextChoices):
+    OPEN = "OPEN", "Open"
+    CLEARED = "CLEARED", "Cleared"
+    MISTAKEN = "MISTAKEN", "Closed as mistaken"
+
+
 class CancellationReason(models.TextChoices):
     BUSINESS_CHANGED_MIND = "BUSINESS_CHANGED_MIND", "No longer needed"
     OPERATOR_UNAVAILABLE = "OPERATOR_UNAVAILABLE", "Operator unavailable"

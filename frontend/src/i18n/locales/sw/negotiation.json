@@ -36,5 +36,11 @@
   },
   "nothingToAcceptYet": "Inasubiri hatua inayofuata ya opereta.",
   "nothingToAcceptYetBusiness": "Inasubiri hatua inayofuata ya biashara.",
-  "invalidOfferRefreshed": "Opereta amebadilisha ofa yao — hii ndiyo ya hivi karibuni."
+  "invalidOfferRefreshed": "Opereta amebadilisha ofa yao — hii ndiyo ya hivi karibuni.",
+  "summary": {
+    "jobs_one": "Kazi {{count}} imekamilika",
+    "jobs_other": "Kazi {{count}} zimekamilika",
+    "noRating": "bado ukadiriaji hautoshi",
+    "rating": "amekadiriwa {{average}} kati ya 5 (ukadiriaji {{count}})"
+  }
 }

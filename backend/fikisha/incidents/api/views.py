@@ -17,19 +17,60 @@ from fikisha.common.idempotency import idempotent
 from fikisha.evidence import services as evidence_services
 from fikisha.identity.authz.actors import actor_from_request
 from fikisha.identity.authz.step_up import require_step_up, require_step_up_for_staff_pii
-from fikisha.incidents import services
+from fikisha.incidents import findings, services
 from fikisha.incidents.api.serializers import (
     AddStatementSerializer,
     AttachEvidenceSerializer,
+    CloseIncidentSerializer,
     EscalateSerializer,
     OpenDisputeSerializer,
+    RecordFindingSerializer,
     ReportIncidentSerializer,
     ResolveDisputeSerializer,
+    ResumeDisputeSerializer,
+    UnfoundedSerializer,
 )
 from fikisha.incidents.models import Dispute, Incident, IncidentEvidence
 
 
-def _incident_view(incident: Incident) -> dict[str, object]:
+def _closure_view(incident: Incident, *, staff: bool) -> dict[str, object] | None:
+    """Why the incident was closed. The note is staff-only (trust-and-disputes
+    plan A1); parties see the reason."""
+    closure = getattr(incident, "closure", None) if incident.status == "RESOLVED" else None
+    if closure is None:
+        return None
+    view: dict[str, object] = {
+        "reason_code": closure.reason_code,
+        "created_at": closure.created_at.isoformat(),
+    }
+    if staff:
+        view["note"] = closure.note
+    return view
+
+
+def _findings_view(incident: Incident, *, staff: bool) -> dict[str, object]:
+    """Fikisha's current finding for everyone who can read the incident;
+    staff also see the history, the parties a finding may name and any
+    unfounded-report record (trust-and-disputes plan A2, A3)."""
+    current = findings.current_finding(incident.id)
+    view: dict[str, object] = {
+        "finding": findings.finding_view(current, staff=staff) if current else None,
+    }
+    if staff:
+        view["finding_history"] = [
+            findings.finding_view(f, staff=True) for f in findings.history(incident.id)
+        ]
+        view["finding_candidates"] = sorted(findings.candidates(incident))
+        unfounded = getattr(incident, "unfounded_report", None)
+        view["unfounded"] = (
+            {"reason": unfounded.reason, "created_at": unfounded.created_at.isoformat()}
+            if unfounded is not None
+            else None
+        )
+    return view
+
+
+def _incident_view(incident: Incident, *, staff: bool = False) -> dict[str, object]:
     return {
         "id": str(incident.id),
         "job_id": str(incident.job_id),
@@ -69,6 +110,8 @@ def _incident_view(incident: Incident) -> dict[str, object]:
             }
             for s in incident.statements.all()
         ],
+        "closure": _closure_view(incident, staff=staff),
+        **_findings_view(incident, staff=staff),
     }
 
 
@@ -88,12 +131,22 @@ def _dispute_view(dispute: Dispute) -> dict[str, object]:
                 "rationale": resolution.rationale,
                 "routed_job_status": resolution.routed_job_status,
                 "commission_treatment": resolution.commission_treatment,
+                # intent flags recorded before findings existed (ADR-2D-21);
+                # shown as history, never executed
+                "recorded_actions": [a for a in (resolution.actions or []) if a != "NONE"],
+                "resumed": resolution.resumed,
                 "created_at": resolution.created_at.isoformat(),
             }
             if resolution is not None
             else None
         ),
     }
+
+
+def _is_staff(request: Request) -> bool:
+    from fikisha.incidents import authz as incidents_authz
+
+    return incidents_authz.is_admin(actor_from_request(request))
 
 
 def _idempotency_key(request: Request) -> str:
@@ -122,7 +175,8 @@ class IncidentCollectionView(OrgApiView):
             .prefetch_related("evidence", "statements")
             .order_by("-created_at")
         )
-        return Response({"data": [_incident_view(i) for i in incidents]})
+        staff = incidents_authz.is_admin(self.actor(request))
+        return Response({"data": [_incident_view(i, staff=staff) for i in incidents]})
 
     def post(self, request: Request, job_id: str) -> Response:
         serializer = ReportIncidentSerializer(data=request.data)
@@ -137,7 +191,9 @@ class IncidentCollectionView(OrgApiView):
                 description=serializer.validated_data.get("description", ""),
                 other_label=serializer.validated_data.get("other_label", ""),
             )
-            return Response(_incident_view(incident), status=status.HTTP_201_CREATED)
+            return Response(
+                _incident_view(incident, staff=_is_staff(request)), status=status.HTTP_201_CREATED
+            )
 
         return idempotent(request, actor_id=str(request.user.id), run=run)
 
@@ -153,7 +209,7 @@ class IncidentDetailView(OrgApiView):
 
     def get(self, request: Request, incident_id: str) -> Response:
         incident = self.get_authz_resource()
-        return Response(_incident_view(incident))
+        return Response(_incident_view(incident, staff=_is_staff(request)))
 
 
 class IncidentEvidenceContentView(OrgApiView):
@@ -237,7 +293,7 @@ class IncidentReviewView(OrgApiView):
 
     def post(self, request: Request, incident_id: str) -> Response:
         incident = services.start_review(actor=self.actor(request), incident_id=incident_id)
-        return Response(_incident_view(incident))
+        return Response(_incident_view(incident, staff=True))
 
 
 class IncidentAmicableView(OrgApiView):
@@ -247,7 +303,61 @@ class IncidentAmicableView(OrgApiView):
         incident = services.start_amicable_window(
             actor=self.actor(request), incident_id=incident_id
         )
-        return Response(_incident_view(incident))
+        return Response(_incident_view(incident, staff=True))
+
+
+class IncidentCloseView(OrgApiView):
+    """Close an incident outside a dispute (trust-and-disputes plan A1)."""
+
+    action_post = "incident.review"
+
+    def post(self, request: Request, incident_id: str) -> Response:
+        serializer = CloseIncidentSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        incident = services.close_incident(
+            actor=self.actor(request),
+            incident_id=incident_id,
+            reason_code=serializer.validated_data["reason_code"],
+            note=serializer.validated_data["note"],
+        )
+        incident = Incident.objects.prefetch_related("evidence", "statements").get(id=incident.id)
+        return Response(_incident_view(incident, staff=True))
+
+
+class IncidentFindingView(OrgApiView):
+    """Record Fikisha's finding on an incident (trust-and-disputes plan A2)."""
+
+    action_post = "incident.review"
+
+    def post(self, request: Request, incident_id: str) -> Response:
+        serializer = RecordFindingSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        findings.record_finding(
+            actor=self.actor(request),
+            incident_id=incident_id,
+            outcome=serializer.validated_data["outcome"],
+            parties=serializer.validated_data.get("parties", []),
+            reason=serializer.validated_data["reason"],
+        )
+        incident = Incident.objects.prefetch_related("evidence", "statements").get(id=incident_id)
+        return Response(_incident_view(incident, staff=True), status=status.HTTP_201_CREATED)
+
+
+class IncidentUnfoundedView(OrgApiView):
+    """A Platform Admin marks a report unfounded (plan A3, UF-1)."""
+
+    action_post = "incident.review"
+
+    def post(self, request: Request, incident_id: str) -> Response:
+        serializer = UnfoundedSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        findings.record_unfounded(
+            actor=self.actor(request),
+            incident_id=incident_id,
+            reason=serializer.validated_data["reason"],
+        )
+        incident = Incident.objects.prefetch_related("evidence", "statements").get(id=incident_id)
+        return Response(_incident_view(incident, staff=True), status=status.HTTP_201_CREATED)
 
 
 class IncidentEscalateView(OrgApiView):
@@ -323,6 +433,37 @@ class DisputeDetailView(OrgApiView):
     def get(self, request: Request, dispute_id: str) -> Response:
         dispute = self.get_authz_resource()
         return Response(_dispute_view(dispute))
+
+
+class DisputeResumeView(OrgApiView):
+    """Resume a disputed job to its pre-dispute state (trust-and-disputes plan
+    Part B, ADR-2D-54). GET: the checklist (staff). POST: a Platform Admin
+    resumes it, with a fresh step-up (checked in the service too)."""
+
+    action_get = "dispute.resolve"
+    action_post = "dispute.resolve"
+
+    def get(self, request: Request, dispute_id: str) -> Response:
+        from fikisha.incidents import resume
+
+        return Response(resume.resume_view(dispute_id=dispute_id))
+
+    def post(self, request: Request, dispute_id: str) -> Response:
+        from fikisha.incidents import resume
+
+        serializer = ResumeDisputeSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        resolution, view = resume.resume_dispute(
+            actor=self.actor(request),
+            dispute_id=dispute_id,
+            sender_method=serializer.validated_data["sender_method"],
+            operator_method=serializer.validated_data["operator_method"],
+            reason=serializer.validated_data["reason"],
+            sender_confirmed_at=serializer.validated_data.get("sender_confirmed_at"),
+            operator_confirmed_at=serializer.validated_data.get("operator_confirmed_at"),
+            idempotency_key=_idempotency_key(request),
+        )
+        return Response({"resolution_id": str(resolution.id), "job": view})
 
 
 class DisputeResolveView(OrgApiView):

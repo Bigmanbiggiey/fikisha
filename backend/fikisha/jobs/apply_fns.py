@@ -62,11 +62,13 @@ from fikisha.jobs.constants import (
     HIGH_VALUE_BANDS,
     Attestation,
     CancellationReason,
+    CancellingSide,
     ConfirmationMethod,
     JobEventCategory,
     JobEventType,
     JobStatus,
     OperatorParty,
+    PenaltyClass,
     ProofCapturedBy,
     ProofKind,
     TrustLevel,
@@ -234,7 +236,9 @@ def cancel(job: Any, actor: Any, ctx: dict[str, Any]) -> None:
     if job.status == JobStatus.DRAFT:
         _freeze_value_band(job)
     reason_code = ctx.get("reason_code") or CancellationReason.OTHER
-    CancellationRecord.objects.create(
+    tokens = {str(t) for t in (ctx.get("initiator_tokens") or [])}
+    side = CancellingSide.BUSINESS if "BUSINESS_PARTY" in tokens else CancellingSide.STAFF
+    record = CancellationRecord.objects.create(
         job=job,
         cancelled_by_role=_actor_role(actor),
         cancelled_by_user=_actor_user(actor),
@@ -242,7 +246,13 @@ def cancel(job: Any, actor: Any, ctx: dict[str, Any]) -> None:
         reason_code=reason_code,
         reason_text=(ctx.get("reason_text") or "").strip(),
         penalty_class=compute_penalty_class(job.status),
+        cancelling_side=side,
+        business_id=job.business_id,
     )
+    if side == CancellingSide.BUSINESS and record.penalty_class != PenaltyClass.NONE:
+        from fikisha.jobs import cancellation_flags
+
+        cancellation_flags.check_business(job.business_id)
 
 
 def fail(job: Any, actor: Any, ctx: dict[str, Any]) -> None:
@@ -314,12 +324,10 @@ def _ordered(present: set[str]) -> list[str]:
 
 
 def _recorded_evidence(job: Any, stage: str) -> list[Any]:
-    from fikisha.jobs.models import CustodyConfirmation
-
     ids: list[Any] = []
-    for row in CustodyConfirmation.objects.filter(job=job, stage=stage).values_list(
-        "evidence_ids", flat=True
-    ):
+    from fikisha.jobs import confirmations
+
+    for row in confirmations.counted(job, stage).values_list("evidence_ids", flat=True):
         ids.extend(row or [])
     return ids
 
@@ -456,6 +464,19 @@ resolve_failed = noop
 resolve_cancelled = noop
 
 
+def resume(job: Any, actor: Any, ctx: dict[str, Any]) -> None:
+    """``DISPUTED -> pre-dispute state`` (trust-and-disputes plan B1, B2):
+    the pending step gets fresh codes. At pickup a new pickup code; at the
+    destination a new recipient code and the recipient link revoked and
+    reissued with the same actions. Earlier confirmations stop counting
+    (``jobs.confirmations``). No commission (none exists before COMPLETED)."""
+    target = ctx.get("routed_job_status")
+    if target == JobStatus.AT_PICKUP:
+        arrive_pickup(job, actor, ctx)
+    elif target == JobStatus.AT_DESTINATION:
+        arrive_destination(job, actor, ctx)
+
+
 APPLY: dict[str, ApplyFn] = {
     "noop": noop,
     "publish": publish,
@@ -474,4 +495,5 @@ APPLY: dict[str, ApplyFn] = {
     "resolve_completed": resolve_completed,
     "resolve_failed": resolve_failed,
     "resolve_cancelled": resolve_cancelled,
+    "resume": resume,
 }

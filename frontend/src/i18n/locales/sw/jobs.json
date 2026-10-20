@@ -52,7 +52,8 @@
     "nothingNeeded": "Hakuna kinachohitajika kwako sasa.",
     "disputeUnderReview": "Fikisha inakagua kazi hii. Utaarifiwa kukiwa na taarifa mpya.",
     "draftNote": "Ombi hili bado halijatumwa.",
-    "autoCompleteNote": "Usafirishaji huu utakamilishwa kiotomatiki — hakuna kinachohitajika kwako."
+    "autoCompleteNote": "Usafirishaji huu utakamilishwa kiotomatiki — hakuna kinachohitajika kwako.",
+    "resumedNotice": "Fikisha iliendeleza kazi hii baada ya mzozo tarehe {{when}}. Hatua iliyokuwa ikisubiri inahitaji kuthibitishwa upya."
   },
   "pickupConfirm": {
     "whatYoureConfirming": "Thibitisha kwamba {{cargo}} za Kazi {{ref}} zimekabidhiwa kwa dereva mahali {{location}}.",
