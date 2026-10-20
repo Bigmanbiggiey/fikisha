@@ -72,5 +72,7 @@
   "invalid_rating": "Toa alama kuanzia 1 hadi 5; maoni yasizidi herufi 1,000.",
   "cancellation_flag_not_open": "Alama hii imeshakaguliwa.",
   "flag_note_required": "Andika maelezo ya angalau herufi 10.",
-  "invalid_flag_review": "Chagua kuondoa alama au kuifunga kama kosa."
+  "invalid_flag_review": "Chagua kuondoa alama au kuifunga kama kosa.",
+  "resume_not_allowed": "Kazi hii haiwezi kuendelezwa bado. Angalia orodha kwenye ukurasa wa mzozo.",
+  "invalid_agreement_method": "Rekodi jinsi kila upande ulivyokubali: kwa simu, ana kwa ana au kwa ujumbe ndani ya programu."
 }

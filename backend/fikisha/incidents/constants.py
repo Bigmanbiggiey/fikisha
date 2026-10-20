@@ -136,8 +136,26 @@ class ResolutionAction(models.TextChoices):
     SUSPENSION = "SUSPENSION", "Suspension (recorded only)"
 
 
-#: DISPUTED -> RESUME (RESUME_PRIOR) is explicitly OPEN / not implemented
-#: (E-1, ADR-2D-07) — a resolution may only route to one of these. A **tuple**,
+#: How a party's agreement to continue was confirmed (resume attestation,
+#: trust-and-disputes plan DR-1). No transcripts or phone numbers are kept.
+class AgreementMethod(models.TextChoices):
+    PHONE = "PHONE", "By phone"
+    IN_PERSON = "IN_PERSON", "In person"
+    IN_APP_MESSAGE = "IN_APP_MESSAGE", "By message in the app"
+
+
+#: The states a disputed job may be resumed to (trust-and-disputes plan B1,
+#: ADR-2D-54): only its own recorded pre-dispute state, and only one of these.
+RESUMABLE_STATUSES: tuple[str, ...] = (
+    "ASSIGNED",
+    "AT_PICKUP",
+    "PICKED_UP",
+    "IN_TRANSIT",
+    "AT_DESTINATION",
+    "DELIVERED",
+)
+
+#: A resolution that does not resume may only route to one of these. A **tuple**,
 #: not a set/frozenset: a set's iteration order is randomised per-process
 #: (``PYTHONHASHSEED``), and this constant is rendered into a DB
 #: ``CheckConstraint`` (``models.py``) — a set would make ``makemigrations``

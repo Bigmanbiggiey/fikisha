@@ -290,10 +290,14 @@ def job_detail(job: Job, viewer: Any = None) -> dict[str, Any]:
     # party has already confirmed on their own device (assessment 2026-10-20
     # L-5), so the driver's screen can show both.
     from fikisha.jobs import custody_rules
-    from fikisha.jobs.models import CustodyConfirmation
 
     view["custody_requirements"] = custody_rules.requirements_view(job)
-    recorded = set(CustodyConfirmation.objects.filter(job=job).values_list("stage", "method"))
+    from fikisha.jobs import confirmations
+
+    # only what counts since the latest resume (trust-and-disputes plan B2)
+    recorded = set(confirmations.counted(job).values_list("stage", "method"))
+    resumed_at = confirmations.last_resumed_at(job)
+    view["resumed_at"] = resumed_at.isoformat() if resumed_at else None
     # The sender's record of paying the operator, made on close-off (PD-4).
     from fikisha.jobs.models import JobPaymentRecord
 

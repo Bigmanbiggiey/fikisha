@@ -171,25 +171,30 @@ def test_no_open_blocking_dispute_prevents_ordinary_completion(
         no_open_blocking_dispute(job, admin_actor, {})
 
 
-def test_disputed_to_resume_prior_does_not_exist(
+def test_resume_is_platform_admin_only_and_needs_a_resume_resolution(
     make_assigned_job: Callable, admin_actor: Any
 ) -> None:
-    """RESUME / RESUME_PRIOR is explicitly not implemented (ADR-2D-07, E-1
-    stays OPEN) — the pre-dispute status is never an allowed transition target
-    from DISPUTED."""
+    """Resume exists since ADR-2D-54 (superseding ADR-2D-07), but only for a
+    Platform Admin and only behind a recorded resume resolution — the
+    transition itself refuses a bare call."""
+    from fikisha.jobs.errors import GuardFailed
+    from fikisha.jobs.guards import resume_allowed
     from fikisha.jobs.transitions import rule_for
 
-    job = make_assigned_job()
-    assert rule_for(JobStatus.DISPUTED, JobStatus.ASSIGNED) is None
-    assert job.status == JobStatus.ASSIGNED  # sanity: this *was* the pre-dispute status
+    rule = rule_for(JobStatus.DISPUTED, JobStatus.ASSIGNED)
+    assert rule is not None
+    assert rule.initiators == ("PLATFORM_ADMIN",)
+    assert "ResumeAllowed" in rule.guards
+    with pytest.raises(GuardFailed):
+        resume_allowed(make_assigned_job(), admin_actor, {})
 
 
 def test_resolution_routed_status_check_constraint_excludes_resume(
     make_assigned_job: Callable,
 ) -> None:
-    """DB-level backstop: even bypassing every service and guard, no Resolution
-    row can be persisted with a ``routed_job_status`` outside
-    ``{COMPLETED, FAILED, CANCELLED}``."""
+    """DB-level backstop: even bypassing every service and guard, a Resolution
+    that isn't a resume (ADR-2D-54) can only route to ``{COMPLETED, FAILED,
+    CANCELLED}``."""
     from django.db import IntegrityError, transaction
 
     from fikisha.incidents.models import Dispute, Resolution

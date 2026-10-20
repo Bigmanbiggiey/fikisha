@@ -27,6 +27,7 @@ from fikisha.incidents.api.serializers import (
     RecordFindingSerializer,
     ReportIncidentSerializer,
     ResolveDisputeSerializer,
+    ResumeDisputeSerializer,
     UnfoundedSerializer,
 )
 from fikisha.incidents.models import Dispute, Incident, IncidentEvidence
@@ -133,6 +134,7 @@ def _dispute_view(dispute: Dispute) -> dict[str, object]:
                 # intent flags recorded before findings existed (ADR-2D-21);
                 # shown as history, never executed
                 "recorded_actions": [a for a in (resolution.actions or []) if a != "NONE"],
+                "resumed": resolution.resumed,
                 "created_at": resolution.created_at.isoformat(),
             }
             if resolution is not None
@@ -431,6 +433,37 @@ class DisputeDetailView(OrgApiView):
     def get(self, request: Request, dispute_id: str) -> Response:
         dispute = self.get_authz_resource()
         return Response(_dispute_view(dispute))
+
+
+class DisputeResumeView(OrgApiView):
+    """Resume a disputed job to its pre-dispute state (trust-and-disputes plan
+    Part B, ADR-2D-54). GET: the checklist (staff). POST: a Platform Admin
+    resumes it, with a fresh step-up (checked in the service too)."""
+
+    action_get = "dispute.resolve"
+    action_post = "dispute.resolve"
+
+    def get(self, request: Request, dispute_id: str) -> Response:
+        from fikisha.incidents import resume
+
+        return Response(resume.resume_view(dispute_id=dispute_id))
+
+    def post(self, request: Request, dispute_id: str) -> Response:
+        from fikisha.incidents import resume
+
+        serializer = ResumeDisputeSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        resolution, view = resume.resume_dispute(
+            actor=self.actor(request),
+            dispute_id=dispute_id,
+            sender_method=serializer.validated_data["sender_method"],
+            operator_method=serializer.validated_data["operator_method"],
+            reason=serializer.validated_data["reason"],
+            sender_confirmed_at=serializer.validated_data.get("sender_confirmed_at"),
+            operator_confirmed_at=serializer.validated_data.get("operator_confirmed_at"),
+            idempotency_key=_idempotency_key(request),
+        )
+        return Response({"resolution_id": str(resolution.id), "job": view})
 
 
 class DisputeResolveView(OrgApiView):

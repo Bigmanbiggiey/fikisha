@@ -53,6 +53,14 @@ class UnfoundedSerializer(serializers.Serializer[dict[str, Any]]):
     reason = serializers.CharField(max_length=4000, allow_blank=True)
 
 
+class ResumeDisputeSerializer(serializers.Serializer[dict[str, Any]]):
+    sender_method = serializers.CharField(max_length=16, allow_blank=True)
+    operator_method = serializers.CharField(max_length=16, allow_blank=True)
+    sender_confirmed_at = serializers.DateTimeField(required=False, allow_null=True)
+    operator_confirmed_at = serializers.DateTimeField(required=False, allow_null=True)
+    reason = serializers.CharField(max_length=4000, allow_blank=True)
+
+
 class OpenDisputeSerializer(serializers.Serializer[dict[str, Any]]):
     incident_ids = serializers.ListField(child=serializers.UUIDField(), min_length=1)
 

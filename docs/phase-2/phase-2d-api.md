@@ -319,12 +319,21 @@ criterion `status` adds `INSUFFICIENT_DATA`; staff tier views add
 `REMEDIATION_EXIT`. Config: `ratings`, `trust_tiers.live_criteria`,
 `trust_tiers.rating_drop`.
 
+### Resuming a disputed job (ADR-2D-54)
+
+| Method | Path | Authorization | Notes |
+| --- | --- | --- | --- |
+| GET | `/disputes/<id>/resume` | staff (`dispute.resolve`) | `{target_status, window_ends_at, checks: [{key: dispute_open\|resumable_state\|within_window\|serious_findings\|assignment_eligible, ok, detail}], ok}` |
+| POST | `/disputes/<id>/resume` | Platform Admin + step-up | `{sender_method, operator_method: PHONE\|IN_PERSON\|IN_APP_MESSAGE, sender_confirmed_at?, operator_confirmed_at?, reason}` + `Idempotency-Key` → `{resolution_id, job}`. 409 `resume_not_allowed` (names the first failing check) / `dispute_already_resolved`; 422 `invalid_agreement_method` / `rationale_required` |
+
+A dispute's resolution adds `resumed`. Job detail adds `resumed_at`.
+
 ---
 
 ## 5. What is deliberately absent
 
 No route exposes: a raw scheduler/lifecycle transition (sweeps run only as
 `SystemActor`, confirmed by `test_no_http_endpoint_exposes_a_raw_scheduler_
-transition`) · `DISPUTED → RESUME`/`RESUME_PRIOR` (not implemented, ADR-2D-07)
+transition`) · replacing the driver or vehicle when a job is resumed (ADR-2D-54)
 · any M-Pesa/eTIMS/SMS/WhatsApp
 provider callback · a wallet/escrow/fare-custody operation.

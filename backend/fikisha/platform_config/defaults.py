@@ -77,6 +77,9 @@ DEFAULT_CONFIG: dict[str, Any] = {
     # doesn't count); an average needs `min_counted` counted ratings and
     # uses the newest `average_of`.
     "ratings": {"window_days": 7, "min_counted": 3, "average_of": 10},
+    # Resuming a disputed job (trust-and-disputes plan DR-4): only within
+    # this many days of the dispute opening; after that it stays DISPUTED.
+    "disputes": {"resume_window_days": 7},
     # ─── Enumerations (admin-extensible later) ──────────────────────
     # Vehicle classes moved to the `config_vehicle_class` lookup table in
     # Phase 2C (ADR-2C-01); `ConfigService`/`ConfigPublicView` expose the codes.

@@ -72,5 +72,7 @@
   "invalid_rating": "Give a score from 1 to 5; a comment can be up to 1,000 characters.",
   "cancellation_flag_not_open": "This flag has already been reviewed.",
   "flag_note_required": "Add a note of at least 10 characters.",
-  "invalid_flag_review": "Choose to clear the flag or close it as mistaken."
+  "invalid_flag_review": "Choose to clear the flag or close it as mistaken.",
+  "resume_not_allowed": "This job can't be resumed yet. Check the list on the dispute page.",
+  "invalid_agreement_method": "Record how each party agreed: by phone, in person or by message in the app."
 }

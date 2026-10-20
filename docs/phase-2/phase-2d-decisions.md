@@ -72,6 +72,9 @@ later.
 
 ## ADR-2D-07 — `DISPUTED → RESUME` is not implemented — CONFIRMED (Founder Gate E-1)
 
+> **Superseded 2026-10-20 by ADR-2D-54** (founder lifted decision 10; resume
+> built under `docs/trust-and-disputes-plan.md` Part B).
+
 Only `Dispute.pre_dispute_status` is persisted, so a future, separately
 founder-approved `RESUME_PRIOR` rule has a deterministic value to read. No
 resume operation, endpoint, or algorithm exists anywhere in Phase 2D; the
@@ -1758,6 +1761,57 @@ of FR-R-3).
 
 **Still needs outside sign-off:** Terms of Service wording for findings and
 ratings (dispute-and-liability §7); native Swahili review.
+
+## ADR-2D-54 — Resuming a disputed job — CONFIRMED (founder approval 2026-10-20, `docs/trust-and-disputes-plan.md` Part B; lifts founder decision 10, supersedes ADR-2D-07, closes O-P1)
+
+**Who and when.** A Platform Admin with a fresh step-up (checked in the
+service as well as the view). The dispute is unresolved; the job was disputed
+from ASSIGNED … DELIVERED (a job disputed after COMPLETED is routed, never
+resumed); within `disputes.resume_window_days` (7) of the dispute opening —
+afterwards it stays DISPUTED until routed, no timer changes it (DR-4); every
+serious-type incident in the dispute has a current finding, UNDETERMINED
+counts (FN-1); the existing assignment passes today's assignment checks —
+driver approved and not suspended / restricted / offboarded, group member of
+an unsuspended group, verification current, tier covering the band (the
+override recorded at assignment still applies), vehicle eligible, high-value
+approval still effective (DR-2, DR-5). **No replacement driver or vehicle**
+(DR-3): reassignment isn't built, and confirmations and high-value approvals
+aren't tied to an assignment.
+
+**What it writes, in one transaction** (locks dispute, then job, like
+resolve): a closure (`DISPUTE_RESOLVED`) for every linked open incident; a
+`Resolution` with `resumed = true` and `routed_job_status` = the stored
+pre-dispute status (the check constraint now allows exactly that pairing);
+an append-only `resume_attestation` — how the sender and the operator each
+agreed (phone / in person / message in the app, optional time), no
+transcripts or phone numbers (DR-1); the status change through
+`JobLifecycleService.transition()` on new rules `DISPUTED → <state>`
+(Platform Admin, guards `ResolutionRecorded` + `ResumeAllowed`, seeded into
+`allowed_job_transition` by `jobs/0019`); a `RESUMED` job event; audit
+`dispute.resumed`; outbox `DisputeResolved {resumed}` / `JobResumed`. No
+commission (none exists before COMPLETED). A replay with the same
+idempotency key returns the original result.
+
+**Proof after a resume (DR-7, DR-8).** Confirmations made before the latest
+`RESUMED` event no longer count (`jobs.confirmations`); the rows stay as
+history. Resumed to AT_PICKUP: a fresh pickup code, and the sender confirms
+in the app again. To AT_DESTINATION: a fresh recipient code, and the
+recipient link revoked and reissued with the same actions and a fresh 7-day
+expiry — this replaces job-state-machine §5.2's "extend the link during a
+dispute". To DELIVERED: nothing pending for the recipient, link not
+reissued; the sender closes as usual (no payment record exists yet).
+PICKED_UP / IN_TRANSIT: nothing pending.
+
+**Re-dispute (DR-6).** A resumed job may be disputed again; each dispute is
+its own record.
+
+**Frontend.** The dispute page's disabled Resume shell is now a card: the
+checklist for staff, and for a Platform Admin how each party agreed, a
+reason and the button (enabled only when every check passes). The job page
+says when Fikisha resumed it.
+
+**Tests:** `incidents/tests/test_resume.py` (14). Frontend
+`DisputeDetailPage.test.tsx` updated.
 
 ## Self-caught defects fixed during implementation
 

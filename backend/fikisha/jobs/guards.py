@@ -339,7 +339,6 @@ def custody_methods_present(job: Any, stage: str, ctx: dict[str, Any]) -> set[st
     this call, a signature and photos in this call, and the other party's own
     confirmations recorded for this job (read from the database, never taken
     from ``ctx``). The apply functions record the same set."""
-    from fikisha.jobs.models import CustodyConfirmation
 
     present: set[str] = set()
     if ctx.get("_otp_challenge_id"):
@@ -348,9 +347,9 @@ def custody_methods_present(job: Any, stage: str, ctx: dict[str, Any]) -> set[st
         present.add("SIGNATURE")
     if ctx.get("photo_evidence_ids"):
         present.add("PHOTO")
-    present |= set(
-        CustodyConfirmation.objects.filter(job=job, stage=stage).values_list("method", flat=True)
-    )
+    from fikisha.jobs import confirmations
+
+    present |= set(confirmations.counted(job, stage).values_list("method", flat=True))
     return present
 
 
@@ -568,6 +567,72 @@ def within_post_completion_window(job: Any, actor: Any, ctx: dict[str, Any]) -> 
         _fail("post_completion_window_closed", "The post-completion dispute window has closed.")
 
 
+# ── resume (trust-and-disputes plan B1, DR-2) ─────────────────────────
+def resume_assignment_reasons(job: Any) -> list[str]:
+    """Why the job's existing assignment could not be made today, or ``[]``.
+    The same checks assignment runs: the driver approved and not suspended,
+    restricted or offboarded; a member of an unsuspended group; verification
+    current; the driver's tier covering the band (the override recorded at
+    assignment still applies to this assignment); the vehicle eligible; a
+    high-value approval still effective. No replacement driver or vehicle
+    (DR-3)."""
+    from fikisha.common.exceptions import DomainError
+    from fikisha.operators.models import OperatorStatus
+
+    assignment = getattr(job, "assignment", None)
+    if assignment is None:
+        return ["The job has no assignment to continue with."]
+    driver = assignment.assigned_driver_profile
+    reasons: list[str] = []
+    if driver.status in {
+        OperatorStatus.SUSPENDED,
+        OperatorStatus.RESTRICTED,
+        OperatorStatus.OFFBOARDED,
+        OperatorStatus.PENDING,
+    }:
+        reasons.append("The driver's account is not active.")
+    ctx = {
+        "driver_profile": driver,
+        "vehicle": assignment.vehicle,
+        "admin_override_reason": assignment.admin_override_reason,
+    }
+    for check in (
+        driver_assignment_allowed,
+        driver_verification_current,
+        driver_trust_ceiling_covers_value,
+        vehicle_eligible,
+        high_value_approved,
+    ):
+        try:
+            check(job, None, ctx)
+        except DomainError as exc:
+            reasons.append(str(exc.detail))
+    return reasons
+
+
+def resume_allowed(job: Any, actor: Any, ctx: dict[str, Any]) -> None:
+    """A recorded *resume* resolution for this job's open dispute, back to
+    exactly its stored pre-dispute status, and the existing assignment still
+    eligible today."""
+    from fikisha.incidents.models import Resolution
+
+    resolution_id = ctx.get("resolution_id")
+    if not resolution_id:
+        _fail("no_resolution", "A recorded resume for this job's dispute is required.")
+    resolution = (
+        Resolution.objects.filter(id=str(resolution_id), dispute__job_id=job.id, resumed=True)
+        .select_related("dispute")
+        .first()
+    )
+    if resolution is None or resolution.routed_job_status != resolution.dispute.pre_dispute_status:
+        _fail("no_resolution", "A recorded resume for this job's dispute is required.")
+    if ctx.get("routed_job_status") != resolution.routed_job_status:
+        _fail("no_resolution", "The job can only resume to the state it was in before the dispute.")
+    reasons = resume_assignment_reasons(job)
+    if reasons:
+        _fail("resume_not_allowed", reasons[0])
+
+
 GUARDS: dict[str, Guard] = {
     "RequiredFieldsComplete": required_fields_complete,
     "BusinessVerifiedWithLocation": business_verified_with_location,
@@ -582,6 +647,7 @@ GUARDS: dict[str, Guard] = {
     "DriverVerificationCurrent": driver_verification_current,
     "DriverTrustCeilingCoversValue": driver_trust_ceiling_covers_value,
     "HighValueApproved": high_value_approved,
+    "ResumeAllowed": resume_allowed,
     "PickupProofValidForBand": pickup_proof_valid_for_band,
     "DeliveryProofValidForBand": delivery_proof_valid_for_band,
     "FailureReasonProvided": failure_reason_provided,

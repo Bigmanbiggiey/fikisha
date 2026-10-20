@@ -24,7 +24,9 @@ from django.db import models
 
 from fikisha.common.models import AppendOnlyModel, AppendOnlyQuerySet, TimestampedModel
 from fikisha.incidents.constants import (
+    RESUMABLE_STATUSES,
     ROUTABLE_JOB_STATUSES,
+    AgreementMethod,
     ClosureReason,
     CommissionTreatment,
     DisputeStatus,
@@ -314,6 +316,9 @@ class Resolution(AppendOnlyModel):
         settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="+"
     )
     resolved_by_is_platform_admin = models.BooleanField(default=False)
+    #: The dispute was resolved by resuming the job to ``routed_job_status``,
+    #: its recorded pre-dispute state (trust-and-disputes plan B1).
+    resumed = models.BooleanField(default=False)
 
     objects = AppendOnlyQuerySet.as_manager()
 
@@ -321,8 +326,11 @@ class Resolution(AppendOnlyModel):
         db_table = "resolution"
         constraints = [
             models.CheckConstraint(
-                condition=models.Q(routed_job_status__in=list(ROUTABLE_JOB_STATUSES)),
-                name="ck_resolution_routed_status_no_resume",
+                condition=(
+                    models.Q(resumed=False, routed_job_status__in=list(ROUTABLE_JOB_STATUSES))
+                    | models.Q(resumed=True, routed_job_status__in=list(RESUMABLE_STATUSES))
+                ),
+                name="ck_resolution_routed_status",
             ),
             models.CheckConstraint(
                 condition=(
@@ -353,3 +361,24 @@ class Escalation(AppendOnlyModel):
 
     class Meta:
         db_table = "escalation"
+
+
+class ResumeAttestation(AppendOnlyModel):
+    """The Platform Admin's record that both parties agreed the job should
+    carry on (trust-and-disputes plan DR-1): how each was confirmed and when,
+    if known. No transcripts or phone numbers."""
+
+    dispute = models.OneToOneField(Dispute, on_delete=models.PROTECT, related_name="resume")
+    resolution = models.OneToOneField(Resolution, on_delete=models.PROTECT, related_name="+")
+    sender_method = models.CharField(max_length=16, choices=AgreementMethod.choices)
+    sender_confirmed_at = models.DateTimeField(null=True, blank=True)
+    operator_method = models.CharField(max_length=16, choices=AgreementMethod.choices)
+    operator_confirmed_at = models.DateTimeField(null=True, blank=True)
+    recorded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="+"
+    )
+
+    objects = AppendOnlyQuerySet.as_manager()
+
+    class Meta:
+        db_table = "resume_attestation"

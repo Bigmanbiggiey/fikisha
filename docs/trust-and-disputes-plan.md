@@ -9,8 +9,8 @@ completion) had no recommendation and is not part of this plan.
 (increments 1–8, ADR-2D-53; founder go-ahead "let's build the engine
 first"). One recorded deviation: a cancellation flag's status is a mutable
 workflow column so the database can enforce one open flag per business; each
-review decision is the append-only row. **Part B (resume) is not started**
-and needs the founder's go-ahead.
+review decision is the append-only row. **Part B (resume) built 2026-10-20**
+on `feat/dispute-resume` (founder go-ahead "start B"; ADR-2D-54).
 
 **Order (founder, 2026-10-20):** the trust engine first (Part A), then the
 dispute rules (Part B).
