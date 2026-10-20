@@ -9,27 +9,23 @@ import { Card } from '@/components/Card';
 import { ErrorState } from '@/components/ErrorState';
 import { Field } from '@/components/Field';
 import { Input } from '@/components/Input';
-import { OptionRows } from '@/components/OptionRow';
 import { OtpInput } from '@/components/OtpInput';
 import { PageLoader } from '@/components/PageLoader';
 import { PhotoCapture } from '@/components/PhotoCapture';
 import { SignaturePad } from '@/components/SignaturePad';
 import { localizeError } from '@/services/errorMessage';
 
+import { FALLBACK_DELIVERY, methodsIn, unmetGroups, type ProofMethod } from './custodyProof';
 import { jobReference } from './jobHelpers';
 import { jobsApi } from './jobsApi';
-
-type StandardMethod = 'otp' | 'signature' | 'photo';
+import { ProofChecklist } from './ProofChecklist';
 
 /**
- * Delivery proof (`chain-of-custody.md` §2 `RECIPIENT_VERIFIED` row,
- * `job-state-machine.md`'s `RecipientVerificationPresent` guard) — mirrors
- * `PickupProofPage`'s structure per the plan's own instruction (no written
- * driver-side wireframe section exists for this screen; the closest spec
- * is the recipient's own §20.2 "Confirm receipt", which states the same
- * band matrix). STANDARD: recipient name + any one of {OTP, signature,
- * photo}. ELEVATED+: recipient name + OTP **and** photo, both required
- * together — not a choice.
+ * Delivery (founder assessment 2026-10-20 L-5, LD-4 / LD-5): the recipient's
+ * name, plus what this job's band needs (`custody_requirements.delivery`):
+ * by default STANDARD the code or a signature; ELEVATED the code and the
+ * driver's photo; HIGH and VERY_HIGH all three. A code or signature the
+ * recipient already gave through their link counts. The driver completes.
  */
 export function DeliveryProofPage(): JSX.Element {
   const { jobId } = useParams<{ jobId: string }>();
@@ -38,8 +34,6 @@ export function DeliveryProofPage(): JSX.Element {
   const qc = useQueryClient();
 
   const [partyName, setPartyName] = useState('');
-  // STANDARD: the code is the common path, so it starts selected (P-12).
-  const [method, setMethod] = useState<StandardMethod>('otp');
   const [code, setCode] = useState('');
   const [signature, setSignature] = useState<File | null>(null);
   const [photo, setPhoto] = useState<File | null>(null);
@@ -52,23 +46,17 @@ export function DeliveryProofPage(): JSX.Element {
   });
 
   const confirm = useMutation({
-    mutationFn: () => {
-      // STANDARD sends only the chosen method's proof, so a half-typed code
-      // left behind after switching rows can't ride along with a photo.
-      // ELEVATED+ always sends code + photo together.
-      const standard = job.data?.value_band === 'STANDARD';
-      const sends = (m: StandardMethod): boolean => !standard || method === m;
-      return jobsApi.confirmDelivery(
+    mutationFn: () =>
+      jobsApi.confirmDelivery(
         jobId!,
         {
           party_name: partyName,
-          code: sends('otp') && code ? code : undefined,
-          signature: sends('signature') && signature ? signature : undefined,
-          photos: sends('photo') && photo ? [photo] : undefined,
+          code: code.length === 6 ? code : undefined,
+          signature: signature ?? undefined,
+          photos: photo ? [photo] : undefined,
         },
         crypto.randomUUID(),
-      );
-    },
+      ),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['jobs', jobId] });
       void qc.invalidateQueries({ queryKey: ['jobs'] });
@@ -81,18 +69,19 @@ export function DeliveryProofPage(): JSX.Element {
     return <ErrorState message={localizeError(job.error, t)} error={job.error} onRetry={() => void job.refetch()} />;
   }
   const data = job.data!;
-
   if (data.status !== 'AT_DESTINATION') {
     navigate(`/jobs/${jobId}`, { replace: true });
     return <PageLoader />;
   }
 
-  const isStandard = data.value_band === 'STANDARD';
-  const chosenProofReady =
-    method === 'otp' ? code.length === 6 : method === 'signature' ? !!signature : !!photo;
-  const canSubmit = isStandard
-    ? !!partyName.trim() && chosenProofReady
-    : !!partyName.trim() && code.length === 6 && !!photo;
+  const groups = (data.custody_requirements?.delivery ?? FALLBACK_DELIVERY) as ProofMethod[][];
+  const offered = methodsIn(groups);
+  const viaLink = data.custody_confirmations;
+  const present = new Set<ProofMethod>();
+  if (code.length === 6 || viaLink?.recipient_code) present.add('OTP');
+  if (signature || viaLink?.recipient_signature) present.add('SIGNATURE');
+  if (photo) present.add('PHOTO');
+  const ready = partyName.trim().length > 0 && unmetGroups(groups, present).length === 0;
 
   return (
     <div className="mx-auto max-w-lg space-y-4">
@@ -101,7 +90,8 @@ export function DeliveryProofPage(): JSX.Element {
         <p className="text-body-sm text-fg-secondary">{t('jobs:deliveryProof.ref', { ref: jobReference(data.id) })}</p>
       </div>
 
-      <Alert tone="info">{t(isStandard ? 'jobs:deliveryProof.bandStandard' : 'jobs:deliveryProof.bandElevated')}</Alert>
+      <ProofChecklist title={t('jobs:proof.deliveryNeeds')} groups={groups} present={present} />
+      {viaLink?.recipient_code && <Alert tone="success">{t('jobs:proof.recipientConfirmed')}</Alert>}
 
       <Card>
         <Field label={t('jobs:deliveryProof.recipientName')} required>
@@ -109,73 +99,38 @@ export function DeliveryProofPage(): JSX.Element {
         </Field>
       </Card>
 
-      {isStandard ? (
-        <>
-          <OptionRows<StandardMethod>
-            legend={t('jobs:deliveryProof.howProve')}
-            value={method}
-            onChange={setMethod}
-            options={[
-              { value: 'otp', label: t('jobs:deliveryProof.otpLabel'), description: t('jobs:deliveryProof.otpDesc') },
-              {
-                value: 'signature',
-                label: t('jobs:deliveryProof.signatureLabel'),
-                description: t('jobs:deliveryProof.signatureDesc'),
-              },
-              { value: 'photo', label: t('jobs:deliveryProof.photoLabel'), description: t('jobs:deliveryProof.photoDesc') },
-            ]}
-          />
-          {method === 'otp' && (
-            <Card>
-              <OtpInput label={t('jobs:deliveryProof.otpLabel')} value={code} onChange={setCode} />
-            </Card>
-          )}
-          {method === 'signature' && (
-            <Card>
-              <SignaturePad
-                label={t('jobs:deliveryProof.signatureLabel')}
-                clearLabel={t('jobs:deliveryProof.clearSignature')}
-                value={signature}
-                onChange={setSignature}
-              />
-            </Card>
-          )}
-          {method === 'photo' && (
-            <Card>
-              <PhotoCapture
-                value={photo}
-                onChange={setPhoto}
-                label={t('jobs:deliveryProof.takePhoto')}
-                retakeLabel={t('jobs:deliveryProof.retake')}
-                addedLabel={t('jobs:deliveryProof.photoAdded')}
-              />
-            </Card>
-          )}
-        </>
-      ) : (
-        <>
-          <Card>
-            <OtpInput label={t('jobs:deliveryProof.otpLabel')} value={code} onChange={setCode} />
-          </Card>
-          <Card>
-            <h2 className="text-label text-fg-secondary">{t('jobs:deliveryProof.photoLabel')}</h2>
-            <div className="mt-2">
-              <PhotoCapture
-                value={photo}
-                onChange={setPhoto}
-                label={t('jobs:deliveryProof.takePhoto')}
-                retakeLabel={t('jobs:deliveryProof.retake')}
-                addedLabel={t('jobs:deliveryProof.photoAdded')}
-              />
-            </div>
-          </Card>
-        </>
+      {offered.has('OTP') && !viaLink?.recipient_code && (
+        <Card>
+          <OtpInput label={t('jobs:deliveryProof.otpLabel')} value={code} onChange={setCode} />
+        </Card>
       )}
 
-      <Button size="driver" fullWidth disabled={!canSubmit} loading={confirm.isPending} onClick={() => confirm.mutate()}>
+      {offered.has('SIGNATURE') && !viaLink?.recipient_signature && (
+        <Card>
+          <SignaturePad
+            label={t('jobs:deliveryProof.signatureLabel')}
+            clearLabel={t('jobs:deliveryProof.clearSignature')}
+            value={signature}
+            onChange={setSignature}
+          />
+        </Card>
+      )}
+
+      {offered.has('PHOTO') && (
+        <Card>
+          <PhotoCapture
+            value={photo}
+            onChange={setPhoto}
+            label={t('jobs:deliveryProof.takePhoto')}
+            retakeLabel={t('jobs:deliveryProof.retake')}
+            addedLabel={t('jobs:deliveryProof.photoAdded')}
+          />
+        </Card>
+      )}
+
+      <Button size="driver" fullWidth disabled={!ready} loading={confirm.isPending} onClick={() => confirm.mutate()}>
         {t('jobs:deliveryProof.confirmDelivery')}
       </Button>
-
       {confirm.isError && <Alert tone="danger">{localizeError(confirm.error, t)}</Alert>}
     </div>
   );

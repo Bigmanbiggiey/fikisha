@@ -21,6 +21,7 @@ import opsEn from './locales/en/ops.json';
 import orgEn from './locales/en/org.json';
 import recipientEn from './locales/en/recipient.json';
 import statementsEn from './locales/en/statements.json';
+import trustEn from './locales/en/trust.json';
 import adminSw from './locales/sw/admin.json';
 import authSw from './locales/sw/auth.json';
 import commonSw from './locales/sw/common.json';
@@ -34,6 +35,7 @@ import opsSw from './locales/sw/ops.json';
 import orgSw from './locales/sw/org.json';
 import recipientSw from './locales/sw/recipient.json';
 import statementsSw from './locales/sw/statements.json';
+import trustSw from './locales/sw/trust.json';
 
 export const SUPPORTED_LANGUAGES = ['en', 'sw'] as const;
 export type SupportedLanguage = (typeof SUPPORTED_LANGUAGES)[number];
@@ -53,6 +55,7 @@ export const resources = {
     messages: messagesEn,
     admin: adminEn,
     statements: statementsEn,
+    trust: trustEn,
   },
   sw: {
     common: commonSw,
@@ -68,6 +71,7 @@ export const resources = {
     messages: messagesSw,
     admin: adminSw,
     statements: statementsSw,
+    trust: trustSw,
   },
 } as const;
 
@@ -93,6 +97,7 @@ void i18n
       'messages',
       'admin',
       'statements',
+      'trust',
     ],
     interpolation: { escapeValue: false },
     detection: {

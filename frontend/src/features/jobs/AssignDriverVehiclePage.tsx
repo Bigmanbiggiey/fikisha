@@ -26,7 +26,7 @@ import { jobsApi } from './jobsApi';
  */
 export function AssignDriverVehiclePage(): JSX.Element {
   const { jobId } = useParams<{ jobId: string }>();
-  const { t } = useTranslation(['jobs', 'errors']);
+  const { t } = useTranslation(['jobs', 'trust', 'errors']);
   const navigate = useNavigate();
   const qc = useQueryClient();
 
@@ -150,7 +150,9 @@ export function AssignDriverVehiclePage(): JSX.Element {
                 d.group_role
                   ? t(`jobs:assign.groupRole.${d.group_role}`, { defaultValue: d.group_role })
                   : null,
-                t('jobs:assign.trustLevel', { level: d.trust_level || t('jobs:assign.noLevel') }),
+                t('jobs:assign.trustLevel', {
+                  level: d.trust_level ? t(`trust:level.${d.trust_level}`) : t('jobs:assign.noLevel'),
+                }),
               ]
                 .filter(Boolean)
                 .join(' · ')}

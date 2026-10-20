@@ -6,7 +6,7 @@ import type {
   CancellationReason,
   CommissionView,
   ConfirmDeliveryBody,
-  ConfirmPickupAttestedBody,
+  ConfirmPickupBody,
   ConfirmPickupBusinessBody,
   ConfirmPickupOtpBody,
   DiscoveryFilters,
@@ -109,14 +109,28 @@ export const jobsApi = {
       body,
       idempotencyKey,
     }),
-  // Multipart — the goods photo is a required file. `ConfirmPickupAttestedSerializer`
-  // has no `geo` field at all (only the arrive-pickup event captures a reading).
-  confirmPickupAttested: (jobId: string, body: ConfirmPickupAttestedBody, idempotencyKey: string) => {
+  /** The sender closes a delivered job: goods received, operator paid
+   * (PD-3 / PD-4). Fikisha records it; it doesn't move the money. */
+  closeJob: (
+    jobId: string,
+    body: { payment_method: 'CASH' | 'MPESA'; mpesa_reference?: string },
+    idempotencyKey: string,
+  ) =>
+    jobAction<JobTransitionResult>(jobId, `/jobs/${jobId}/close`, {
+      method: 'POST',
+      body,
+      idempotencyKey,
+    }),
+  // Multipart: the driver completes pickup with the sender's code and/or
+  // signature and the driver's photos (assessment 2026-10-20 L-5).
+  confirmPickup: (jobId: string, body: ConfirmPickupBody, idempotencyKey: string) => {
     const form = new FormData();
-    form.append('pickup_contact_name', body.pickup_contact_name);
+    if (body.code) form.append('code', body.code);
+    if (body.party_name) form.append('party_name', body.party_name);
     if (body.condition_note) form.append('condition_note', body.condition_note);
-    form.append('photo', body.photo);
-    return jobAction<JobTransitionResult>(jobId, `/jobs/${jobId}/custody/confirm-pickup/attested`, {
+    for (const photo of body.photos ?? []) form.append('photos', photo);
+    if (body.signature) form.append('signature', body.signature);
+    return jobAction<JobTransitionResult>(jobId, `/jobs/${jobId}/custody/confirm-pickup`, {
       method: 'POST',
       body: form,
       idempotencyKey,

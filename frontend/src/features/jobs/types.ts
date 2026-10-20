@@ -1,3 +1,5 @@
+import type { ProofGroups } from './custodyProof';
+
 /**
  * Field names and shapes here are taken directly from the backend's actual
  * projections — `fikisha.jobs.dto.job_view()` / `creation.job_detail()` for
@@ -95,6 +97,8 @@ export interface JobTransitionResult {
   timestamps: JobTimestamps;
 }
 
+export type ContactHiddenReason = 'not_assigned' | 'until_pickup' | 'job_closed';
+
 /** Returned by list/detail/create — `job_detail()`, a superset of the above. */
 export interface Job extends JobTransitionResult {
   pickup_location: JobLocation | null;
@@ -108,6 +112,23 @@ export interface Job extends JobTransitionResult {
   /** Contact phone numbers were blanked for this viewer (an operator not yet
    * assigned — founder decision 2026-10-14). */
   contacts_hidden?: boolean;
+  /** per contact: why it is hidden from this viewer, or null when shown
+   * (assessment 2026-10-20 item 4) */
+  /** what pickup and delivery need for this job's band (assessment
+   * 2026-10-20 L-5): groups, all required, any one method per group */
+  custody_requirements?: { pickup: ProofGroups; delivery: ProofGroups };
+  /** the sender's record of paying the operator, made on close-off (PD-4) */
+  payment_record?: { method: 'CASH' | 'MPESA'; mpesa_reference: string; recorded_at: string } | null;
+  /** the other party's own confirmations already recorded */
+  custody_confirmations?: {
+    sender_in_app: boolean;
+    recipient_code: boolean;
+    recipient_signature: boolean;
+  };
+  hidden_contacts?: {
+    pickup: ContactHiddenReason | null;
+    recipient: ContactHiddenReason | null;
+  };
   /** Staff only: the effective high-value decision (a reversed rejection
    * reads as APPROVED); absent for non-staff or non-high-value jobs. */
   high_value_decision?: 'APPROVED' | 'REJECTED' | null;
@@ -233,13 +254,14 @@ export interface ConfirmPickupBusinessBody extends GeoBody {
   condition_note?: string;
 }
 
-/** No `geo` field — `ConfirmPickupAttestedSerializer` doesn't accept one
- * (only the arrive-pickup event captures a reading). */
-export interface ConfirmPickupAttestedBody {
-  pickup_contact_name: string;
+/** The driver completes pickup with what the sender gave (L-5): any of the
+ * code, the sender's signature on this phone, the driver's photos. */
+export interface ConfirmPickupBody {
+  code?: string;
+  party_name?: string;
   condition_note?: string;
-  /** STANDARD-only fallback proof (`chain-of-custody.md` §4) — required. */
-  photo: File;
+  photos?: File[];
+  signature?: File;
 }
 
 export interface FailAtPickupBody {

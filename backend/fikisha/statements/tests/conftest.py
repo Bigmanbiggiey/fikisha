@@ -124,11 +124,17 @@ def completed_group_job(
         )
         driver = actor_for(s["member"].user)
         custody.arrive_at_pickup(actor=driver, job_id=job.id)
-        custody.confirm_pickup_with_otp(actor=driver, job_id=job.id, code="000000")
+        custody.confirm_pickup(
+            actor=driver, job_id=job.id, code="000000", photo_evidence_ids=["ev-goods"]
+        )
         custody.start_transit(actor=driver, job_id=job.id)
         custody.arrive_at_destination(actor=driver, job_id=job.id)
         custody.confirm_delivery(
-            actor=driver, job_id=job.id, party_name="R. Recipient", photo_evidence_ids=["ev-1"]
+            actor=driver,
+            job_id=job.id,
+            party_name="R. Recipient",
+            code="000000",
+            photo_evidence_ids=["ev-1"],
         )
         job.refresh_from_db()
         complete_job(job)

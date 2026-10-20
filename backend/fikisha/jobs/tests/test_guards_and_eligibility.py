@@ -46,20 +46,20 @@ def test_level_covers_band() -> None:
     assert eligibility.level_covers_band(TrustLevel.L3, ValueBand.HIGH)
 
 
-def test_interim_driver_trust_level_needs_all_three_domains(make_user: Any) -> None:
+def test_driver_trust_level_needs_all_three_domains(make_user: Any) -> None:
     from fikisha.operators.models import OperatorProfile, OperatorStatus
     from fikisha.verification.models import Domain, State, VerificationRecord
 
     driver = OperatorProfile.objects.create(
         user=make_user("+254799000001"), full_name="T. Driver", status=OperatorStatus.ACTIVE
     )
-    assert eligibility.interim_driver_trust_level(driver) == ""  # nothing verified
+    assert eligibility.driver_trust_level(driver) == ""  # nothing verified
 
     for dom in (Domain.IDENTITY, Domain.LICENCE, Domain.GOOD_CONDUCT):
         VerificationRecord.objects.create(
             subject_type="OPERATOR", subject_operator=driver, domain=dom, state=State.VERIFIED
         )
-    assert eligibility.interim_driver_trust_level(driver) == TrustLevel.L1
+    assert eligibility.driver_trust_level(driver) == TrustLevel.L1
 
 
 # ─── penalty class (D-DIS-3) ───────────────────────────────────────

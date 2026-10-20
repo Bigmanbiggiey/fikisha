@@ -295,9 +295,9 @@ def driver_verification_current(job: Any, actor: Any, ctx: dict[str, Any]) -> No
 def _driver_trust_reasons(
     driver: Any, job: Any, *, admin_override_reason: str = ""
 ) -> tuple[str, list[str]]:
-    """``(interim_trust_level, reasons)`` — shared with
+    """``(trust_level, reasons)`` — shared with
     ``jobs.assignment_candidates``, see ``_vehicle_reasons``."""
-    level = eligibility.interim_driver_trust_level(driver)
+    level = eligibility.driver_trust_level(driver)
     band = job.value_band or ValueBand.STANDARD
     if eligibility.level_covers_band(level, band):
         return level, []
@@ -334,69 +334,67 @@ def high_value_approved(job: Any, actor: Any, ctx: dict[str, Any]) -> None:
 
 
 # ── custody / proof ──────────────────────────────────────────────────
-def pickup_proof_valid_for_band(job: Any, actor: Any, ctx: dict[str, Any]) -> None:
-    """Encoded exactly from chain-of-custody.md §4 / D-CUS-2 / design-phase-2 §39.
+def custody_methods_present(job: Any, stage: str, ctx: dict[str, Any]) -> set[str]:
+    """The proof methods actually present for this step: the code verified in
+    this call, a signature and photos in this call, and the other party's own
+    confirmations recorded for this job (read from the database, never taken
+    from ``ctx``). The apply functions record the same set."""
+    from fikisha.jobs.models import CustodyConfirmation
 
-    STANDARD: pickup-contact OTP  OR  in-app business confirmation  OR
-              (OTP undeliverable) operator-attested fallback = goods photo +
-              pickup-contact name  → recorded OPERATOR_ATTESTED_UNVERIFIED,
-              job capped at STANDARD.
-    ELEVATED / HIGH / VERY_HIGH: OTP  OR  in-app business confirmation.
-              **No** operator-attested fallback. Missing → pickup_confirmation_required.
-    """
-    method = ctx.get("pickup_method")  # OTP | BUSINESS_CONFIRM | ATTESTED
-    band = job.value_band or ValueBand.STANDARD
-    if method == "OTP":
-        # the proof service validated the code this call (challenge id threaded in)
-        if not ctx.get("_otp_challenge_id"):
-            raise PickupConfirmationRequired("The pickup OTP has not been verified.")
-        return
-    if method == "BUSINESS_CONFIRM":
-        # server-confirmed: the proof service resolved the caller as an
-        # owner/dispatcher of this job's business before setting this method
-        if not ctx.get("actor_is_business_party"):
-            raise PickupConfirmationRequired(
-                "In-app pickup confirmation must come from the business owner or dispatcher."
-            )
-        return
-    if method == "ATTESTED":
-        if band != ValueBand.STANDARD:
-            raise PickupConfirmationRequired(
-                "This value band requires a verified pickup (OTP or in-app "
-                "business confirmation) — the operator-attested fallback is not allowed."
-            )
-        if not ctx.get("fallback_photo_id") or not (ctx.get("pickup_contact_name") or "").strip():
-            raise PickupConfirmationRequired(
-                "The operator-attested fallback needs a goods photo and the "
-                "pickup-contact's name."
-            )
-        return
-    raise PickupConfirmationRequired("No pickup confirmation was supplied.")
+    present: set[str] = set()
+    if ctx.get("_otp_challenge_id"):
+        present.add("OTP")
+    if ctx.get("signature_evidence_id"):
+        present.add("SIGNATURE")
+    if ctx.get("photo_evidence_ids"):
+        present.add("PHOTO")
+    present |= set(
+        CustodyConfirmation.objects.filter(job=job, stage=stage).values_list("method", flat=True)
+    )
+    return present
+
+
+_METHOD_WORDS = {
+    "OTP": "the code",
+    "SIGNATURE": "a signature",
+    "PHOTO": "a photo",
+    "IN_APP": "the sender's confirmation in the app",
+}
+
+
+def _describe(groups: list[list[str]]) -> str:
+    return "; ".join(" or ".join(_METHOD_WORDS.get(m, m) for m in g) for g in groups)
+
+
+def pickup_proof_valid_for_band(job: Any, actor: Any, ctx: dict[str, Any]) -> None:
+    """Both parties take part in a pickup (founder assessment 2026-10-20, LD-4,
+    replacing chain-of-custody §4's method list and its operator-only STANDARD
+    fallback). Config ``custody_proof_rules.pickup`` per band; by default:
+    STANDARD one of code / signature / photo / in-app; ELEVATED code or
+    in-app, plus a photo; HIGH and VERY_HIGH code, signature and photo."""
+    from fikisha.jobs import custody_rules
+
+    present = custody_methods_present(job, "PICKUP", ctx)
+    missing = custody_rules.unmet(custody_rules.PICKUP, job.value_band, present)
+    if missing:
+        raise PickupConfirmationRequired(f"Pickup still needs: {_describe(missing)}.")
 
 
 def delivery_proof_valid_for_band(job: Any, actor: Any, ctx: dict[str, Any]) -> None:
-    """Encoded from chain-of-custody.md §3 / D-TRU-5 / design-phase-2 §44.
+    """The recipient's name, plus what config ``custody_proof_rules.delivery``
+    needs for the band (LD-4): by default STANDARD code or signature;
+    ELEVATED code and a photo; HIGH and VERY_HIGH code, signature and photo."""
+    from fikisha.jobs import custody_rules
 
-    STANDARD: recipient name + at least one of {recipient OTP, signature, photo}.
-    ELEVATED / HIGH / VERY_HIGH: recipient name + recipient OTP **and** ≥ 1 photo.
-    """
-    band = job.value_band or ValueBand.STANDARD
     name = (ctx.get("party_name") or "").strip()
-    otp_ok = bool(ctx.get("otp_verified"))
-    has_sig = bool(ctx.get("signature_evidence_id"))
-    photos = ctx.get("photo_evidence_ids") or []
     if not name:
         raise DeliveryProofIncomplete("The recipient's name is required.")
-    if otp_ok and not ctx.get("_otp_challenge_id"):
+    if ctx.get("otp_verified") and not ctx.get("_otp_challenge_id"):
         raise DeliveryProofIncomplete("The recipient OTP has not been verified.")
-    if band in HIGH_VALUE_BANDS or band == ValueBand.ELEVATED:
-        if not (otp_ok and photos):
-            raise DeliveryProofIncomplete(
-                "This value band requires a verified recipient OTP and a photo POD."
-            )
-        return
-    if not (otp_ok or has_sig or photos):
-        raise DeliveryProofIncomplete("Provide the recipient OTP, a signature, or a photo POD.")
+    present = custody_methods_present(job, "DELIVERY", ctx)
+    missing = custody_rules.unmet(custody_rules.DELIVERY, job.value_band, present)
+    if missing:
+        raise DeliveryProofIncomplete(f"Delivery still needs: {_describe(missing)}.")
 
 
 def failure_reason_provided(job: Any, actor: Any, ctx: dict[str, Any]) -> None:
@@ -525,6 +523,23 @@ def _within_window(job: Any, anchor_field: str, hours: float) -> bool:
     return timezone.now() <= anchor + timedelta(hours=hours)
 
 
+def sender_recorded_payment(job: Any, actor: Any, ctx: dict[str, Any]) -> None:
+    """A sender closing a job has recorded paying the operator (founder
+    2026-10-20, PD-3 / PD-4). Fikisha never holds or moves the fare; the
+    record is the sender's own statement. Read from the database, never from
+    the caller. The recipient's close-off and staff (dispute resolution) don't
+    need it."""
+    if "BUSINESS_PARTY" not in (ctx.get("initiator_tokens") or []):
+        return
+    from fikisha.jobs.models import JobPaymentRecord
+
+    if not JobPaymentRecord.objects.filter(job=job).exists():
+        _fail(
+            "payment_not_recorded",
+            "Confirm that you have paid the operator before closing the job.",
+        )
+
+
 def within_delivery_acceptance_window(job: Any, actor: Any, ctx: dict[str, Any]) -> None:
     """job-state-machine §3.3 / D-JOB-5: 24h Standard/Elevated, 48h High/Very-high."""
     from fikisha.platform_config import services as cfg
@@ -556,6 +571,7 @@ def within_post_completion_window(job: Any, actor: Any, ctx: dict[str, Any]) -> 
 GUARDS: dict[str, Guard] = {
     "RequiredFieldsComplete": required_fields_complete,
     "BusinessVerifiedWithLocation": business_verified_with_location,
+    "SenderRecordedPayment": sender_recorded_payment,
     "CargoNotProhibited": cargo_not_prohibited,
     "OperatorEligibleForJob": operator_eligible_for_job,
     "NoRacingConfirm": no_racing_confirm,

@@ -52,8 +52,6 @@ from fikisha.jobs.errors import (
 )
 from fikisha.jobs.models import Job, RecipientAccessLink, RecipientReportedIssue
 from fikisha.jobs.selectors import job_for_update
-from fikisha.jobs.service import TransitionContext
-from fikisha.jobs.service import transition as job_transition
 from fikisha.outbox.services import emit
 
 _ALL_ACTIONS: list[str] = [
@@ -304,7 +302,12 @@ def view(*, principal: RecipientPrincipal) -> dict[str, Any]:
     }
 
 
-# ─── CONFIRM_RECEIPT — the same DELIVERED transition + proof model ───────
+# ─── CONFIRM_RECEIPT — the recipient's side of a two-party delivery ─────
+class RecipientConfirmTooEarly(RecipientActionNotAllowed):
+    default_code = "recipient_confirm_too_early"
+    default_detail = "You can confirm once the driver has arrived with your goods."
+
+
 @transaction.atomic
 def confirm_receipt(
     *,
@@ -315,59 +318,64 @@ def confirm_receipt(
     photo_evidence_ids: list[Any] | None = None,
     idempotency_key: str = "",
 ) -> dict[str, Any]:
-    """Requires the recipient OTP (a forwarded link alone cannot confirm —
-    recipient-access.md §4.1 / §5) plus a typed name. Calls the identical
-    `AT_DESTINATION -> DELIVERED` transition the driver uses; only the actor and
-    `captured_by` differ.
-
-    OTP validation (`verify_otp(consume=False)`) and consumption
-    (`apply_fns.confirm_delivery`'s `consume_otp()`) already share one
-    transaction with the transition itself — nested inside `transition()`'s
-    own `@transaction.atomic`, so a failed transition never leaves the code
-    consumed (Phase 2D final-verification N-6 fix). The `@transaction.atomic`
-    added here closes the one remaining gap: `link.used_at` used to be saved
-    in its own, separate implicit transaction *after* `job_transition()`
-    returned — a crash between the two would leave `used_at` unset on an
-    already-DELIVERED job. Now both happen in one outer transaction (a
-    harmless nested savepoint around the transition itself)."""
+    """The recipient confirms with their code (a forwarded link alone cannot:
+    recipient-access.md §4.1 / §5), a typed name and optionally a signature on
+    their own phone. Since the founder's 2026-10-20 assessment (L-5) this
+    records the recipient's part as ``CustodyConfirmation`` rows; the driver's
+    "Complete delivery" makes the ``AT_DESTINATION -> DELIVERED`` transition,
+    counting them, so both parties take part. The code is consumed here, in
+    the same transaction as the record."""
     _require(principal, RecipientAllowedAction.CONFIRM_RECEIPT)
     from fikisha.jobs import otp as otp_service
-    from fikisha.jobs.selectors import get_job
+    from fikisha.jobs.models import CustodyConfirmation
 
+    # Lock the job first, then re-read the link: two simultaneous confirmations
+    # (a double tap, two devices) serialise here, and only the first records.
+    job = job_for_update(principal.job_id)
     link = _recheck_link_active(principal)
+    link = RecipientAccessLink.objects.select_for_update().get(id=link.id)
     if link.used_at is not None:
         raise RecipientActionNotAllowed()
+    if job.status != JobStatus.AT_DESTINATION:
+        raise RecipientConfirmTooEarly()
 
-    job_id = principal.job_id
     cid = otp_service.verify_otp(
-        job=get_job(job_id),
-        purpose="RECIPIENT_VERIFY",
-        code=code,
-        actor=principal,
-        consume=False,
+        job=job, purpose="RECIPIENT_VERIFY", code=code, actor=principal, consume=False
     )
-    view_out = job_transition(
-        job_id=job_id,
-        to=JobStatus.DELIVERED,
-        actor=principal,
-        context=TransitionContext(
-            data={
-                "initiator_tokens": [],
-                "recipient_principal": principal,
-                "party_name": party_name,
-                "otp_verified": True,
-                "_otp_challenge_id": cid,
-                "_otp_purpose": "RECIPIENT_VERIFY",
-                "signature_evidence_id": signature_evidence_id,
-                "photo_evidence_ids": photo_evidence_ids or [],
-                "captured_by": ProofCapturedBy.RECIPIENT,
-            }
-        ),
-        idempotency_key=idempotency_key,
+    name = (party_name or "").strip()
+    CustodyConfirmation.objects.create(
+        job=job,
+        stage="DELIVERY",
+        method="OTP",
+        captured_by=ProofCapturedBy.RECIPIENT,
+        party_name=name,
+        evidence_ids=[str(i) for i in (photo_evidence_ids or [])],
+    )
+    if signature_evidence_id:
+        CustodyConfirmation.objects.create(
+            job=job,
+            stage="DELIVERY",
+            method="SIGNATURE",
+            captured_by=ProofCapturedBy.RECIPIENT,
+            party_name=name,
+            evidence_ids=[str(signature_evidence_id)],
+        )
+    otp_service.consume_otp(purpose="RECIPIENT_VERIFY", challenge_id=cid)
+    audit.record(
+        actor=None,
+        action="job.custody.recipient_confirmed",
+        entity_type="job",
+        entity_id=job.id,
+        after={
+            "methods": ["OTP", *(["SIGNATURE"] if signature_evidence_id else [])],
+            "via": "recipient_link",
+        },
     )
     link.used_at = timezone.now()
     link.save(update_fields=["used_at", "updated_at"])
-    return view_out
+    from fikisha.jobs.dto import job_view
+
+    return job_view(job)
 
 
 # ─── REPORT_ISSUE — append-only capture, no OTP, no job.status change ────

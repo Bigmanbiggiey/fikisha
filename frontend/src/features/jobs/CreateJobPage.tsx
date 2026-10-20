@@ -8,7 +8,9 @@ import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { Field } from '@/components/Field';
 import { Input } from '@/components/Input';
+import { OptionRows } from '@/components/OptionRow';
 import { PageLoader } from '@/components/PageLoader';
+import { PhoneInput } from '@/components/PhoneInput';
 import { Select } from '@/components/Select';
 import { diagnosticsApi } from '@/features/diagnostics/diagnosticsApi';
 import { BusinessVerificationBanner } from '@/features/org/BusinessVerificationBanner';
@@ -17,6 +19,7 @@ import { fromApi, mapConfigured, toApi, type LatLng } from '@/features/maps/mapC
 import { orgApi } from '@/features/org/orgApi';
 import type { BusinessLocation } from '@/features/org/types';
 import { localizeError } from '@/services/errorMessage';
+import { isOptionalPhoneOk } from '@/services/phone';
 
 import { CargoCategorySelect } from './CargoCategorySelect';
 import { useCargoCategoryLabel } from './cargoCategoryLabel';
@@ -51,8 +54,10 @@ interface Draft {
   destinationAddress: string;
   /** the destination's map pin (maps M-3) */
   destinationPin: LatLng | null;
-  /** a pin is required while the map can load (MD-3) */
-  destinationPinRequired: boolean;
+  /** the sender's choice (assessment 2026-10-20 L-2): pin it on the map, or
+   * name it; 'name' is the only option when the map can't load (MD-3) */
+  destinationMode: 'pin' | 'name';
+  mapAvailable: boolean;
   recipientName: string;
   recipientPhone: string;
   cargoDescription: string;
@@ -78,7 +83,8 @@ const EMPTY_DRAFT: Draft = {
   pickupContactPhone: '',
   destinationAddress: '',
   destinationPin: null,
-  destinationPinRequired: mapConfigured(),
+  destinationMode: mapConfigured() ? 'pin' : 'name',
+  mapAvailable: mapConfigured(),
   recipientName: '',
   recipientPhone: '',
   cargoDescription: '',
@@ -111,7 +117,7 @@ function buildBody(d: Draft): JobCreateBody {
       : { address_text: d.pickupAddress.trim(), contact_phone: d.pickupContactPhone.trim() },
     destination_location: {
       address_text: d.destinationAddress.trim(),
-      ...(d.destinationPin ? toApi(d.destinationPin) : {}),
+      ...(d.destinationMode === 'pin' && d.destinationPin ? toApi(d.destinationPin) : {}),
       contact_name: d.recipientName.trim(),
       contact_phone: d.recipientPhone.trim(),
     },
@@ -136,7 +142,7 @@ function buildBody(d: Draft): JobCreateBody {
 }
 
 function step1Valid(d: Draft): boolean {
-  return Boolean(d.pickupLocationId) || d.pickupAddress.trim().length > 0;
+  return (Boolean(d.pickupLocationId) || d.pickupAddress.trim().length > 0) && isOptionalPhoneOk(d.pickupContactPhone);
 }
 
 function locationLabel(l: BusinessLocation): string {
@@ -144,9 +150,9 @@ function locationLabel(l: BusinessLocation): string {
 }
 function step2Valid(d: Draft): boolean {
   return (
-    d.destinationAddress.trim().length > 0 &&
     d.recipientName.trim().length > 0 &&
-    (!d.destinationPinRequired || d.destinationPin !== null)
+    isOptionalPhoneOk(d.recipientPhone) &&
+    (d.destinationMode === 'pin' ? d.destinationPin !== null : d.destinationAddress.trim().length > 0)
   );
 }
 function step3Valid(d: Draft): boolean {
@@ -318,12 +324,7 @@ export function CreateJobPage(): JSX.Element {
               hint={draft.pickupLocationId ? t('jobs:create.pickup.contactOverrideHint') : undefined}
             >
               {(p) => (
-                <Input
-                  {...p}
-                  type="tel"
-                  value={draft.pickupContactPhone}
-                  onChange={(e) => patch({ pickupContactPhone: e.target.value })}
-                />
+                <PhoneInput {...p} value={draft.pickupContactPhone} onChange={(v) => patch({ pickupContactPhone: v })} />
               )}
             </Field>
           </fieldset>
@@ -332,14 +333,44 @@ export function CreateJobPage(): JSX.Element {
         {step === 1 && (
           <fieldset className="space-y-3">
             <legend className="text-h3 text-fg">{t('jobs:create.steps.destination')}</legend>
-            {/* Pinned on the map so the driver can navigate there (maps M-3). */}
-            <LocationPicker
-              value={draft.destinationPin}
-              onChange={setDestinationPin}
-              onAvailabilityChange={(available) => patch({ destinationPinRequired: available })}
-              label={t('jobs:create.destination.mapLabel')}
-            />
-            <Field label={t('jobs:create.destination.address')} required>
+            {/* Pin it (the driver navigates to it) or name it (L-2). */}
+            {draft.mapAvailable && (
+              <OptionRows
+                legend={t('jobs:create.destination.how')}
+                value={draft.destinationMode}
+                onChange={(mode) => patch({ destinationMode: mode })}
+                options={[
+                  {
+                    value: 'pin',
+                    label: t('jobs:create.destination.usePin'),
+                    description: t('jobs:create.destination.usePinHint'),
+                  },
+                  {
+                    value: 'name',
+                    label: t('jobs:create.destination.useName'),
+                    description: t('jobs:create.destination.useNameHint'),
+                  },
+                ]}
+              />
+            )}
+            {draft.destinationMode === 'pin' && (
+              <LocationPicker
+                value={draft.destinationPin}
+                onChange={setDestinationPin}
+                onAvailabilityChange={(available) =>
+                  patch(available ? { mapAvailable: true } : { mapAvailable: false, destinationMode: 'name' })
+                }
+                label={t('jobs:create.destination.mapLabel')}
+              />
+            )}
+            <Field
+              label={
+                draft.destinationMode === 'pin'
+                  ? t('jobs:create.destination.landmark')
+                  : t('jobs:create.destination.address')
+              }
+              required={draft.destinationMode === 'name'}
+            >
               {(p) => (
                 <Input
                   {...p}
@@ -355,12 +386,7 @@ export function CreateJobPage(): JSX.Element {
             </Field>
             <Field label={t('jobs:create.destination.recipientPhone')} hint={t('jobs:create.destination.phoneHint')}>
               {(p) => (
-                <Input
-                  {...p}
-                  type="tel"
-                  value={draft.recipientPhone}
-                  onChange={(e) => patch({ recipientPhone: e.target.value })}
-                />
+                <PhoneInput {...p} value={draft.recipientPhone} onChange={(v) => patch({ recipientPhone: v })} />
               )}
             </Field>
           </fieldset>
@@ -574,7 +600,11 @@ export function CreateJobPage(): JSX.Element {
               />
               <ReviewRow
                 label={t('jobs:create.steps.destination')}
-                value={`${draft.destinationAddress} — ${draft.recipientName}`}
+                value={`${
+                  draft.destinationMode === 'pin'
+                    ? draft.destinationAddress.trim() || t('jobs:create.destination.pinnedOnMap')
+                    : draft.destinationAddress
+                } — ${draft.recipientName}`}
                 onEdit={() => setStep(1)}
               />
               <ReviewRow

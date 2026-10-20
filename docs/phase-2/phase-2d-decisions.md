@@ -1493,6 +1493,201 @@ coarsened area while the business sees the exact pin; the assigned driver
 sees the exact pin. Frontend: locations card (2), create-job destination
 pin (updated), job map exact / area / none and the driver link (4).
 
+## ADR-2D-50 — Assessment 2026-10-20: live progress, Kenyan phones, contact timing, two-party custody — CONFIRMED (founder approval 2026-10-20, LD-1..LD-5)
+
+Plan and decisions: `docs/assessment-2026-10-20-plan.md`.
+
+**Live progress (L-1, LD-1).** Queries for jobs, offers, incidents,
+disputes, job events, the recipient link, messages and the Ops monitor
+re-check every 10 s while the tab is visible, and at once on focus or
+reconnect. Set once in the query client by key prefix
+(`LIVE_QUERY_PREFIXES`). No server push.
+
+**Destination (L-2).** The sender chooses "Use the map pin" or "Name the
+destination". The server refuses a destination with neither
+(`422 destination_required`); before, an empty one was accepted.
+
+**Kenyan phones (L-3, LD-2).** `identity.phone.normalize_phone` is now the
+one rule: `07…`/`01…`, or `+254…` standing for the `0`; exactly 10 digits
+after conversion; everything else refused (it used to accept any
+international number). `KenyanPhoneField` applies it to business,
+location, member, operator and job contact phones and the recipient phone,
+none of which were checked before. Stored `+254…`, shown `07…`.
+`manage.py phones_report` lists stored numbers that break the rule,
+read-only.
+
+**Contact timing (L-4, LD-3).** `job_authz.hidden_contacts`: the assigned
+side sees the sender's number from assignment, the recipient's only from
+`PICKED_UP`, and neither once the job is completed, cancelled, failed or
+disputed. Business and staff always see both. `job_detail` adds
+`hidden_contacts` (a reason per contact). This **changes founder decision 7**
+(2026-10-14: all contacts from assignment), by the founder. Exact map pins
+still follow assignment (MD-2).
+
+**Two-party custody (L-5, LD-4 / LD-5).** Changes chain-of-custody §4 and
+user flows §38–44 (marked superseded there):
+- Config `custody_proof_rules`: per stage and band, groups that must all be
+  met, each by any one of `OTP`, `SIGNATURE`, `PHOTO`, `IN_APP` (table in
+  the plan and chain-of-custody §4).
+- **The driver's call completes the step.** `POST .../confirm-pickup` (also
+  the old `/otp` path) takes any of the code, a signature file and photos.
+- The sender's "Confirm pickup" (`.../confirm-pickup/business`) and the
+  recipient's link confirmation now **record** an append-only
+  `custody_confirmation` row (migration `jobs/0012`, trigger `0013`),
+  audited, and no longer change the job's status. The guards read these
+  from the database, never from the caller.
+- Both are row-locked, so a double tap or two devices record once.
+- The operator-attested fallback is **retired**: the endpoint answers
+  `410 pickup_fallback_retired`, and attested proofs no longer cap the band.
+- The proof rows record every method present.
+- `job_detail` adds `custody_requirements` and `custody_confirmations`. The
+  driver's pickup and delivery screens show a checklist and open "Complete"
+  only when it's met.
+
+**Note for review:** the approved table lets a STANDARD pickup complete on
+the driver's photo alone. The driver's call is still the sender's handover
+moment, but no sender action is recorded on that path. A one-line config
+change removes `PHOTO` from the STANDARD pickup group if that's not wanted.
+
+**Tests:** backend `test_maps.py` (+4 destination), `identity/tests/
+test_phone.py` (rule table + entry points), `jobs/tests/test_phone_rule.py`,
+`test_contact_timing.py` (per status), `test_pickup_proof.py` (14),
+`test_delivery_proof.py` (8), `test_recipient_actions.py` (19, incl.
+rollback and concurrency); frontend live-refresh (2), phone rule (3),
+destination choice, hidden-contact note, checklist pickup (4) / delivery
+(3), business confirmed state.
+
+## ADR-2D-51 — The sender closes the job; the photo is proof only — CONFIRMED (founder approval 2026-10-20, PD-1..PD-5)
+
+Follow-up to ADR-2D-50, recorded in `docs/assessment-2026-10-20-plan.md`.
+
+**Proof rules (PD-1 / PD-2).** `custody_proof_rules` defaults: STANDARD
+pickup is the sender's code, signature or in-app confirmation (the driver's
+photo no longer counts); every delivery needs the driver's photo as proof,
+with the recipient's code or signature (HIGH+ code + signature + photo, as
+before). This resolves the review note in ADR-2D-50.
+
+**Close-off (PD-3 / PD-4).**
+- `POST /jobs/<id>/close {payment_method: CASH|MPESA, mpesa_reference?}`
+  (`custody.sender_close_job`): the business owner or dispatcher confirms
+  the goods arrived and records paying the operator, and the job completes
+  through the single lifecycle writer.
+- The record is an append-only `job_payment_record` (migration
+  `jobs/0014`, trigger `0015`), audited (`job.payment.recorded_by_sender`).
+  **Fikisha takes and moves no money**; this is the sender's statement.
+- New guard `SenderRecordedPayment` on `DELIVERED → COMPLETED`: a business
+  completion needs the record, read from the database.
+- The recipient's close-off (`RECIPIENT` initiator) is **kept** by founder
+  instruction, until SMS brings every party's input. Staff completion is
+  unchanged. `SCHEDULER` is removed.
+- `job_detail` adds `payment_record`; the operator sees what was recorded.
+
+**No automatic completion (PD-3 / PD-5), superseding D-JOB-5's
+auto-complete.**
+- The `autocomplete_delivered` task is retired. It stays registered so an
+  old schedule doesn't error, only counts jobs waiting, and its beat entry
+  is gone.
+- `DELIVERED → DISPUTED` no longer needs the acceptance window, since a job
+  can now wait indefinitely; either side may dispute while it does.
+- A new incident type `NON_PAYMENT` (migration `incidents/0004`) backs the
+  operator's "I haven't been paid".
+- Ops gets an `awaiting_sender` attention filter: delivered, past the
+  acceptance window, no open dispute.
+- Business Home lists delivered jobs under "Needs your action" (replacing
+  Design Phase 7 P-09, "delivered is a status, not an action").
+- **Commission is unaffected:** it's only ever on completed jobs, so an
+  unpaid job is never billed. The post-completion dispute windows are
+  unchanged.
+
+**Frontend.** Job detail: the sender's "Goods received and operator paid"
+card (cash or M-Pesa, optional M-Pesa code); the operator's "Waiting for the
+sender" with "I haven't been paid" (opens the report form with Not paid
+preselected), and the recorded payment once completed. The texts that
+promised automatic completion are reworded.
+
+**Tests:** `jobs/tests/test_close_off.py` (8): close-off with a record and
+commission; cash; no record refused; the driver can't close; an open
+dispute blocks and rolls back the record; non-payment dispute long after
+delivery; recipient close-off kept and scheduler gone; Ops awaiting-sender
+filter. Updated: pickup (photo alone refused), delivery (photo required),
+sweeps (retired), engine chain. Frontend `CloseOffCards.test.tsx` (4).
+
+## ADR-2D-52 — Operator tiers replace the interim trust rule — CONFIRMED (founder approval 2026-10-20, TD-1..TD-6)
+
+Recorded in `docs/operator-tiers-plan.md`. Supersedes ADR-2D-05 Option b
+and founder decision 12 (2026-10-14); changes decision 13 (Restricted is now
+used) and `trust-architecture.md` §3 ("no set level action").
+
+**Module `fikisha.trust`.**
+- `trust_level_state` (one per operator; L1 / L2 / L3 / RESTRICTED) and
+  append-only `trust_level_change` (migration `trust/0001`, trigger `0002`):
+  from, to, trigger, status, reason, who, the decision's proposal
+  (`decides`, one decision per proposal by a unique constraint), criteria
+  snapshot, evidence job / incident ids, config version.
+- **No state row means L1**, the tier every verified operator had under the
+  interim rule, so nobody gained or lost access on the day it shipped.
+- **Effective tier** = the stored tier, but L0 while the verification floor
+  (config `verification_requirements` for operators) isn't met.
+- **Eligibility** (`jobs.eligibility.driver_trust_level`) reads the
+  effective tier; RESTRICTED covers STANDARD only. `TrustLevel` gains
+  `RESTRICTED`, and `assignment.driver_trust_level` / `job.required_trust_level`
+  widen to 12 characters (migration `jobs/0016`). The staff override reason
+  at assignment is unchanged.
+
+**Progress (TD-3).** Criteria per `trust-architecture.md` §1, pilot values
+in config `trust_tiers` (code defaults for a deployment seeded earlier):
+completed jobs as driver, days since the first completed job, no unresolved
+incident (L2) / no unresolved loss, damage, missing-goods or misconduct
+incident (L3), clean ELEVATED-or-above jobs (L3), Good Conduct verified, no
+late-cancellation flag (3 in 30 days). Ratings and at-fault findings are
+`NOT_MEASURED`: shown, never blocking. A "Not paid" incident never counts
+against the operator. Sources are public reads: `jobs.driver_record`,
+`incidents.trust_facts`, `verification.services`.
+
+**Changes (TD-1).**
+- `evaluate` writes a `PROPOSED` change when every measured criterion for
+  the next tier is met. It runs after a job completes (on commit; a failure
+  is logged and never undoes the completion) and nightly (beat 03:15). It
+  never applies anything. A rejected proposal isn't re-made for
+  `reproposal_cooldown_days` (30).
+- A Platform Admin confirms or rejects a proposal, or changes the tier
+  directly (`ADMIN_OVERRIDE`, shown as manual).
+- Each needs `trust.change.apply` (Platform Admin `"*"` only), a reason of
+  at least 10 characters and a fresh step-up. Each writes the change and an
+  audit row in one transaction, with an outbox `TrustLevelChanged` on apply.
+- An admin can't change their own operator profile's tier. A proposal made
+  from an earlier tier is stale. Confirming needs current verification.
+
+**Who sees it (TD-6).** `GET /operators/me/tier`; `GET /operators/<id>/tier`
+for the operator or staff holding `operator.read` (staff also see who made
+each change); `GET /admin/tier-proposals` (staff);
+`POST /admin/operators/<id>/tier {level, reason}` and
+`POST /admin/tier-proposals/<id>/decision {decision, reason}` (Platform
+Admin). A group manager sees each driver's tier on the driver-pool screen.
+Businesses see verification facts only.
+
+**Not built (TD-5):** automatic demotion after an at-fault incident and
+rating-based regression, both waiting for ratings and an at-fault finding.
+A demotion affects new assignments only.
+
+**Frontend.** "Your tier" card on operator Home (compact) and the Operator
+profile: the tier, the job values it allows, the checklist toward the next
+tier, the history with reasons. A staff panel on the applicant page and the
+Users & organizations operator page, with Platform Admin confirm / reject
+and promote / demote. "Tier reviews" on Control. Tier labels on the driver
+pool. EN + SW (`trust` namespace; Swahili needs native review).
+
+**Tests:** `trust/tests/test_tiers.py` (19): L1 with no record, the L0
+floor, lapsed verification, progress figures, incidents and Not paid,
+late-cancellation flag, clean ELEVATED jobs, propose once, confirm, reject
+and cooldown, stale proposal after a manual change, Restricted and back,
+refusals (no step-up, short reason, same tier, Ops, own profile),
+append-only, ELEVATED assignment for an L2 driver, proposal on completion,
+the nightly task. `trust/tests/test_tier_api.py` (6): own read, IDOR (other
+operator, a business user), Ops read-only, self-promotion refused, admin
+promote / demote, proposal decision and a second decision refused.
+Frontend `Tiers.test.tsx` (7).
+
 ## Self-caught defects fixed during implementation
 
 Every one of these was found by the implementation's own review or test

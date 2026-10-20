@@ -8,6 +8,7 @@ from typing import Any
 
 from rest_framework import serializers
 
+from fikisha.identity.phone_field import KenyanPhoneField
 from fikisha.jobs.constants import CancellationReason, HighValueDecision, RecipientIssueCategory
 
 
@@ -18,7 +19,7 @@ class LocationWriteSerializer(serializers.Serializer[dict[str, Any]]):
     lat = serializers.DecimalField(max_digits=9, decimal_places=6, required=False, allow_null=True)
     lng = serializers.DecimalField(max_digits=9, decimal_places=6, required=False, allow_null=True)
     contact_name = serializers.CharField(max_length=120, required=False, allow_blank=True)
-    contact_phone = serializers.CharField(max_length=32, required=False, allow_blank=True)
+    contact_phone = KenyanPhoneField(required=False, allow_blank=True)
     notes = serializers.CharField(max_length=2000, required=False, allow_blank=True)
 
 
@@ -51,7 +52,7 @@ class JobCreateSerializer(serializers.Serializer[dict[str, Any]]):
     cargo = CargoWriteSerializer()
     vehicle_requirement = VehicleRequirementWriteSerializer(required=False)
     recipient_name = serializers.CharField(max_length=120, required=False, allow_blank=True)
-    recipient_phone = serializers.CharField(max_length=32, required=False, allow_blank=True)
+    recipient_phone = KenyanPhoneField(required=False, allow_blank=True)
     delivery_requirements = serializers.CharField(max_length=4000, required=False, allow_blank=True)
     delivery_flags = serializers.ListField(child=serializers.CharField(), required=False)
     proposed_price_kes = serializers.IntegerField(required=False, allow_null=True, min_value=1)
@@ -75,18 +76,28 @@ class ArriveSerializer(serializers.Serializer[dict[str, Any]]):
     geo = GeoSerializer(required=False)
 
 
-class ConfirmPickupOtpSerializer(serializers.Serializer[dict[str, Any]]):
-    code = serializers.CharField(max_length=12)
+class ConfirmPickupSerializer(serializers.Serializer[dict[str, Any]]):
+    """The driver completes pickup with what the sender gave (assessment
+    2026-10-20 L-5): any of the code, a signature file, photos; the sender's
+    in-app confirmation counts on its own."""
+
+    code = serializers.CharField(max_length=12, required=False, allow_blank=True)
+    party_name = serializers.CharField(max_length=120, required=False, allow_blank=True)
     condition_note = serializers.CharField(max_length=2000, required=False, allow_blank=True)
 
 
-class ConfirmPickupBusinessSerializer(serializers.Serializer[dict[str, Any]]):
-    condition_note = serializers.CharField(max_length=2000, required=False, allow_blank=True)
+class CloseJobSerializer(serializers.Serializer[dict[str, Any]]):
+    """The sender closes a delivered job: goods received, operator paid
+    (founder 2026-10-20, PD-3 / PD-4)."""
+
+    payment_method = serializers.ChoiceField(choices=["CASH", "MPESA"])
+    mpesa_reference = serializers.RegexField(
+        r"^[A-Za-z0-9]{0,20}$", required=False, allow_blank=True, max_length=20
+    )
 
 
-class ConfirmPickupAttestedSerializer(serializers.Serializer[dict[str, Any]]):
-    pickup_contact_name = serializers.CharField(max_length=120)
-    condition_note = serializers.CharField(max_length=2000, required=False, allow_blank=True)
+class SenderConfirmPickupSerializer(serializers.Serializer[dict[str, Any]]):
+    party_name = serializers.CharField(max_length=120, required=False, allow_blank=True)
 
 
 class FailAtPickupSerializer(serializers.Serializer[dict[str, Any]]):

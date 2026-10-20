@@ -26,7 +26,7 @@
     "PICKED_UP": "Dereva amechukua bidhaa zako.",
     "IN_TRANSIT": "Usafirishaji wako uko njiani.",
     "AT_DESTINATION": "Dereva amefika mahali pa kufikishwa.",
-    "DELIVERED": "Imefikishwa — mfumo utakamilisha hivi karibuni.",
+    "DELIVERED": "Imefikishwa. Thibitisha umepokea mizigo na umemlipa mwendeshaji ili kufunga safari.",
     "COMPLETED": "Usafirishaji huu umekamilika.",
     "CANCELLED": "Ombi hili lilighairiwa.",
     "FAILED": "Usafirishaji huu haukukamilika.",
@@ -36,7 +36,7 @@
     "PICKED_UP_DRIVER": "Umechukua bidhaa — anza safari ukiondoka.",
     "IN_TRANSIT_DRIVER": "Uko njiani kuelekea mahali pa kufikisha.",
     "AT_DESTINATION_DRIVER": "Umefika — thibitisha ufikishaji.",
-    "DELIVERED_DRIVER": "Ufikishaji umerekodiwa. Hakuna zaidi la kufanya.",
+    "DELIVERED_DRIVER": "Ufikishaji umerekodiwa. Mtumaji atafunga safari akishakulipa.",
     "DISPUTED_DRIVER": "Imesimamishwa — Fikisha inakagua tatizo."
   },
   "detail": {
@@ -85,7 +85,7 @@
     "noBusinessBody": "Unda biashara ili kuanza kuomba usafiri.",
     "noBusinessCta": "Unda biashara",
     "asOf": "kama ya {{time}}",
-    "deliveredAuto": "Imewasilishwa — itakamilika yenyewe"
+    "deliveredAuto": "Imefikishwa — thibitisha na ufunge"
   },
   "create": {
     "stepOf": "Hatua {{n}} kati ya {{total}}",
@@ -114,7 +114,14 @@
       "recipientName": "Jina la mpokezi",
       "recipientPhone": "Simu ya mpokezi",
       "phoneHint": "Inatumika kwa kiungo cha kufuatilia na mawasiliano ya kuchukua/kukabidhi.",
-      "mapLabel": "Ramani: mizigo inakokwenda"
+      "mapLabel": "Ramani: mizigo inakokwenda",
+      "how": "Ungependa kutoa mahali pa kufikisha vipi?",
+      "usePin": "Tumia alama ya ramani",
+      "usePinHint": "Weka alama mahali mizigo inakokwenda. Dereva ataelekezwa huko.",
+      "useName": "Taja mahali pa kufikisha",
+      "useNameHint": "Andika jina la mahali au anwani, kwa mfano \"Kitengela Mall, Duka 12\".",
+      "landmark": "Alama ya eneo (si lazima)",
+      "pinnedOnMap": "Imewekwa kwenye ramani"
     },
     "cargo": {
       "description": "Maelezo",
@@ -236,7 +243,7 @@
     "movedOn": "Kazi hii imeendelea — hakuna kinachohitajika hapa.",
     "chooseDriver": "Chagua dereva",
     "chooseVehicle": "Chagua gari",
-    "trustLevel": "Kiwango {{level}}",
+    "trustLevel": "Daraja: {{level}}",
     "noLevel": "hakuna",
     "capacity": "{{value}} {{unit}}",
     "noVehicles": "Bado hujasajili gari lolote.",
@@ -365,5 +372,47 @@
     "LIVESTOCK": "Mifugo",
     "LIQUIDS_BULK": "Mafuta na vimiminika vingi",
     "OTHER": "Nyingine"
+  },
+  "contactHidden": {
+    "not_assigned": "Namba itaonekana safari ikikabidhiwa kwako",
+    "until_pickup": "Namba itaonekana kuchukua kukithibitishwa",
+    "job_closed": "Safari imefungwa: wasiliana kupitia Fikisha"
+  },
+  "proof": {
+    "method": {
+      "OTP": "msimbo",
+      "SIGNATURE": "sahihi",
+      "PHOTO": "picha",
+      "IN_APP": "mtumaji athibitishe kwenye programu yake"
+    },
+    "or": " au ",
+    "done": "imekamilika",
+    "todo": "bado inahitajika",
+    "pickupNeeds": "Kuchukua huku kunahitaji",
+    "deliveryNeeds": "Kufikisha huku kunahitaji",
+    "senderConfirmed": "Mtumaji amethibitisha makabidhiano kwenye programu yake.",
+    "senderCanConfirm": "Mtumaji anaweza pia kuthibitisha makabidhiano kwenye programu yake ya Fikisha.",
+    "senderSigns": "Mtumaji atie sahihi hapa",
+    "senderName": "Jina la mtumaji (si lazima)",
+    "completePickup": "Kamilisha kuchukua",
+    "recipientConfirmed": "Mpokeaji amethibitisha kwa msimbo wake.",
+    "youConfirmed": "Umethibitisha makabidhiano. Dereva atakamilisha kuchukua kwenye simu yake."
+  },
+  "closeOff": {
+    "title": "Mizigo imepokelewa na mwendeshaji amelipwa",
+    "body": "Funga safari mizigo ikishafika na umemlipa mwendeshaji moja kwa moja. Fikisha haichukui wala kuhamisha pesa: hii inarekodi ulicholipa.",
+    "how": "Ulilipa vipi?",
+    "cash": "Pesa taslimu",
+    "mpesa": "M-Pesa",
+    "mpesaRef": "Msimbo wa M-Pesa (si lazima)",
+    "mpesaRefHint": "Kutoka kwenye SMS yako ya M-Pesa, kwa mfano SGH7K2L9PQ.",
+    "confirm": "Thibitisha na ufunge safari",
+    "awaitingTitle": "Inasubiri mtumaji",
+    "awaitingBody": "Mtumaji atafunga safari akishathibitisha mizigo imefika na amekulipa.",
+    "notPaid": "Sijalipwa",
+    "paidTitle": "Malipo yamerekodiwa na mtumaji",
+    "paidCash": "Amelipa kwa pesa taslimu",
+    "paidMpesa": "Amelipa kwa M-Pesa",
+    "paidRef": "Msimbo wa M-Pesa {{ref}}"
   }
 }

@@ -1,7 +1,7 @@
 import { useMutation } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 
 import { Alert } from '@/components/Alert';
 import { Button } from '@/components/Button';
@@ -27,7 +27,12 @@ export function IncidentReportPage(): JSX.Element {
   const { t } = useTranslation(['incidents', 'errors']);
   const navigate = useNavigate();
 
-  const [type, setType] = useState<IncidentType | null>(null);
+  // ?type=NON_PAYMENT from the operator's "I haven't been paid" (PD-4).
+  const [searchParams] = useSearchParams();
+  const preset = searchParams.get('type');
+  const [type, setType] = useState<IncidentType | null>(
+    (INCIDENT_TYPES as readonly string[]).includes(preset ?? '') ? (preset as IncidentType) : null,
+  );
   const [description, setDescription] = useState('');
   const [otherLabel, setOtherLabel] = useState('');
   const [photos, setPhotos] = useState<(File | null)[]>([null]);

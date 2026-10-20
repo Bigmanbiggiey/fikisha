@@ -123,5 +123,8 @@
     "openInGoogleMaps": "Fungua kwenye Google Maps",
     "approximateNote": "Eneo la jumla tu linaonyeshwa kwa sasa. Mahali kamili litaonekana safari ikikabidhiwa kwako.",
     "noPin": "Bado hakuna alama kwenye ramani"
+  },
+  "phone": {
+    "invalid": "Tumia namba ya Kenya: 07… au 01… (tarakimu 10), au +254 kisha namba bila 0 yake ya kwanza."
   }
 }

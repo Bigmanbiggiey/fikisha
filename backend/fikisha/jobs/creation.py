@@ -56,6 +56,11 @@ def _actor_user(actor: Any) -> Any:
     return user if getattr(user, "pk", None) else None
 
 
+class DestinationRequired(DomainError):
+    default_code = "destination_required"
+    default_detail = "Pin the destination on the map or name it."
+
+
 class UnknownBusinessLocation(DomainError):
     default_code = "unknown_business_location"
     default_detail = "That saved location is not an active location of this business."
@@ -145,7 +150,12 @@ def create_draft(*, actor: Any, business_id: Any, data: dict[str, Any]) -> Job:
         if pickup_data.get("business_location_id")
         else _make_location(type_=LocationType.PICKUP, data=pickup_data)
     )
-    destination = _make_location(type_=LocationType.DESTINATION, data=data["destination_location"])
+    dest_data = data["destination_location"]
+    # A pin or a name: the sender chooses (assessment 2026-10-20 L-2).
+    has_pin = dest_data.get("lat") is not None and dest_data.get("lng") is not None
+    if not has_pin and not (dest_data.get("address_text") or "").strip():
+        raise DestinationRequired()
+    destination = _make_location(type_=LocationType.DESTINATION, data=dest_data)
     vehicle_requirement = VehicleRequirement.objects.create(
         required_vehicle_class_codes=list(
             data.get("vehicle_requirement", {}).get("required_vehicle_class_codes") or []
@@ -248,21 +258,60 @@ def job_detail(job: Job, viewer: Any = None) -> dict[str, Any]:
     recomputed business logic — every field here is a stored value).
 
     Pass the ``viewer`` (the actor reading it): contact phone numbers are
-    blanked for anyone ``job_authz.may_see_contact_phones`` refuses, e.g. an
-    operator still negotiating (founder decision 2026-10-14, ADR-2D-36), and
-    ``contacts_hidden`` says so. Without a viewer (the business's own create
-    response) nothing is hidden."""
-    hide = viewer is not None and not job_authz.may_see_contact_phones(viewer, job)
+    blanked per ``job_authz.hidden_contacts`` (an operator not assigned the
+    job sees none; the assigned side sees the recipient's only from pickup
+    and none once the job is closed: ADR-2D-36, assessment 2026-10-20), and
+    ``contacts_hidden`` / ``hidden_contacts`` say so. Without a viewer (the
+    business's own create response) nothing is hidden."""
+    # Exact map pins: the business, staff and the assigned side; anyone else
+    # (an operator still looking or negotiating) sees the ~1 km area (MD-2).
+    coarsen = viewer is not None and not job_authz.may_see_contact_phones(viewer, job)
+    # Contact phones also depend on the job's stage (assessment 2026-10-20
+    # item 4): the recipient's only from pickup, none once the job is closed.
+    hidden: dict[str, str | None] = (
+        job_authz.hidden_contacts(viewer, job)
+        if viewer is not None
+        else {"pickup": None, "recipient": None}
+    )
+    hide_pickup = hidden["pickup"] is not None
+    hide_recipient = hidden["recipient"] is not None
     view = job_view(job)
-    # The same people see exact map pins; anyone else (an operator still
-    # looking or negotiating) sees only the ~1 km area (maps MD-2).
-    view["pickup_location"] = _location_view(job.pickup_location, hide_phone=hide, coarsen=hide)
+    view["pickup_location"] = _location_view(
+        job.pickup_location, hide_phone=hide_pickup, coarsen=coarsen
+    )
     view["destination_location"] = _location_view(
-        job.destination_location, hide_phone=hide, coarsen=hide
+        job.destination_location, hide_phone=hide_recipient, coarsen=coarsen
     )
     view["recipient_name"] = job.recipient_name
-    view["recipient_phone"] = "" if hide else job.recipient_phone
-    view["contacts_hidden"] = hide
+    view["recipient_phone"] = "" if hide_recipient else job.recipient_phone
+    view["contacts_hidden"] = hide_pickup or hide_recipient
+    view["hidden_contacts"] = hidden
+    # What pickup and delivery need for this job's band, and what the other
+    # party has already confirmed on their own device (assessment 2026-10-20
+    # L-5), so the driver's screen can show both.
+    from fikisha.jobs import custody_rules
+    from fikisha.jobs.models import CustodyConfirmation
+
+    view["custody_requirements"] = custody_rules.requirements_view(job)
+    recorded = set(CustodyConfirmation.objects.filter(job=job).values_list("stage", "method"))
+    # The sender's record of paying the operator, made on close-off (PD-4).
+    from fikisha.jobs.models import JobPaymentRecord
+
+    payment = JobPaymentRecord.objects.filter(job=job).first()
+    view["payment_record"] = (
+        {
+            "method": payment.method,
+            "mpesa_reference": payment.mpesa_reference,
+            "recorded_at": payment.created_at.isoformat(),
+        }
+        if payment
+        else None
+    )
+    view["custody_confirmations"] = {
+        "sender_in_app": ("PICKUP", "IN_APP") in recorded,
+        "recipient_code": ("DELIVERY", "OTP") in recorded,
+        "recipient_signature": ("DELIVERY", "SIGNATURE") in recorded,
+    }
     if viewer is not None and job.is_high_value and job_authz.is_admin(viewer):
         # staff only: the effective high-value decision, so the console can
         # offer a Platform Admin the reversal of a rejection

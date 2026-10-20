@@ -52,8 +52,10 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Any
 
+from django.db import transaction
 from django.db.models import Max
 
+from fikisha.common.logging_setup import get_logger
 from fikisha.jobs import commission as commission_service
 from fikisha.jobs import eligibility
 from fikisha.jobs.constants import (
@@ -68,7 +70,6 @@ from fikisha.jobs.constants import (
     ProofCapturedBy,
     ProofKind,
     TrustLevel,
-    ValueBand,
     compute_penalty_class,
 )
 from fikisha.jobs.errors import GuardFailed, OtpNotIssued
@@ -82,6 +83,8 @@ from fikisha.jobs.models import (
     ProofOfPickup,
 )
 from fikisha.jobs.selectors import current_config_version
+
+log = get_logger("fikisha.jobs.apply")
 
 ApplyFn = Callable[[Any, Any, dict[str, Any]], None]
 
@@ -291,81 +294,92 @@ def assign(job: Any, actor: Any, ctx: dict[str, Any]) -> None:
         assigned_by_user=_actor_user(actor),
         reassigned_from_id=ctx.get("reassigned_from_id"),
         admin_override_reason=(ctx.get("admin_override_reason") or "").strip(),
-        driver_trust_level=eligibility.interim_driver_trust_level(driver) or TrustLevel.L1,
+        driver_trust_level=eligibility.driver_trust_level(driver) or TrustLevel.L1,
         config_version=current_config_version(),
     )
     job.assignment = assignment
 
 
-# ── custody proofs (chain-of-custody.md §2 / §4, D-CUS-2 / D-TRU-5) ──
-_PICKUP_METHOD_EVENT = {
-    "OTP": (JobEventType.PICKUP_OTP_CONFIRMED, ConfirmationMethod.OTP),
-    "BUSINESS_CONFIRM": (JobEventType.PICKUP_BUSINESS_CONFIRMED, ConfirmationMethod.IN_APP),
-    "ATTESTED": (JobEventType.PICKUP_OPERATOR_ATTESTED, ConfirmationMethod.PHOTO),
-}
+# ── custody proofs (chain-of-custody.md §2, founder assessment 2026-10-20) ──
+_METHOD_ORDER = (
+    ConfirmationMethod.OTP,
+    ConfirmationMethod.IN_APP,
+    ConfirmationMethod.SIGNATURE,
+    ConfirmationMethod.PHOTO,
+)
+
+
+def _ordered(present: set[str]) -> list[str]:
+    return [str(m) for m in _METHOD_ORDER if str(m) in present]
+
+
+def _recorded_evidence(job: Any, stage: str) -> list[Any]:
+    from fikisha.jobs.models import CustodyConfirmation
+
+    ids: list[Any] = []
+    for row in CustodyConfirmation.objects.filter(job=job, stage=stage).values_list(
+        "evidence_ids", flat=True
+    ):
+        ids.extend(row or [])
+    return ids
 
 
 def confirm_pickup(job: Any, actor: Any, ctx: dict[str, Any]) -> None:
-    """Write ``ProofOfPickup`` + the method-specific custody event. The
-    operator-attested STANDARD-band fallback records
-    ``attestation = OPERATOR_ATTESTED_UNVERIFIED`` and **caps the job at
-    STANDARD** (the guard has already refused it for any higher band).
+    """Write ``ProofOfPickup`` with every method present (the band guard has
+    checked them against ``custody_proof_rules``) and the custody event. The
+    driver captures it; the sender's own in-app confirmation is part of it.
     ``picked_up_at`` is stamped by the service."""
-    method = str(ctx.get("pickup_method") or "")
-    attested = method == "ATTESTED"
-    event_type, conf_method = _PICKUP_METHOD_EVENT.get(
-        method, (JobEventType.GOODS_RECEIVED, ConfirmationMethod.NONE)
-    )
+    from fikisha.jobs.guards import custody_methods_present
+
+    methods = _ordered(custody_methods_present(job, "PICKUP", ctx))
     photo_ids = list(ctx.get("photo_evidence_ids") or [])
-    if attested and ctx.get("fallback_photo_id"):
-        photo_ids = [ctx["fallback_photo_id"], *photo_ids]
+    if ConfirmationMethod.OTP in methods:
+        event_type = JobEventType.PICKUP_OTP_CONFIRMED
+    elif ConfirmationMethod.IN_APP in methods:
+        event_type = JobEventType.PICKUP_BUSINESS_CONFIRMED
+    else:
+        event_type = JobEventType.GOODS_RECEIVED
+    conf_method = methods[0] if methods else ConfirmationMethod.NONE
+    sig = ctx.get("signature_evidence_id")
 
     ProofOfPickup.objects.create(
         job=job,
         kind=ProofKind.PICKUP,
         party_name=(ctx.get("pickup_contact_name") or "").strip(),
-        methods=[conf_method] if conf_method != ConfirmationMethod.NONE else [],
-        otp_verified=method == "OTP",
-        signature_evidence_id=ctx.get("signature_evidence_id"),
+        methods=methods,
+        otp_verified=ConfirmationMethod.OTP in methods,
+        signature_evidence_id=sig,
         photo_evidence_ids=photo_ids,
-        captured_by=ctx.get("captured_by")
-        or (
-            ProofCapturedBy.BUSINESS_CONTACT
-            if method == "BUSINESS_CONFIRM"
-            else ProofCapturedBy.OPERATOR
-        ),
+        captured_by=ctx.get("captured_by") or ProofCapturedBy.OPERATOR,
         condition_note=(ctx.get("condition_note") or "").strip(),
-        attestation=Attestation.OPERATOR_ATTESTED_UNVERIFIED if attested else Attestation.VERIFIED,
+        attestation=Attestation.VERIFIED,
     )
     _append_event(
         job,
         event_type=event_type,
         actor=actor,
         confirmation_method=conf_method,
-        evidence_ids=photo_ids,
+        evidence_ids=[*([sig] if sig else []), *photo_ids],
         note=(ctx.get("condition_note") or "").strip(),
     )
     if ctx.get("_otp_challenge_id"):
         from fikisha.jobs import otp as otp_service
 
         otp_service.consume_otp(purpose=ctx["_otp_purpose"], challenge_id=ctx["_otp_challenge_id"])
-    if attested:
-        job.value_band = ValueBand.STANDARD
 
 
 def confirm_delivery(job: Any, actor: Any, ctx: dict[str, Any]) -> None:
-    """Write ``ProofOfDelivery`` + the ``RECIPIENT_VERIFIED`` custody event.
+    """Write ``ProofOfDelivery`` + the ``RECIPIENT_VERIFIED`` custody event,
+    counting a code or signature the recipient gave through their link.
     ``delivered_at`` is stamped by the service."""
-    otp_ok = bool(ctx.get("otp_verified"))
+    from fikisha.jobs.guards import custody_methods_present
+
+    methods = _ordered(custody_methods_present(job, "DELIVERY", ctx))
     photos = list(ctx.get("photo_evidence_ids") or [])
     sig = ctx.get("signature_evidence_id")
-    methods: list[str] = []
-    if otp_ok:
-        methods.append(ConfirmationMethod.OTP)
-    if sig:
-        methods.append(ConfirmationMethod.SIGNATURE)
-    if photos:
-        methods.append(ConfirmationMethod.PHOTO)
+    linked = _recorded_evidence(job, "DELIVERY")
+    if not sig and linked:
+        sig = linked[0]
     conf_method = methods[0] if methods else ConfirmationMethod.NONE
 
     ProofOfDelivery.objects.create(
@@ -373,7 +387,7 @@ def confirm_delivery(job: Any, actor: Any, ctx: dict[str, Any]) -> None:
         kind=ProofKind.DELIVERY,
         party_name=(ctx.get("party_name") or "").strip(),
         methods=methods,
-        otp_verified=otp_ok,
+        otp_verified=ConfirmationMethod.OTP in methods,
         signature_evidence_id=sig,
         photo_evidence_ids=photos,
         captured_by=ctx.get("captured_by") or ProofCapturedBy.OPERATOR,
@@ -414,6 +428,21 @@ def complete(job: Any, actor: Any, ctx: dict[str, Any]) -> None:
     resolved back to ``COMPLETED``, Step 8 ADR-2D-20) already has its record
     from the first pass and gets no second one (plan §19 Step 9 brief §18-19)."""
     commission_service.create_commission_record_locked(job=job, actor=actor)
+    driver_id = getattr(job.assignment, "assigned_driver_profile_id", None)
+    if driver_id is not None:
+        transaction.on_commit(lambda: _propose_tier(driver_id))
+
+
+def _propose_tier(driver_id: Any) -> None:
+    """After a completion commits: propose the driver's next tier if it just
+    became due (operator tiers, ADR-2D-52). Proposes only; a failure here is
+    logged and never undoes the completion."""
+    from fikisha.trust import services as trust
+
+    try:
+        trust.evaluate_operator_id(driver_id)
+    except Exception:
+        log.exception("trust.evaluate_after_completion_failed", operator_id=str(driver_id))
 
 
 # Dispute freeze / resolution: the job-side effect is exactly the status write

@@ -61,13 +61,14 @@ HIGH_VALUE_BANDS: frozenset[str] = frozenset({ValueBand.HIGH, ValueBand.VERY_HIG
 
 
 class TrustLevel(models.TextChoices):
-    """Interim trust levels (ADR-2D-05 Option b). The full Trust engine is a
-    later phase; in 2D a driver's level is derived conservatively from
-    verification facts and gates assignment via the configured value bands."""
+    """Driver trust levels (operator tiers, ADR-2D-52; ``fikisha.trust`` owns
+    them). They gate assignment via the configured value bands; RESTRICTED
+    covers STANDARD only."""
 
     L1 = "L1", "L1 · verified"
     L2 = "L2", "L2 · established"
     L3 = "L3", "L3 · trusted"
+    RESTRICTED = "RESTRICTED", "Restricted"
 
 
 class JobEventCategory(models.TextChoices):

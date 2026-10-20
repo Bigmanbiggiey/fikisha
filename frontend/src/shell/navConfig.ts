@@ -67,13 +67,15 @@ const statements: NavItem = { to: '/statements', labelKey: 'common:nav.statement
 
 const staff: RoleNav = {
   primary: [
-    { to: '/ops', labelKey: 'common:nav.ops', icon: 'home', end: true },
-    { to: '/ops/jobs', labelKey: 'common:nav.opsJobs', icon: 'list' },
-    { to: '/verification', labelKey: 'org:nav.verification', icon: 'badge' },
+    // Icons per the founder's 2026-10-20 assessment (L-6): Operations is the
+    // settings wheel, Monitor the eye, Verification the tick.
+    { to: '/ops', labelKey: 'common:nav.ops', icon: 'settings', end: true },
+    { to: '/ops/jobs', labelKey: 'common:nav.opsJobs', icon: 'eye' },
+    { to: '/verification', labelKey: 'org:nav.verification', icon: 'check' },
   ],
   secondary: [
     { to: '/ops/high-value', labelKey: 'common:nav.highValue', icon: 'flag' },
-    { to: '/ops/audit', labelKey: 'common:nav.audit', icon: 'eye' },
+    { to: '/ops/audit', labelKey: 'common:nav.audit', icon: 'search' },
     { to: '/ops/statements', labelKey: 'common:nav.statements', icon: 'list' },
   ],
 };
@@ -130,7 +132,7 @@ export const NAV: Record<NavRole, RoleNav> = {
     secondary: [
       { to: '/admin/directory', labelKey: 'common:nav.directory', icon: 'badge' },
       { to: '/admin/config', labelKey: 'common:nav.config', icon: 'pencil' },
-      { to: '/admin/commission', labelKey: 'common:nav.commission', icon: 'list' },
+      { to: '/admin/commission', labelKey: 'common:nav.commission', icon: 'coins' },
       { to: '/admin/cargo-categories', labelKey: 'common:nav.cargoCategories', icon: 'box' },
       staff.primary[0]!,
       ...staff.secondary,

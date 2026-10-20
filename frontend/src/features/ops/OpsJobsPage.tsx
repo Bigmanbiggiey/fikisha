@@ -17,7 +17,7 @@ import { JobReferenceJump } from './JobReferenceJump';
 import { cursorFrom, opsApi } from './opsApi';
 import type { AttentionFilter, MonitorFilters, OpsJobRow } from './types';
 
-const ATTENTION: AttentionFilter[] = ['disputed', 'failed', 'high_value_pending', 'stale'];
+const ATTENTION: AttentionFilter[] = ['disputed', 'failed', 'high_value_pending', 'stale', 'awaiting_sender'];
 
 /**
  * §18.2 Job monitoring — filters (state, band, attention/age) and the

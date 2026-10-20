@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import uuid
 from collections.abc import Callable
 from typing import Any
 
@@ -269,11 +270,15 @@ def test_full_custody_chain_to_delivered(
     ):
         data: dict[str, Any] = {}
         if to == JobStatus.PICKED_UP:
-            # engine-level: assert the guard contract for the business-confirm path
-            data = {"pickup_method": "BUSINESS_CONFIRM", "actor_is_business_party": True}
+            # STANDARD pickup: any one proof (assessment 2026-10-20 L-5) - a photo
+            data = {"signature_evidence_id": str(uuid.uuid4())}
         if to == JobStatus.DELIVERED:
-            # STANDARD band -> name + a photo POD is sufficient (no OTP)
-            data = {"party_name": "J. Mwangi", "photo_evidence_ids": ["p1"]}
+            # STANDARD delivery: name + the code or a signature (no photo-only POD)
+            data = {
+                "party_name": "J. Mwangi",
+                "signature_evidence_id": str(uuid.uuid4()),
+                "photo_evidence_ids": ["p1"],
+            }
         do_transition(j, to, driver_actor, data=data)
         j.refresh_from_db()
         assert j.status == to

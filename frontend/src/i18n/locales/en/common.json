@@ -123,5 +123,8 @@
     "openInGoogleMaps": "Open in Google Maps",
     "approximateNote": "Only the area is shown for now. The exact spot appears once the job is assigned to you.",
     "noPin": "No pin on the map yet"
+  },
+  "phone": {
+    "invalid": "Use a Kenyan number: 07… or 01… (10 digits), or +254 then the number without its first 0."
   }
 }

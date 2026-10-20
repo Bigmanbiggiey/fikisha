@@ -9,28 +9,24 @@ import { Card } from '@/components/Card';
 import { ErrorState } from '@/components/ErrorState';
 import { Field } from '@/components/Field';
 import { Input } from '@/components/Input';
-import { OptionRows } from '@/components/OptionRow';
 import { OtpInput } from '@/components/OtpInput';
 import { PageLoader } from '@/components/PageLoader';
 import { PhotoCapture } from '@/components/PhotoCapture';
+import { SignaturePad } from '@/components/SignaturePad';
 import { localizeError } from '@/services/errorMessage';
 
+import { FALLBACK_PICKUP, methodsIn, unmetGroups, type ProofMethod } from './custodyProof';
 import { jobReference } from './jobHelpers';
 import { jobsApi } from './jobsApi';
-
-type Method = 'otp' | 'business' | 'attested';
+import { ProofChecklist } from './ProofChecklist';
 
 /**
- * Pickup proof (`chain-of-custody.md` §4, `design-phase-3-wireframes.md`
- * §11.1–11.3) — the exact band matrix, implemented exactly, no invented
- * fallback: STANDARD gets a third "operator-attested" segment (photo +
- * contact name, caps the job at STANDARD, marked unverified); ELEVATED+
- * gets only the two verified paths, with no fallback rendered at all.
- *
- * "Sender confirms in app" isn't something the driver submits — it's the
- * Business's own action (`PickupConfirmPage.tsx` §6.6, same transition,
- * same lifecycle writer) — this screen shows it as a passive state with a
- * manual refresh, and auto-advances once the job moves off `AT_PICKUP`.
+ * Pickup (founder assessment 2026-10-20 L-5, LD-4 / LD-5): both parties take
+ * part. The sender gives the code, signs on this phone, or confirms in their
+ * own app; the driver takes the photo; the driver completes. What this job
+ * needs comes from the server (`custody_requirements.pickup`, by value band):
+ * the checklist ticks each requirement off, and "Complete pickup" opens once
+ * all are met. The operator-only fallback is gone.
  */
 export function PickupProofPage(): JSX.Element {
   const { jobId } = useParams<{ jobId: string }>();
@@ -38,12 +34,10 @@ export function PickupProofPage(): JSX.Element {
   const navigate = useNavigate();
   const qc = useQueryClient();
 
-  // The code is the common path, so it starts selected (P-12): the one
-  // primary action is on screen from the first render.
-  const [method, setMethod] = useState<Method>('otp');
   const [code, setCode] = useState('');
-  const [contactName, setContactName] = useState('');
+  const [signature, setSignature] = useState<File | null>(null);
   const [photo, setPhoto] = useState<File | null>(null);
+  const [senderName, setSenderName] = useState('');
 
   const job = useQuery({
     queryKey: ['jobs', jobId],
@@ -52,31 +46,23 @@ export function PickupProofPage(): JSX.Element {
     retry: false,
   });
 
-  function onProofSuccess(attested: boolean): void {
-    void qc.invalidateQueries({ queryKey: ['jobs', jobId] });
-    void qc.invalidateQueries({ queryKey: ['jobs'] });
-    // The Job DTO carries no field for which proof method was used (a
-    // documented gap — flagged for a future increment to close properly).
-    // Passed via navigation state since it's known here and nowhere else;
-    // a direct reload of the confirmation screen loses it and falls back
-    // to the "verified" default (see CustodyConfirmationPage).
-    navigate(`/jobs/${jobId}/custody-confirmation`, { replace: true, state: { attested } });
-  }
-
-  const confirmOtp = useMutation({
-    mutationFn: () => jobsApi.confirmPickupOtp(jobId!, { code }, crypto.randomUUID()),
-    onSuccess: () => onProofSuccess(false),
-  });
-  const confirmAttested = useMutation({
-    mutationFn: () => {
-      if (!photo) throw new Error('photo required');
-      return jobsApi.confirmPickupAttested(
+  const complete = useMutation({
+    mutationFn: () =>
+      jobsApi.confirmPickup(
         jobId!,
-        { pickup_contact_name: contactName, photo },
+        {
+          code: code.length === 6 ? code : undefined,
+          signature: signature ?? undefined,
+          photos: photo ? [photo] : undefined,
+          party_name: senderName.trim() || undefined,
+        },
         crypto.randomUUID(),
-      );
+      ),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['jobs', jobId] });
+      void qc.invalidateQueries({ queryKey: ['jobs'] });
+      navigate(`/jobs/${jobId}/custody-confirmation`, { replace: true, state: { attested: false } });
     },
-    onSuccess: () => onProofSuccess(true),
   });
 
   if (job.isLoading) return <PageLoader />;
@@ -84,21 +70,24 @@ export function PickupProofPage(): JSX.Element {
     return <ErrorState message={localizeError(job.error, t)} error={job.error} onRetry={() => void job.refetch()} />;
   }
   const data = job.data!;
-
   if (data.status === 'PICKED_UP') {
-    // The business confirmed pickup in-app while this screen was open
-    // (§9.3: one lifecycle, no second transition mechanism) — same
-    // destination as this screen's own OTP/attested success path.
     navigate(`/jobs/${jobId}/custody-confirmation`, { replace: true, state: { attested: false } });
     return <PageLoader />;
   }
   if (data.status !== 'AT_PICKUP') {
-    // Moved on some other way, or stale — Current Job home has the truth.
     navigate(`/jobs/${jobId}`, { replace: true });
     return <PageLoader />;
   }
 
-  const isStandard = data.value_band === 'STANDARD';
+  const groups = (data.custody_requirements?.pickup ?? FALLBACK_PICKUP) as ProofMethod[][];
+  const offered = methodsIn(groups);
+  const senderInApp = Boolean(data.custody_confirmations?.sender_in_app);
+  const present = new Set<ProofMethod>();
+  if (code.length === 6) present.add('OTP');
+  if (signature) present.add('SIGNATURE');
+  if (photo) present.add('PHOTO');
+  if (senderInApp) present.add('IN_APP');
+  const ready = unmetGroups(groups, present).length === 0;
 
   return (
     <div className="mx-auto max-w-lg space-y-4">
@@ -107,102 +96,52 @@ export function PickupProofPage(): JSX.Element {
         <p className="text-body-sm text-fg-secondary">{t('jobs:pickupProof.ref', { ref: jobReference(data.id) })}</p>
       </div>
 
-      <Alert tone="info">{t(isStandard ? 'jobs:pickupProof.bandStandard' : 'jobs:pickupProof.bandElevated')}</Alert>
+      <ProofChecklist title={t('jobs:proof.pickupNeeds')} groups={groups} present={present} />
 
-      <OptionRows<Method>
-        legend={t('jobs:pickupProof.howProve')}
-        value={method}
-        onChange={setMethod}
-        options={[
-          { value: 'otp', label: t('jobs:pickupProof.enterCode'), description: t('jobs:pickupProof.enterCodeDesc') },
-          {
-            value: 'business',
-            label: t('jobs:pickupProof.senderConfirms'),
-            description: t('jobs:pickupProof.senderConfirmsDesc'),
-          },
-          // The operator-attested fallback exists on STANDARD only (P3 §11.2);
-          // ELEVATED+ offers no fallback anywhere (§11.3).
-          ...(isStandard
-            ? [
-                {
-                  value: 'attested' as const,
-                  label: t('jobs:pickupProof.codeNotWorking'),
-                  description: t('jobs:pickupProof.codeNotWorkingDesc'),
-                },
-              ]
-            : []),
-        ]}
-      />
+      {offered.has('IN_APP') && (
+        <Alert tone={senderInApp ? 'success' : 'info'}>
+          {senderInApp ? t('jobs:proof.senderConfirmed') : t('jobs:proof.senderCanConfirm')}
+        </Alert>
+      )}
 
-      {method === 'otp' && (
+      {offered.has('OTP') && (
         <Card>
-          <OtpInput
-            label={t('jobs:pickupProof.otpLabel')}
-            value={code}
-            onChange={setCode}
-            error={confirmOtp.isError ? localizeError(confirmOtp.error, t) : undefined}
+          <OtpInput label={t('jobs:pickupProof.otpLabel')} value={code} onChange={setCode} />
+        </Card>
+      )}
+
+      {offered.has('SIGNATURE') && (
+        <Card>
+          <SignaturePad
+            label={t('jobs:proof.senderSigns')}
+            clearLabel={t('jobs:deliveryProof.clearSignature')}
+            value={signature}
+            onChange={setSignature}
           />
-          <div className="mt-4">
-            <Button
-              size="driver"
-              fullWidth
-              disabled={code.length < 6}
-              loading={confirmOtp.isPending}
-              onClick={() => confirmOtp.mutate()}
-            >
-              {t('jobs:pickupProof.confirmHandover')}
-            </Button>
-          </div>
-          {!isStandard && confirmOtp.isError && (
-            <p className="mt-3 text-body-sm text-status-danger-fg">{t('jobs:pickupProof.blockingExplainer')}</p>
-          )}
-        </Card>
-      )}
-
-      {method === 'business' && (
-        <Card>
-          <p className="text-body text-fg-secondary">{t('jobs:pickupProof.waitingForSender')}</p>
           <div className="mt-3">
-            <Button variant="secondary" onClick={() => void job.refetch()} loading={job.isFetching}>
-              {t('jobs:pickupProof.checkStatus')}
-            </Button>
-          </div>
-        </Card>
-      )}
-
-      {method === 'attested' && isStandard && (
-        <Card>
-          <Alert tone="warning">{t('jobs:pickupProof.attestedWarning')}</Alert>
-          <div className="mt-3">
-            <Field label={t('jobs:pickupProof.contactName')} required>
-              {(p) => <Input {...p} value={contactName} onChange={(e) => setContactName(e.target.value)} />}
+            <Field label={t('jobs:proof.senderName')}>
+              {(p) => <Input {...p} value={senderName} onChange={(e) => setSenderName(e.target.value)} />}
             </Field>
           </div>
-          <div className="mt-3">
-            <PhotoCapture
-              value={photo}
-              onChange={setPhoto}
-              label={t('jobs:pickupProof.takePhoto')}
-              retakeLabel={t('jobs:pickupProof.retake')}
-              addedLabel={t('jobs:pickupProof.photoAdded')}
-            />
-          </div>
-          <div className="mt-4">
-            <Button
-              size="driver"
-              fullWidth
-              disabled={!contactName.trim() || !photo}
-              loading={confirmAttested.isPending}
-              onClick={() => confirmAttested.mutate()}
-            >
-              {t('jobs:pickupProof.confirmHandover')}
-            </Button>
-          </div>
-          {confirmAttested.isError && (
-            <Alert tone="danger">{localizeError(confirmAttested.error, t)}</Alert>
-          )}
         </Card>
       )}
+
+      {offered.has('PHOTO') && (
+        <Card>
+          <PhotoCapture
+            value={photo}
+            onChange={setPhoto}
+            label={t('jobs:pickupProof.takePhoto')}
+            retakeLabel={t('jobs:pickupProof.retake')}
+            addedLabel={t('jobs:pickupProof.photoAdded')}
+          />
+        </Card>
+      )}
+
+      <Button size="driver" fullWidth disabled={!ready} loading={complete.isPending} onClick={() => complete.mutate()}>
+        {t('jobs:proof.completePickup')}
+      </Button>
+      {complete.isError && <Alert tone="danger">{localizeError(complete.error, t)}</Alert>}
     </div>
   );
 }

@@ -9,6 +9,7 @@ from collections.abc import Callable
 from typing import Any
 
 import pytest
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import connection
 from rest_framework.test import APIClient
 
@@ -42,8 +43,13 @@ class TestArrivalAndCustodyFlow:
 
         r = client.post(
             f"/api/v1/jobs/{job.id}/custody/confirm-delivery",
-            {"party_name": "A. Recipient", "code": "000000"},
-            format="json",
+            {
+                "party_name": "A. Recipient",
+                "code": "000000",
+                # the driver's photo is proof of delivery at every band (PD-2)
+                "photos": SimpleUploadedFile("pod.jpg", b"fake-jpeg", content_type="image/jpeg"),
+            },
+            format="multipart",
         )
         assert r.status_code == 200, r.content
         assert r.data["status"] == "DELIVERED"
@@ -91,6 +97,12 @@ class TestArrivalAndCustodyFlow:
         )
         client = client_for(business_actor.user)
         r = client.post(f"/api/v1/jobs/{job.id}/custody/confirm-pickup/business", {}, format="json")
+        assert r.status_code == 200, r.content
+        # Recorded; the driver completes pickup (assessment 2026-10-20 L-5).
+        assert r.data["status"] == "AT_PICKUP"
+        r = client_for(driver_actor.user).post(
+            f"/api/v1/jobs/{job.id}/custody/confirm-pickup", {}, format="json"
+        )
         assert r.status_code == 200, r.content
         assert r.data["status"] == "PICKED_UP"
 

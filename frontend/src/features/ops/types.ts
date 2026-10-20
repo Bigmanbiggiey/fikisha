@@ -7,7 +7,7 @@
  */
 import type { JobStatus, ValueBand } from '@/features/jobs/types';
 
-export type AttentionFilter = 'disputed' | 'failed' | 'high_value_pending' | 'stale';
+export type AttentionFilter = 'disputed' | 'failed' | 'high_value_pending' | 'stale' | 'awaiting_sender';
 
 export interface MonitorFilters {
   status?: JobStatus[];

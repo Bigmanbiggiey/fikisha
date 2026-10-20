@@ -40,7 +40,10 @@ export type IconName =
   | 'home'
   | 'list'
   | 'plus'
-  | 'menu';
+  | 'menu'
+  | 'settings'
+  | 'coins'
+  | 'search';
 
 interface IconProps extends Omit<SVGProps<SVGSVGElement>, 'name'> {
   name: IconName;
@@ -53,6 +56,28 @@ interface IconProps extends Omit<SVGProps<SVGSVGElement>, 'name'> {
 // Path/element content per icon. Stroke unless noted; `dot`/`dotCurrent` fill.
 const PATHS: Record<IconName, JSX.Element> = {
   check: <path d="M4 12.5l5 5 11-12" />,
+  // Admin console (assessment 2026-10-20 L-6): Operations, Commission, Audit.
+  settings: (
+    <>
+      <circle cx="12" cy="12" r="3" />
+      <path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1 1.55V21a2 2 0 1 1-4 0v-.09a1.7 1.7 0 0 0-1.1-1.55 1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.55-1H3a2 2 0 1 1 0-4h.09a1.7 1.7 0 0 0 1.55-1.1 1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.7 1.7 0 0 0 1.87.34H9a1.7 1.7 0 0 0 1-1.55V3a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1 1.55 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.87V9a1.7 1.7 0 0 0 1.55 1H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.55 1z" />
+    </>
+  ),
+  coins: (
+    <>
+      <ellipse cx="9" cy="7" rx="6" ry="3" />
+      <path d="M3 7v4c0 1.66 2.69 3 6 3s6-1.34 6-3V7" />
+      <path d="M3 11v4c0 1.66 2.69 3 6 3 1.1 0 2.13-.15 3-.4" />
+      <ellipse cx="17" cy="15" rx="4" ry="2" />
+      <path d="M13 15v3c0 1.1 1.79 2 4 2s4-.9 4-2v-3" />
+    </>
+  ),
+  search: (
+    <>
+      <circle cx="10.5" cy="10.5" r="6.5" />
+      <path d="M20 20l-4.8-4.8" />
+    </>
+  ),
   flagCheck: (
     <>
       <path d="M5 21V4h13l-3 4 3 4H5" />

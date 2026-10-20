@@ -48,6 +48,8 @@ urlpatterns = [
     path("", include("fikisha.admin_console.api.urls")),
     # Commission & Statements S-1.
     path("", include("fikisha.statements.api.urls")),
+    # Operator tiers (ADR-2D-52).
+    path("", include("fikisha.trust.api.urls")),
 ]
 
 if settings.DEBUG:

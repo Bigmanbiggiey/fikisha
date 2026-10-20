@@ -44,6 +44,20 @@ DEFAULT_CONFIG: dict[str, Any] = {
         {"band": "HIGH", "max_declared_value_kes": 100000000, "min_trust_level": "L3"},
         {"band": "VERY_HIGH", "max_declared_value_kes": None, "min_trust_level": "L3"},
     ],
+    # ─── Operator tiers (trust-architecture §1 pilot values; operator-tiers
+    # plan). Ratings and at-fault findings aren't measured yet (TD-3), so
+    # the rating values are recorded for when they are, and block nothing.
+    "trust_tiers": {
+        "L2": {"min_completed_jobs": 8, "min_days_active": 14, "min_avg_rating": 4.2},
+        "L3": {
+            "min_completed_jobs": 30,
+            "min_days_active": 60,
+            "min_avg_rating": 4.5,
+            "min_clean_elevated_jobs": 3,
+        },
+        "late_cancellation_flag": {"count": 3, "window_days": 30},
+        "reproposal_cooldown_days": 30,
+    },
     # ─── Enumerations (admin-extensible later) ──────────────────────
     # Vehicle classes moved to the `config_vehicle_class` lookup table in
     # Phase 2C (ADR-2C-01); `ConfigService`/`ConfigPublicView` expose the codes.
@@ -85,6 +99,28 @@ DEFAULT_CONFIG: dict[str, Any] = {
         "OTHER",
     ],
     "latent_risk_categories": ["ELECTRONICS", "FOOD_BEVERAGE", "FURNITURE_APPLIANCES"],
+    # What completes a pickup and a delivery, per value band (founder
+    # assessment 2026-10-20, LD-4, amended PD-1 / PD-2). Each band lists
+    # groups; every group must be met, and a group is met by any one of its
+    # methods. OTP = the code, given to the driver or through the recipient
+    # link; SIGNATURE = signed on the driver's phone; PHOTO = taken by the
+    # driver, as proof only (it never stands in for the other party);
+    # IN_APP = the sender confirmed in their own app. The driver makes the
+    # final call, so both parties take part.
+    "custody_proof_rules": {
+        "pickup": {
+            "STANDARD": [["OTP", "SIGNATURE", "IN_APP"]],
+            "ELEVATED": [["OTP", "IN_APP"], ["PHOTO"]],
+            "HIGH": [["OTP"], ["SIGNATURE"], ["PHOTO"]],
+            "VERY_HIGH": [["OTP"], ["SIGNATURE"], ["PHOTO"]],
+        },
+        "delivery": {
+            "STANDARD": [["OTP", "SIGNATURE"], ["PHOTO"]],
+            "ELEVATED": [["OTP"], ["PHOTO"]],
+            "HIGH": [["OTP"], ["SIGNATURE"], ["PHOTO"]],
+            "VERY_HIGH": [["OTP"], ["SIGNATURE"], ["PHOTO"]],
+        },
+    },
     # Keywords (English + Swahili) that suggest a cargo category from the
     # description when the business picks none (assessment 2026-10-19 D-5).
     # A Platform Admin adds to them from the "uncategorised" list.

@@ -22,4 +22,9 @@ class Command(BaseCommand):
 
     def handle(self, *args: Any, **options: Any) -> None:
         stats = autocomplete_delivered(batch_size=options["batch_size"])
-        self.stdout.write(self.style.SUCCESS(f"jobs_autocomplete_delivered: {stats}"))
+        self.stdout.write(
+            self.style.WARNING(
+                "jobs_autocomplete_delivered is retired: delivered jobs complete only when "
+                f"the sender confirms and records payment. {stats}"
+            )
+        )

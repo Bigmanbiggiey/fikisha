@@ -13,6 +13,7 @@ from fikisha.business.models import (
     LocationType,
     MembershipStatus,
 )
+from fikisha.identity.phone_field import KenyanPhoneField
 from fikisha.platform_config.models import Zone
 
 
@@ -52,9 +53,7 @@ class BusinessCreateSerializer(serializers.Serializer[dict[str, Any]]):
     contact_name = serializers.CharField(
         max_length=120, required=False, allow_blank=True, default=""
     )
-    contact_phone = serializers.CharField(
-        max_length=20, required=False, allow_blank=True, default=""
-    )
+    contact_phone = KenyanPhoneField(required=False, allow_blank=True, default="")
     contact_email = serializers.EmailField(required=False, allow_blank=True, default="")
 
 
@@ -62,7 +61,7 @@ class BusinessUpdateSerializer(serializers.Serializer[dict[str, Any]]):
     trading_name = serializers.CharField(max_length=200, required=False)
     category = serializers.CharField(max_length=80, required=False, allow_blank=True)
     contact_name = serializers.CharField(max_length=120, required=False, allow_blank=True)
-    contact_phone = serializers.CharField(max_length=20, required=False, allow_blank=True)
+    contact_phone = KenyanPhoneField(required=False, allow_blank=True)
     contact_email = serializers.EmailField(required=False, allow_blank=True)
     standing = serializers.ChoiceField(choices=BusinessStanding.choices, required=False)
 
@@ -87,7 +86,7 @@ class MembershipSerializer(serializers.ModelSerializer[BusinessMembership]):
 
 
 class MemberAddSerializer(serializers.Serializer[dict[str, Any]]):
-    phone = serializers.CharField(max_length=32)
+    phone = KenyanPhoneField()
     role = serializers.ChoiceField(choices=BusinessRole.choices)
 
 
@@ -134,7 +133,7 @@ class LocationWriteSerializer(serializers.Serializer[dict[str, Any]]):
     lng = serializers.DecimalField(max_digits=9, decimal_places=6, required=False, allow_null=True)
     zone_code = serializers.CharField(max_length=40, required=False, allow_blank=True)
     contact_name = serializers.CharField(max_length=120, required=False, allow_blank=True)
-    contact_phone = serializers.CharField(max_length=20, required=False, allow_blank=True)
+    contact_phone = KenyanPhoneField(required=False, allow_blank=True)
     hours = serializers.JSONField(required=False)
     access_notes = serializers.CharField(required=False, allow_blank=True)
 

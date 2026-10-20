@@ -72,4 +72,19 @@ describe('PickupConfirmPage', () => {
     expect(await screen.findByText('This job has moved on — nothing needed here.')).toBeInTheDocument();
     expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
   });
+
+  it('after the sender confirms, says the driver completes the pickup (L-5)', async () => {
+    get.mockResolvedValue({
+      id: 'job1',
+      status: 'AT_PICKUP',
+      cargo: { description: '20 cartons' },
+      pickup_location: { address_text: 'Depot, Kitengela' },
+      custody_confirmations: { sender_in_app: true, recipient_code: false, recipient_signature: false },
+    });
+    renderAtJob('job1');
+    expect(
+      await screen.findByText("You've confirmed the handover. The driver completes the pickup on their phone."),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
+  });
 });

@@ -12,6 +12,7 @@ import { PageLoader } from '@/components/PageLoader';
 import { StatusBadge } from '@/components/StatusBadge';
 import { VerificationPill } from '@/components/VerificationPill';
 import type { VerificationState } from '@/design/tokens';
+import { StaffTierPanel } from '@/features/trust/StaffTierPanel';
 import { formatDateTime } from '@/services/datetime';
 import { localizeError } from '@/services/errorMessage';
 
@@ -126,6 +127,8 @@ export function ApplicantPage(): JSX.Element {
           <p className="mt-3 text-body-sm text-status-success-fg">{t('org:applicants.approved')}</p>
         )}
       </Card>
+
+      {a.kind === 'OPERATOR' && a.status !== 'PENDING' && <StaffTierPanel operatorId={applicantId} />}
 
       <section className="space-y-3" aria-labelledby="own-records">
         <h2 id="own-records" className="text-h2 text-fg">

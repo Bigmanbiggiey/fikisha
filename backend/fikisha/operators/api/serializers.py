@@ -4,6 +4,7 @@ from typing import Any
 
 from rest_framework import serializers
 
+from fikisha.identity.phone_field import KenyanPhoneField
 from fikisha.operators.models import (
     BaseMembership,
     BaseType,
@@ -38,15 +39,13 @@ class OperatorCreateSerializer(serializers.Serializer[dict[str, Any]]):
     display_name = serializers.CharField(
         max_length=120, required=False, allow_blank=True, default=""
     )
-    phones = serializers.ListField(
-        child=serializers.CharField(max_length=20), required=False, default=list
-    )
+    phones = serializers.ListField(child=KenyanPhoneField(), required=False, default=list)
 
 
 class OperatorUpdateSerializer(serializers.Serializer[dict[str, Any]]):
     full_name = serializers.CharField(max_length=160, required=False)
     display_name = serializers.CharField(max_length=120, required=False, allow_blank=True)
-    phones = serializers.ListField(child=serializers.CharField(max_length=20), required=False)
+    phones = serializers.ListField(child=KenyanPhoneField(), required=False)
     status = serializers.ChoiceField(choices=OperatorStatus.choices, required=False)
 
 

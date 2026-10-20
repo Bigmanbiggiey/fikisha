@@ -32,15 +32,15 @@ from fikisha.jobs.api.serializers import (
     ArriveSerializer,
     AssignSerializer,
     CancelJobSerializer,
+    CloseJobSerializer,
     ConfirmDeliverySerializer,
-    ConfirmPickupAttestedSerializer,
-    ConfirmPickupBusinessSerializer,
-    ConfirmPickupOtpSerializer,
+    ConfirmPickupSerializer,
     FailAtPickupSerializer,
     HighValueDecisionSerializer,
     JobCreateSerializer,
     RecipientConfirmSerializer,
     RecipientReportIssueSerializer,
+    SenderConfirmPickupSerializer,
 )
 from fikisha.jobs.assignment import assign_job
 from fikisha.jobs.constants import JobStatus
@@ -433,68 +433,79 @@ class FailAtPickupView(OrgApiView):
         return Response(view)
 
 
-class ConfirmPickupOtpView(OrgApiView):
+class ConfirmPickupView(OrgApiView):
+    """``POST /jobs/<id>/custody/confirm-pickup`` (also the older
+    ``.../confirm-pickup/otp``): the driver completes pickup. Multipart:
+    ``code``, ``party_name``, ``signature`` file, ``photos`` files."""
+
     action_post = "job.proof.pickup"
     parser_classes = [MultiPartParser, FormParser, JSONParser]
 
     def post(self, request: Request, job_id: str) -> Response:
-        serializer = ConfirmPickupOtpSerializer(data=request.data)
+        serializer = ConfirmPickupSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         job = get_job(job_id)
-        photo_ids = _store_photos(request, self.actor(request), job)
-        view = custody.confirm_pickup_with_otp(
-            actor=self.actor(request),
+        actor = self.actor(request)
+        photo_ids = _store_photos(request, actor, job)
+        signature_id = _store_single(request, "signature", actor, job)
+        view = custody.confirm_pickup(
+            actor=actor,
             job_id=job_id,
-            code=serializer.validated_data["code"],
-            condition_note=serializer.validated_data.get("condition_note", ""),
+            code=serializer.validated_data.get("code") or None,
+            signature_evidence_id=signature_id,
             photo_evidence_ids=photo_ids,
+            party_name=serializer.validated_data.get("party_name", ""),
+            condition_note=serializer.validated_data.get("condition_note", ""),
             idempotency_key=_idempotency_key(request),
         )
         return Response(view)
 
 
-class ConfirmPickupByBusinessView(OrgApiView):
+class SenderConfirmPickupView(OrgApiView):
+    """``POST /jobs/<id>/custody/confirm-pickup/business``: the sender
+    confirms the handover in their own app. Recorded; the driver's call then
+    completes pickup (assessment 2026-10-20 L-5)."""
+
     action_post = "job.proof.pickup"
-    parser_classes = [MultiPartParser, FormParser, JSONParser]
 
     def post(self, request: Request, job_id: str) -> Response:
-        serializer = ConfirmPickupBusinessSerializer(data=request.data)
+        serializer = SenderConfirmPickupSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        job = get_job(job_id)
-        photo_ids = _store_photos(request, self.actor(request), job)
-        view = custody.confirm_pickup_by_business(
+        view = custody.sender_confirm_pickup(
             actor=self.actor(request),
             job_id=job_id,
-            condition_note=serializer.validated_data.get("condition_note", ""),
-            photo_evidence_ids=photo_ids,
+            party_name=serializer.validated_data.get("party_name", ""),
+        )
+        return Response(view)
+
+
+class CloseJobView(OrgApiView):
+    """``POST /jobs/<id>/close``: the sender confirms the goods arrived and
+    that they paid the operator; the job completes (PD-3 / PD-4)."""
+
+    action_post = "job.transition"
+
+    def post(self, request: Request, job_id: str) -> Response:
+        serializer = CloseJobSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        view = custody.sender_close_job(
+            actor=self.actor(request),
+            job_id=job_id,
+            method=serializer.validated_data["payment_method"],
+            mpesa_reference=serializer.validated_data.get("mpesa_reference", ""),
             idempotency_key=_idempotency_key(request),
         )
         return Response(view)
 
 
 class ConfirmPickupAttestedView(OrgApiView):
+    """Retired (LD-4): ``410 pickup_fallback_retired``."""
+
     action_post = "job.proof.pickup"
-    parser_classes = [MultiPartParser, FormParser, JSONParser]
 
     def post(self, request: Request, job_id: str) -> Response:
-        serializer = ConfirmPickupAttestedSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        job = get_job(job_id)
-        photo_id = _store_single(request, "photo", self.actor(request), job)
-        if not photo_id:
-            raise ConflictError(
-                "A goods photo is required for the operator-attested fallback.",
-                code="fallback_photo_required",
-            )
-        view = custody.confirm_pickup_attested(
-            actor=self.actor(request),
-            job_id=job_id,
-            fallback_photo_id=photo_id,
-            pickup_contact_name=serializer.validated_data["pickup_contact_name"],
-            condition_note=serializer.validated_data.get("condition_note", ""),
-            idempotency_key=_idempotency_key(request),
-        )
-        return Response(view)
+        custody.confirm_pickup_attested()
+        raise AssertionError("unreachable")  # pragma: no cover
 
 
 class ConfirmDeliveryView(OrgApiView):

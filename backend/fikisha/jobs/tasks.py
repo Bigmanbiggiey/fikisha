@@ -143,16 +143,20 @@ def _delivery_acceptance_candidates(batch_size: int) -> list[Any]:
     return ids[:batch_size]
 
 
+def awaiting_sender_job_ids(batch_size: int = _DEFAULT_BATCH_SIZE) -> list[Any]:
+    """``DELIVERED`` jobs past the delivery-acceptance window with no open
+    dispute: still waiting for the sender to confirm and record payment
+    (founder 2026-10-20, PD-5). Ops sees them as "Awaiting sender"."""
+    return _delivery_acceptance_candidates(batch_size)
+
+
 @shared_task(name="fikisha.jobs.tasks.autocomplete_delivered")
 def autocomplete_delivered(batch_size: int = _DEFAULT_BATCH_SIZE) -> dict[str, int]:
-    """``DELIVERED`` jobs whose delivery-acceptance window has closed with no
-    open dispute → ``COMPLETED`` (the same ``complete`` apply fn an explicit
-    business/recipient confirmation uses — including the same idempotent
-    ``CommissionRecord`` creation, same audit, same outbox events)."""
-    job_ids = _delivery_acceptance_candidates(batch_size)
-    return _run_sweep(
-        name="autocomplete_delivered",
-        job_ids=job_ids,
-        to=JobStatus.COMPLETED,
-        ctx=TransitionContext(),
-    )
+    """**Retired** (founder 2026-10-20, PD-3, superseding D-JOB-5's
+    auto-complete): a delivered job completes only when the sender confirms
+    and records paying the operator, or the recipient closes it off, or staff
+    resolve it. Kept registered so an old beat schedule doesn't error; it now
+    only counts the jobs waiting for the sender and changes nothing."""
+    waiting = len(awaiting_sender_job_ids(batch_size))
+    log.info("autocomplete_delivered retired", awaiting_sender=waiting)
+    return {"retired": 1, "awaiting_sender": waiting}

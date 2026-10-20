@@ -36,7 +36,8 @@
       "disputed": "Kuna mgogoro",
       "failed": "Haikukamilika",
       "high_value_pending": "Ukaguzi wa thamani ya juu unasubiri",
-      "stale": "Hakuna mabadiliko kwa saa 24+"
+      "stale": "Hakuna mabadiliko kwa saa 24+",
+      "awaiting_sender": "Imefikishwa, inasubiri mtumaji afunge"
     },
     "col": {
       "reference": "Kumbukumbu",

@@ -475,6 +475,17 @@ describe('JobDetailPage', () => {
         expect(screen.getByText('Full job detail')).toBeInTheDocument();
       });
 
+      it('says the recipient’s number appears once pickup is confirmed', async () => {
+        get.mockResolvedValue(
+          driverJob({
+            recipient_phone: '',
+            hidden_contacts: { pickup: null, recipient: 'until_pickup' },
+          }),
+        );
+        renderAtJob('01a0a4123456');
+        expect(await screen.findByText(/Number shown once pickup is confirmed/)).toBeInTheDocument();
+      });
+
       it('links both contacts by phone, sender first before pickup', async () => {
         get.mockResolvedValue(driverJob());
         renderAtJob('01a0a4123456');
@@ -676,7 +687,7 @@ describe('JobDetailPage', () => {
 
       await user.click(await screen.findByRole('button', { name: 'Show contact details' }));
       expect(revealContacts).toHaveBeenCalledTimes(1);
-      expect(await screen.findByRole('link', { name: '+254700900001' })).toHaveAttribute('href', 'tel:+254700900001');
+      expect(await screen.findByRole('link', { name: '0700900001' })).toHaveAttribute('href', 'tel:+254700900001');
     });
   });
 });

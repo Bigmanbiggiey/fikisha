@@ -14,7 +14,8 @@
       "ACCIDENT": "Ajali",
       "DELAY": "Kuchelewa",
       "CANCELLATION": "Kughairiwa",
-      "OTHER": "Nyingine"
+      "OTHER": "Nyingine",
+      "NON_PAYMENT": "Sijalipwa"
     },
     "otherLabel": "Tuambie ni tatizo la aina gani",
     "description": "Eleza kilichotokea",

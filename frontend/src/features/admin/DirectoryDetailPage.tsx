@@ -11,7 +11,10 @@ import { JobStatusChip } from '@/components/JobStatusChip';
 import { PageLoader } from '@/components/PageLoader';
 import type { JobState } from '@/design/tokens';
 import { localizeError } from '@/services/errorMessage';
+import { displayPhone } from '@/services/phone';
 import { formatDateTime } from '@/services/datetime';
+
+import { StaffTierPanel } from '@/features/trust/StaffTierPanel';
 
 import { AccountStateBadge } from './AccountStateBadge';
 import { AdminActionDialog } from './AdminActionDialog';
@@ -108,7 +111,7 @@ export function DirectoryDetailPage(): JSX.Element {
         <h2 className="text-h3 text-fg">{t('admin:detail.contact')}</h2>
         {reveal.data ? (
           <p className="text-body text-fg">
-            {reveal.data.name} · <a href={`tel:${reveal.data.phone}`} className="fk-numeric underline">{reveal.data.phone}</a>
+            {reveal.data.name} · <a href={`tel:${reveal.data.phone}`} className="fk-numeric underline">{displayPhone(reveal.data.phone)}</a>
           </p>
         ) : (
           <div className="flex flex-wrap items-center gap-3">
@@ -152,6 +155,8 @@ export function DirectoryDetailPage(): JSX.Element {
         )}
         <p className="text-body-sm text-fg-muted">{t('admin:detail.suspensionEffect')}</p>
       </Card>
+
+      {kind === 'operators' && <StaffTierPanel operatorId={d.id} />}
 
       <Card className="space-y-2">
         <h2 className="text-h3 text-fg">{t('admin:detail.inFlightTitle')}</h2>

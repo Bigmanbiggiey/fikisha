@@ -160,72 +160,29 @@ class TestExpireRequests:
         assert requested_job.status == JobStatus.REQUESTED  # untouched, not half-applied
 
 
-# ── autocomplete_delivered ────────────────────────────────────────────
-class TestAutocompleteDelivered:
-    def test_a_closed_window_autocompletes(self, delivered_job: Callable) -> None:
+# ── autocomplete_delivered: retired (founder 2026-10-20, PD-3) ────────
+class TestAutocompleteDeliveredIsRetired:
+    def test_it_never_completes_a_job_and_counts_those_waiting(
+        self, delivered_job: Callable
+    ) -> None:
         job = delivered_job()
-        _backdate(job, "delivered_at", 25)
-        stats = tasks.autocomplete_delivered()
-        assert stats == {"candidates": 1, "changed": 1, "skipped": 0, "failed": 0}
-        job.refresh_from_db()
-        assert job.status == JobStatus.COMPLETED
-        assert CommissionRecord.objects.filter(job=job).exists()  # same apply fn, same side effect
-
-    def test_within_window_is_not_a_candidate(self, delivered_job: Callable) -> None:
-        job = delivered_job()
-        stats = tasks.autocomplete_delivered()
-        assert stats == {"candidates": 0, "changed": 0, "skipped": 0, "failed": 0}
+        _backdate(job, "delivered_at", 25)  # past the old 24 h window
+        assert tasks.autocomplete_delivered() == {"retired": 1, "awaiting_sender": 1}
         job.refresh_from_db()
         assert job.status == JobStatus.DELIVERED
+        assert not CommissionRecord.objects.filter(job=job).exists()
 
-    def test_high_value_gets_the_longer_window(self, delivered_job: Callable) -> None:
-        """Isolates the sweep's own window-selection branch: a job flagged
-        ``is_high_value`` (the full HIGH/VERY_HIGH approval workflow is a
-        separate, already-tested domain feature — ``test_high_value.py`` —
-        not re-exercised here) uses the 48h window, not the 24h one."""
+    def test_within_the_window_a_job_is_not_yet_awaiting(self, delivered_job: Callable) -> None:
+        delivered_job()
+        assert tasks.awaiting_sender_job_ids() == []
+
+    def test_high_value_uses_the_longer_window(self, delivered_job: Callable) -> None:
         job = delivered_job()
         Job.objects.filter(id=job.id).update(is_high_value=True)
-        _backdate(job, "delivered_at", 30)  # past the 24h standard window, before 48h
-        assert tasks.autocomplete_delivered() == {
-            "candidates": 0,
-            "changed": 0,
-            "skipped": 0,
-            "failed": 0,
-        }
-        _backdate(job, "delivered_at", 50)  # now past the 48h high-value window
-        assert tasks.autocomplete_delivered()["changed"] == 1
-
-    def test_an_open_dispute_excludes_the_job_from_candidates(
-        self, delivered_job: Callable, business_actor: Any
-    ) -> None:
-        from fikisha.incidents import services as incidents_services
-
-        job = delivered_job()
-        incident = incidents_services.report_incident(
-            actor=business_actor, job_id=job.id, type="DAMAGE"
-        )
-        incidents_services.open_dispute(
-            actor=business_actor, job_id=job.id, incident_ids=[incident.id]
-        )
-        job.refresh_from_db()
-        assert job.status == JobStatus.DISPUTED
-        # DISPUTED, not DELIVERED, so it is already outside the DELIVERED
-        # queryset too -- confirms the sweep does not race the freeze.
-        assert tasks.autocomplete_delivered() == {
-            "candidates": 0,
-            "changed": 0,
-            "skipped": 0,
-            "failed": 0,
-        }
-
-    def test_repeated_execution_is_idempotent(self, delivered_job: Callable) -> None:
-        job = delivered_job()
-        _backdate(job, "delivered_at", 25)
-        first = tasks.autocomplete_delivered()
-        second = tasks.autocomplete_delivered()
-        assert first["changed"] == 1
-        assert second == {"candidates": 0, "changed": 0, "skipped": 0, "failed": 0}
-        assert CommissionRecord.objects.filter(job=job).count() == 1
+        _backdate(job, "delivered_at", 30)
+        assert tasks.awaiting_sender_job_ids() == []
+        _backdate(job, "delivered_at", 50)
+        assert tasks.awaiting_sender_job_ids() == [job.id]
 
 
 # ── Celery registration ────────────────────────────────────────────────
@@ -250,7 +207,8 @@ class TestCeleryTaskRegistration:
 
         scheduled = {entry["task"] for entry in settings.CELERY_BEAT_SCHEDULE.values()}
         assert "fikisha.jobs.tasks.expire_requests" in scheduled
-        assert "fikisha.jobs.tasks.autocomplete_delivered" in scheduled
+        # retired: jobs no longer complete on a timer (PD-3)
+        assert "fikisha.jobs.tasks.autocomplete_delivered" not in scheduled
 
 
 # ── Concurrency (real threads need real cross-connection visibility, hence

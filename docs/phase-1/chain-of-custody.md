@@ -102,6 +102,23 @@ sequenceDiagram
 
 ## 4. The mandatory pickup-side OTP (D-CUS-2)
 
+> **Superseded by the founder on 2026-10-20 (LD-4, ADR-2D-50).** Pickup and
+> delivery now need both parties, by value band (config
+> `custody_proof_rules`):
+>
+> | Band | Pickup: the sender confirms | Delivery: the recipient confirms, the driver photographs |
+> |------|-----------------------------|---------------------------------------------------------|
+> | `STANDARD` | one of: code, signature, photo, the sender's in-app confirmation | code **or** signature |
+> | `ELEVATED` | code **or** in-app confirmation, **+** the driver's photo | code **+** photo |
+> | `HIGH` / `VERY_HIGH` | code **+** signature **+** photo | code **+** signature **+** photo |
+>
+> The driver's call always completes the step; the sender's in-app
+> confirmation and the recipient's link confirmation are recorded first
+> (`custody_confirmation`, append-only) and count towards it. The
+> operator-attested STANDARD fallback below is **retired** (the endpoint
+> answers `410 pickup_fallback_retired`). The table below is kept as the
+> original Phase 1 record.
+
 The single most important custody control. Enforced by the guard
 `PickupSideOtpVerifiedOrStandardFallback` on `AT_PICKUP → PICKED_UP`:
 

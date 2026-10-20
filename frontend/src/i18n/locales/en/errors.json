@@ -56,5 +56,8 @@
   "duplicate_payment_ref": "A payment with this reference is already recorded. Nothing was recorded.",
   "settlement_not_reversible": "This payment has already been reversed, or is itself a reversal.",
   "stale_job": "Someone else changed this job while you had it open. It has been refreshed: check it and try again. Nothing was changed.",
-  "invalid_if_match": "This screen sent an unreadable job version. Refresh the page and try again."
+  "invalid_if_match": "This screen sent an unreadable job version. Refresh the page and try again.",
+  "tier_change_not_allowed": "That tier change isn't possible right now.",
+  "invalid_tier_change": "Check the tier and give a reason of at least 10 characters.",
+  "tier_proposal_not_open": "This proposal has already been decided or is out of date. The page has the latest."
 }

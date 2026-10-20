@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useLocation, useParams } from 'react-router-dom';
 
 import { Alert } from '@/components/Alert';
 import { Button } from '@/components/Button';
@@ -35,6 +35,7 @@ const STATUS_KEYS = new Set([
  * of rendered verbatim, keeping the EN|SW toggle meaningful.
  */
 export function RecipientPage(): JSX.Element {
+  const location = useLocation();
   const { token } = useParams<{ token: string }>();
   const { t } = useTranslation('recipient');
 
@@ -67,7 +68,9 @@ export function RecipientPage(): JSX.Element {
   const statusKey = STATUS_KEYS.has(data.status) ? data.status : 'DEFAULT';
   const isDelivered = data.status === 'DELIVERED' || data.status === 'COMPLETED';
   const isAtDestination = data.status === 'AT_DESTINATION';
-  const canConfirm = isAtDestination && data.allowed_actions.includes('CONFIRM_RECEIPT');
+  // Just confirmed here: the driver completes the delivery (L-5).
+  const justConfirmed = Boolean((location.state as { confirmed?: boolean } | null)?.confirmed);
+  const canConfirm = isAtDestination && !justConfirmed && data.allowed_actions.includes('CONFIRM_RECEIPT');
   const canReport = isAtDestination && data.allowed_actions.includes('REPORT_ISSUE');
 
   return (
@@ -82,6 +85,8 @@ export function RecipientPage(): JSX.Element {
             {t(`shell.status.${statusKey}`, { defaultValue: data.status_label })}
           </p>
         </div>
+
+        {justConfirmed && isAtDestination && <Alert tone="success">{t('confirm.thanksDriverCompletes')}</Alert>}
 
         <Card className="space-y-2">
           <p className="text-body-sm text-fg-secondary">

@@ -71,6 +71,8 @@ LOCAL_APPS = [
     "fikisha.admin_console",
     # Commission & Statements S-1 — weekly statements + manual settlement (ADR-2D-42).
     "fikisha.statements",
+    # Operator tiers (operator-tiers plan, ADR-2D-52).
+    "fikisha.trust",
 ]
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
@@ -172,11 +174,13 @@ CELERY_BEAT_SCHEDULE = {
         "task": "fikisha.statements.tasks.reconcile_statements",
         "schedule": crontab(minute=30, hour=2),
     },
-    "jobs-autocomplete-delivered": {
-        "task": "fikisha.jobs.tasks.autocomplete_delivered",
-        "schedule": float(JOBS_AUTOCOMPLETE_DELIVERED_POLL_SECONDS),
-        "options": {"expires": JOBS_AUTOCOMPLETE_DELIVERED_POLL_SECONDS},
+    # Operator tiers: propose any tier that became due (never applies one).
+    "trust-evaluate-tiers": {
+        "task": "fikisha.trust.tasks.evaluate_tiers",
+        "schedule": crontab(minute=15, hour=3),
     },
+    # "jobs-autocomplete-delivered" retired (founder 2026-10-20, PD-3): jobs
+    # no longer complete on a timer.
 }
 
 # ─── Password hashing (Argon2 first) ──────────────────────────────────

@@ -151,7 +151,7 @@ class Job(TimestampedModel):
     declared_value_kes = models.BigIntegerField(default=0)
     value_band = models.CharField(max_length=12, choices=ValueBand.choices, null=True, blank=True)
     required_trust_level = models.CharField(
-        max_length=4, choices=TrustLevel.choices, null=True, blank=True
+        max_length=12, choices=TrustLevel.choices, null=True, blank=True
     )
     is_high_value = models.BooleanField(default=False)
     latent_risk_cargo = models.BooleanField(default=False)
@@ -294,7 +294,7 @@ class Assignment(TimestampedModel):
         "self", null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
     )
     admin_override_reason = models.TextField(blank=True, default="")
-    driver_trust_level = models.CharField(max_length=4, choices=TrustLevel.choices)
+    driver_trust_level = models.CharField(max_length=12, choices=TrustLevel.choices)
     config_version = models.ForeignKey(
         "platform_config.PlatformConfigVersion",
         null=True,
@@ -444,6 +444,55 @@ class ProofOfDelivery(_ProofBase):
 
     class Meta:
         db_table = "proof_of_delivery"
+
+
+class CustodyConfirmation(AppendOnlyModel):
+    """The other party's own confirmation of a handover (founder assessment
+    2026-10-20 L-5): the sender pressing "Confirm pickup" in their app, or the
+    recipient confirming with their code through the delivery link. It counts
+    towards the step; the driver's call completes it, so both parties take
+    part. Append-only."""
+
+    job = models.ForeignKey(Job, on_delete=models.PROTECT, related_name="custody_confirmations")
+    stage = models.CharField(
+        max_length=10, choices=[("PICKUP", "Pickup"), ("DELIVERY", "Delivery")]
+    )
+    #: ``IN_APP`` (the sender, signed in), ``OTP`` (the recipient's code) or
+    #: ``SIGNATURE`` (signed on the recipient's own phone through the link)
+    method = models.CharField(max_length=10)
+    evidence_ids = models.JSONField(default=list, blank=True)
+    captured_by = models.CharField(max_length=20, choices=ProofCapturedBy.choices)
+    actor = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.PROTECT, related_name="+"
+    )
+    party_name = models.CharField(max_length=120, blank=True, default="")
+
+    objects = AppendOnlyQuerySet.as_manager()
+
+    class Meta:
+        db_table = "custody_confirmation"
+        indexes = [models.Index(fields=["job", "stage"])]
+
+
+class JobPaymentRecord(AppendOnlyModel):
+    """The sender's own statement that they paid the operator, made when they
+    close the job (founder 2026-10-20, PD-3 / PD-4). Fikisha never holds or
+    moves the fare: this records what the sender says they paid, by which
+    means. The operator can answer "I haven't been paid", which opens a
+    dispute. One per job; append-only."""
+
+    job = models.OneToOneField(Job, on_delete=models.PROTECT, related_name="payment_record")
+    method = models.CharField(max_length=10, choices=[("CASH", "Cash"), ("MPESA", "M-Pesa")])
+    #: optional M-Pesa transaction code the sender copies from their SMS
+    mpesa_reference = models.CharField(max_length=20, blank=True, default="")
+    recorded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="+"
+    )
+
+    objects = AppendOnlyQuerySet.as_manager()
+
+    class Meta:
+        db_table = "job_payment_record"
 
 
 class OtpChallengeBase(TimestampedModel):

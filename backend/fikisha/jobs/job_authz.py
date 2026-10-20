@@ -122,6 +122,40 @@ def may_see_contact_phones(actor: Any, job: Any) -> bool:
     )
 
 
+#: When the assigned side (operator, group manager, driver) sees each contact
+#: phone (founder assessment 2026-10-20 item 4, LD-3). The business and staff
+#: always see both. Statuses not listed (before assignment; COMPLETED,
+#: CANCELLED, FAILED, DISPUTED) show neither.
+_PICKUP_CONTACT_STATUSES = frozenset(
+    {"ASSIGNED", "AT_PICKUP", "PICKED_UP", "IN_TRANSIT", "AT_DESTINATION", "DELIVERED"}
+)
+_RECIPIENT_CONTACT_STATUSES = frozenset({"PICKED_UP", "IN_TRANSIT", "AT_DESTINATION", "DELIVERED"})
+
+
+def hidden_contacts(actor: Any, job: Any) -> dict[str, str | None]:
+    """Which contact phones this viewer may not see, and why:
+    ``{"pickup": reason | None, "recipient": reason | None}``. ``None`` means
+    shown. Reasons: ``not_assigned`` (an operator who is not the job's
+    assigned side), ``until_pickup`` (the recipient's number appears once
+    pickup is confirmed), ``job_closed`` (completed, cancelled, failed or
+    disputed: contact goes through Fikisha)."""
+    if is_admin(actor) or (
+        business_authz.active_membership(actor, _BusinessRef(job.business_id)) is not None
+    ):
+        return {"pickup": None, "recipient": None}
+    if not may_see_contact_phones(actor, job):
+        return {"pickup": "not_assigned", "recipient": "not_assigned"}
+    status = str(job.status)
+    pickup = None if status in _PICKUP_CONTACT_STATUSES else "job_closed"
+    if status in _RECIPIENT_CONTACT_STATUSES:
+        recipient = None
+    elif status in {"ASSIGNED", "AT_PICKUP"}:
+        recipient = "until_pickup"
+    else:
+        recipient = "job_closed"
+    return {"pickup": pickup, "recipient": recipient}
+
+
 def is_job_party(actor: Any, job: Any) -> bool:
     """Coarse "may this actor see/act on this job at all" boundary —
     prevents cross-business / cross-operator access (Step 10 brief §20)."""

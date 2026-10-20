@@ -17,7 +17,7 @@ from fikisha.jobs.errors import (
     OtpInvalid,
     RecipientActionNotAllowed,
 )
-from fikisha.jobs.models import ProofOfDelivery, RecipientReportedIssue
+from fikisha.jobs.models import CustodyConfirmation, ProofOfDelivery, RecipientReportedIssue
 
 pytestmark = pytest.mark.django_db
 
@@ -29,7 +29,9 @@ def resolved_recipient(make_assigned_job: Callable, driver_actor: Any) -> Callab
     def _make(*, declared_value_kes: int = 1_200_000) -> Any:
         job = make_assigned_job(declared_value_kes=declared_value_kes)
         custody.arrive_at_pickup(actor=driver_actor, job_id=job.id)
-        custody.confirm_pickup_with_otp(actor=driver_actor, job_id=job.id, code="000000")
+        custody.confirm_pickup(
+            actor=driver_actor, job_id=job.id, code="000000", photo_evidence_ids=["ev-goods"]
+        )
         custody.start_transit(actor=driver_actor, job_id=job.id)
         out = custody.arrive_at_destination(actor=driver_actor, job_id=job.id)
         job.refresh_from_db()
@@ -95,24 +97,55 @@ def test_view_is_audited(resolved_recipient: Callable) -> None:
     ).exists()
 
 
-# ─── CONFIRM_RECEIPT — same transition + proof model as the driver ──
-def test_confirm_receipt_standard_band(resolved_recipient: Callable) -> None:
+# ─── CONFIRM_RECEIPT — the recipient's part; the driver completes ────
+# (founder assessment 2026-10-20 L-5: both parties take part)
+def _complete(job: Any, driver_actor: Any, **kw: Any) -> dict[str, Any]:
+    return custody.confirm_delivery(
+        actor=driver_actor, job_id=job.id, party_name="A. Wanjiku", **kw
+    )
+
+
+def test_confirm_receipt_records_the_code_and_the_driver_completes(
+    resolved_recipient: Callable, driver_actor: Any
+) -> None:
     job, principal = resolved_recipient()
     out = recipient_service.confirm_receipt(
         principal=principal, code="000000", party_name="A. Wanjiku"
     )
+    # Recorded, not delivered: the driver's call completes it.
+    assert out["status"] == JobStatus.AT_DESTINATION
+    row = CustodyConfirmation.objects.get(job=job, stage="DELIVERY")
+    assert (row.method, row.captured_by, row.party_name) == ("OTP", "RECIPIENT", "A. Wanjiku")
+
+    # no code needed: the recipient gave it; the driver adds the photo (PD-2)
+    out = _complete(job, driver_actor, photo_evidence_ids=["ev-1"])
     assert out["status"] == JobStatus.DELIVERED
     pod = ProofOfDelivery.objects.get(job=job)
-    assert pod.captured_by == "RECIPIENT" and pod.otp_verified is True
+    assert pod.otp_verified is True and pod.methods == ["OTP", "PHOTO"]
 
 
-def test_confirm_receipt_elevated_needs_a_photo_too(resolved_recipient: Callable) -> None:
-    job, principal = resolved_recipient(declared_value_kes=ELEVATED)
-    with pytest.raises(DeliveryProofIncomplete):
-        recipient_service.confirm_receipt(principal=principal, code="000000", party_name="A. W")
-    out = recipient_service.confirm_receipt(
-        principal=principal, code="000000", party_name="A. W", photo_evidence_ids=["ev-1"]
+def test_a_recipients_signature_counts_too(resolved_recipient: Callable, driver_actor: Any) -> None:
+    import uuid
+
+    job, principal = resolved_recipient()
+    sig = str(uuid.uuid4())
+    recipient_service.confirm_receipt(
+        principal=principal, code="000000", party_name="A. W", signature_evidence_id=sig
     )
+    _complete(job, driver_actor, photo_evidence_ids=["ev-1"])
+    pod = ProofOfDelivery.objects.get(job=job)
+    assert pod.methods == ["OTP", "SIGNATURE", "PHOTO"]
+    assert str(pod.signature_evidence_id) == sig
+
+
+def test_elevated_still_needs_the_drivers_photo(
+    resolved_recipient: Callable, driver_actor: Any
+) -> None:
+    job, principal = resolved_recipient(declared_value_kes=ELEVATED)
+    recipient_service.confirm_receipt(principal=principal, code="000000", party_name="A. W")
+    with pytest.raises(DeliveryProofIncomplete, match="a photo"):
+        _complete(job, driver_actor)
+    out = _complete(job, driver_actor, photo_evidence_ids=["ev-1"])
     assert out["status"] == JobStatus.DELIVERED
 
 
@@ -137,7 +170,7 @@ def test_confirm_receipt_is_audited(resolved_recipient: Callable) -> None:
     job, principal = resolved_recipient()
     recipient_service.confirm_receipt(principal=principal, code="000000", party_name="A. W")
     assert AuditLogEntry.objects.filter(
-        action="job.transition.delivered", entity_id=job.id
+        action="job.custody.recipient_confirmed", entity_id=job.id
     ).exists()
 
 
@@ -206,10 +239,8 @@ def test_a_recipient_principal_never_reaches_another_job(resolved_recipient: Cal
     assert principal_a.job_id != principal_b.job_id
 
     recipient_service.confirm_receipt(principal=principal_a, code="000000", party_name="A")
-    job_a.refresh_from_db()
-    job_b.refresh_from_db()
-    assert job_a.status == JobStatus.DELIVERED
-    assert job_b.status == JobStatus.AT_DESTINATION  # untouched by principal_a's action
+    assert CustodyConfirmation.objects.filter(job=job_a).count() == 1
+    assert not CustodyConfirmation.objects.filter(job=job_b).exists()  # untouched
 
     view_a = recipient_service.view(principal=principal_a)
     view_b = recipient_service.view(principal=principal_b)
@@ -238,80 +269,59 @@ def _boom(*_a: Any, **_kw: Any) -> Any:
 
 
 class TestConfirmReceiptTransactionBoundary:
+    """The recipient's confirmation commits all-or-nothing (the record, the
+    audit row, the consumed code, the used link), and concurrent attempts
+    record exactly once."""
+
     @pytest.mark.django_db(transaction=True)
     def test_successful_confirmation_commits_every_side_effect_together(
         self, resolved_recipient: Callable
     ) -> None:
         from fikisha.audit.models import AuditLogEntry
-        from fikisha.jobs.models import JobEvent, RecipientAccessLink
+        from fikisha.jobs.models import RecipientAccessLink, RecipientOtpChallenge
 
         job, principal = resolved_recipient()
-        link_id = principal.link_id
-        out = recipient_service.confirm_receipt(
-            principal=principal, code="000000", party_name="A. Wanjiku"
-        )
-        assert out["status"] == JobStatus.DELIVERED
-        job.refresh_from_db()
-        assert job.status == JobStatus.DELIVERED
-        assert ProofOfDelivery.objects.filter(job=job, captured_by="RECIPIENT").exists()
-        assert JobEvent.objects.filter(job=job, type="RECIPIENT_VERIFIED").exists()
+        recipient_service.confirm_receipt(principal=principal, code="000000", party_name="A. W")
+        assert CustodyConfirmation.objects.filter(job=job, method="OTP").exists()
         assert AuditLogEntry.objects.filter(
-            action="job.transition.delivered", entity_id=job.id
+            action="job.custody.recipient_confirmed", entity_id=job.id
         ).exists()
-        link = RecipientAccessLink.objects.get(id=link_id)
-        assert link.used_at is not None  # committed in the same transaction, not a later one
+        assert RecipientAccessLink.objects.get(id=principal.link_id).used_at is not None
+        challenge = RecipientOtpChallenge.objects.filter(job=job).latest("seq")
+        assert challenge.consumed_at is not None
 
     @pytest.mark.django_db(transaction=True)
-    def test_a_failed_transition_does_not_irreversibly_consume_the_otp(
+    def test_a_failure_rolls_everything_back_and_the_code_still_works(
         self, resolved_recipient: Callable, monkeypatch: Any
     ) -> None:
-        """Force a downstream failure *inside* the transition itself (after
-        the delivery apply fn has already called ``consume_otp()``) and
-        prove the whole thing rolls back — the OTP is not left permanently
-        burned by a doomed attempt, and a retry with the identical code
-        then succeeds."""
-        from fikisha.jobs import service as jobs_service
-
         job, principal = resolved_recipient()
-        real_record = jobs_service.audit.record
-        monkeypatch.setattr(jobs_service.audit, "record", _boom)
+        real_record = recipient_service.audit.record
+        monkeypatch.setattr(recipient_service.audit, "record", _boom)
         with pytest.raises(RuntimeError):
             recipient_service.confirm_receipt(principal=principal, code="000000", party_name="A. W")
-        job.refresh_from_db()
-        assert job.status == JobStatus.AT_DESTINATION  # unchanged, not half-applied
-        assert not ProofOfDelivery.objects.filter(job=job).exists()
+        assert not CustodyConfirmation.objects.filter(job=job).exists()
 
-        monkeypatch.setattr(jobs_service.audit, "record", real_record)
-        out = recipient_service.confirm_receipt(
-            principal=principal, code="000000", party_name="A. W"
-        )
-        assert out["status"] == JobStatus.DELIVERED  # the "burned" code still worked on retry
+        monkeypatch.setattr(recipient_service.audit, "record", real_record)
+        recipient_service.confirm_receipt(principal=principal, code="000000", party_name="A. W")
+        assert CustodyConfirmation.objects.filter(job=job).count() == 1
 
     @pytest.mark.django_db(transaction=True)
-    def test_concurrent_confirmations_still_produce_exactly_one_delivery(
+    def test_concurrent_confirmations_record_exactly_once(
         self, resolved_recipient: Callable
     ) -> None:
-        """Re-proves the pre-existing concurrency guarantee (already covered
-        by ``test_api_recipient.py``'s HTTP-level version) directly against
-        the service function, after wrapping it in its own
-        ``@transaction.atomic`` — confirms the new outer transaction doesn't
-        change the locking behaviour `transition()` already provides."""
         import threading
 
         from django.db import connection
 
         job, principal = resolved_recipient()
-        results: list[int] = []
         errors: list[BaseException] = []
         lock = threading.Lock()
 
         def _confirm() -> None:
             try:
-                out = recipient_service.confirm_receipt(
+                recipient_service.confirm_receipt(
                     principal=principal, code="000000", party_name="A. W"
                 )
-                with lock:
-                    results.append(1 if out.get("status") == JobStatus.DELIVERED else 0)
             except BaseException as exc:  # recorded, not swallowed
                 with lock:
                     errors.append(exc)
@@ -324,7 +334,5 @@ class TestConfirmReceiptTransactionBoundary:
         for t in threads:
             t.join()
 
-        assert sum(results) == 1, (results, errors)
-        job.refresh_from_db()
-        assert job.status == JobStatus.DELIVERED
-        assert ProofOfDelivery.objects.filter(job=job).count() == 1
+        assert CustodyConfirmation.objects.filter(job=job, method="OTP").count() == 1
+        assert len(errors) == 4, errors

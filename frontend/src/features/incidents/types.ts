@@ -17,6 +17,7 @@ export const INCIDENT_TYPES = [
   'ACCIDENT',
   'DELAY',
   'CANCELLATION',
+  'NON_PAYMENT',
   'OTHER',
 ] as const;
 export type IncidentType = (typeof INCIDENT_TYPES)[number];

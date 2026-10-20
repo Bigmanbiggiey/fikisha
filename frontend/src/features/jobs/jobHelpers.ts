@@ -62,7 +62,8 @@ export type BusinessActionKey =
  * action, so both are excluded here even though `businessNextAction`
  * returns non-null for them. */
 export function needsBusinessAttention(status: JobStatus): boolean {
-  return status === 'NEGOTIATING' || status === 'AT_PICKUP' || status === 'DISPUTED';
+  // DELIVERED: the sender closes the job once they've paid (PD-3).
+  return status === 'NEGOTIATING' || status === 'AT_PICKUP' || status === 'DELIVERED' || status === 'DISPUTED';
 }
 
 /** The happy-path order the timeline renders (`design-phase-3-wireframes.md`

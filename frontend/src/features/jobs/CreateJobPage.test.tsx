@@ -98,7 +98,7 @@ describe('CreateJobPage', () => {
     expect(await screen.findByText('Step 2 of 8')).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: /pin on Map: where the goods are going/ }));
-    await user.type(screen.getByLabelText(/^Destination/), 'Shop 4, Kitengela');
+    await user.type(screen.getByLabelText(/Landmark/), 'Shop 4, Kitengela');
     await user.type(screen.getByLabelText(/Recipient name/), 'J. Mwangi');
     await user.click(screen.getByRole('button', { name: 'Next' }));
     expect(await screen.findByText('Step 3 of 8')).toBeInTheDocument();
@@ -158,6 +158,35 @@ describe('CreateJobPage', () => {
     expect(screen.getByRole('link', { name: 'Open my business' })).toHaveAttribute('href', '/businesses/b1');
   });
 
+  it('lets the sender name the destination instead of pinning it', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<CreateJobPage />, { route: '/jobs/new' });
+    expect(await screen.findByText('Step 1 of 8')).toBeInTheDocument();
+    await fillAndAdvance(user, /Pickup location/, 'Depot');
+
+    // The pin is the default; with no pin, the step can't go on.
+    await user.type(screen.getByLabelText(/Recipient name/), 'J. Mwangi');
+    expect(screen.getByRole('button', { name: 'Next' })).toBeDisabled();
+
+    await user.click(screen.getByRole('radio', { name: /Name the destination/ }));
+    expect(screen.queryByRole('button', { name: /pin on Map/ })).not.toBeInTheDocument();
+    await user.type(screen.getByLabelText(/^Destination/), 'Kitengela Mall, Shop 12');
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+    await fillAndAdvance(user, /Description/, 'Cement');
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+    await fillAndAdvance(user, /approximate value/, '5000');
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+    await user.click(screen.getByRole('button', { name: 'Review request' }));
+    create.mockResolvedValue({ id: 'job7' });
+    submit.mockResolvedValue({ id: 'job7', status: 'REQUESTED' });
+    await user.click(screen.getByRole('button', { name: 'Send request' }));
+    await waitFor(() => expect(submit).toHaveBeenCalled());
+    const body = create.mock.calls[0]![1] as { destination_location: Record<string, unknown> };
+    expect(body.destination_location).toMatchObject({ address_text: 'Kitengela Mall, Shop 12' });
+    expect(body.destination_location).not.toHaveProperty('lat');
+  }, 15_000);
+
   it('picks up from a saved business location by default and sends its id', async () => {
     listLocations.mockResolvedValue({
       data: [
@@ -182,7 +211,7 @@ describe('CreateJobPage', () => {
 
     await user.click(screen.getByRole('button', { name: 'Next' }));
     await user.click(screen.getByRole('button', { name: /pin on Map: where the goods are going/ }));
-    await user.type(screen.getByLabelText(/^Destination/), 'Shop 4');
+    await user.type(screen.getByLabelText(/Landmark/), 'Shop 4');
     await user.type(screen.getByLabelText(/Recipient name/), 'J. Mwangi');
     await user.click(screen.getByRole('button', { name: 'Next' }));
     await fillAndAdvance(user, /Description/, 'Cement');
