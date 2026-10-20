@@ -217,5 +217,18 @@
     "vehicles": "Vehicles",
     "noVehicles": "No vehicles registered.",
     "noLocations": "No active location: the business cannot be verified until it adds one."
+  },
+  "locationMap": {
+    "pinned": "On the map",
+    "addPin": "Add the pin",
+    "movePin": "Move the pin",
+    "savePin": "Save the pin",
+    "mapLabel": "Map: where {{name}} is",
+    "newMapLabel": "Map: where the new location is",
+    "name": "Name of this location",
+    "nameHint": "For example \"Main shop\" or \"Namanga Road store\".",
+    "landmark": "Landmark or address (optional)",
+    "pinFirst": "Put the pin on the map first.",
+    "save": "Save location"
   }
 }

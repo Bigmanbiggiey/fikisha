@@ -31,6 +31,14 @@ vi.mock('@/features/org/orgApi', () => ({
     getBusiness: (...a: unknown[]) => getBusiness(...a),
   },
 }));
+// Leaflet can't draw in jsdom: a stand-in that "drops a pin" when clicked.
+vi.mock('@/features/maps/LocationPicker', () => ({
+  LocationPicker: ({ onChange, label }: { onChange: (p: { lat: number; lng: number }) => void; label: string }) => (
+    <button type="button" onClick={() => onChange({ lat: -1.4775, lng: 36.9601 })}>
+      {`pin on ${label}`}
+    </button>
+  ),
+}));
 vi.mock('@/features/diagnostics/diagnosticsApi', () => ({
   diagnosticsApi: { reference: (...a: unknown[]) => reference(...a) },
 }));
@@ -89,7 +97,8 @@ describe('CreateJobPage', () => {
     await fillAndAdvance(user, /Pickup location/, 'Depot, Kitengela');
     expect(await screen.findByText('Step 2 of 8')).toBeInTheDocument();
 
-    await user.type(screen.getByLabelText(/Destination/), 'Shop 4, Kitengela');
+    await user.click(screen.getByRole('button', { name: /pin on Map: where the goods are going/ }));
+    await user.type(screen.getByLabelText(/^Destination/), 'Shop 4, Kitengela');
     await user.type(screen.getByLabelText(/Recipient name/), 'J. Mwangi');
     await user.click(screen.getByRole('button', { name: 'Next' }));
     expect(await screen.findByText('Step 3 of 8')).toBeInTheDocument();
@@ -126,6 +135,8 @@ describe('CreateJobPage', () => {
         destination_location: expect.objectContaining({
           address_text: 'Shop 4, Kitengela',
           contact_name: 'J. Mwangi',
+          lat: '-1.477500',
+          lng: '36.960100',
         }),
         cargo: expect.objectContaining({
           description: '20 cartons of electronics',
@@ -170,7 +181,8 @@ describe('CreateJobPage', () => {
     expect(screen.queryByLabelText(/Pickup location/)).not.toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Next' }));
-    await user.type(screen.getByLabelText(/Destination/), 'Shop 4');
+    await user.click(screen.getByRole('button', { name: /pin on Map: where the goods are going/ }));
+    await user.type(screen.getByLabelText(/^Destination/), 'Shop 4');
     await user.type(screen.getByLabelText(/Recipient name/), 'J. Mwangi');
     await user.click(screen.getByRole('button', { name: 'Next' }));
     await fillAndAdvance(user, /Description/, 'Cement');

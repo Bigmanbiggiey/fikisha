@@ -19,6 +19,7 @@ destination is always ad-hoc.
 
 from __future__ import annotations
 
+from decimal import ROUND_HALF_UP, Decimal
 from typing import Any
 
 from django.db import transaction
@@ -27,7 +28,7 @@ from django.http import Http404
 from fikisha.audit import services as audit
 from fikisha.common.exceptions import DomainError
 from fikisha.jobs import cargo_categories, job_authz
-from fikisha.jobs.constants import JobStatus, LocationSourceKind, LocationType
+from fikisha.jobs.constants import GeoState, JobStatus, LocationSourceKind, LocationType
 from fikisha.jobs.dto import job_view
 from fikisha.jobs.errors import GuardFailed, NotAuthorisedToAssign
 from fikisha.jobs.models import CargoDetails, Job, JobLocation, VehicleRequirement
@@ -60,6 +61,11 @@ class UnknownBusinessLocation(DomainError):
     default_detail = "That saved location is not an active location of this business."
 
 
+def _geo_state(lat: Any, lng: Any) -> str:
+    """A location with both coordinates was pinned on the map (maps M-3)."""
+    return GeoState.CAPTURED if lat is not None and lng is not None else GeoState.NOT_CAPTURED
+
+
 def _make_saved_location(*, type_: str, business_id: Any, data: dict[str, Any]) -> JobLocation:
     """Snapshot a saved business location (``source_kind=BUSINESS_LOCATION``).
     The request may still override the contact for this one job."""
@@ -75,6 +81,7 @@ def _make_saved_location(*, type_: str, business_id: Any, data: dict[str, Any]) 
         address_text=snap["address_text"],
         lat=snap["lat"],
         lng=snap["lng"],
+        geo_state=_geo_state(snap["lat"], snap["lng"]),
         zone_id=snap["zone_id"],
         contact_name=(data.get("contact_name") or "").strip() or snap["contact_name"],
         contact_phone=(data.get("contact_phone") or "").strip() or snap["contact_phone"],
@@ -89,6 +96,7 @@ def _make_location(*, type_: str, data: dict[str, Any]) -> JobLocation:
         address_text=(data.get("address_text") or "").strip(),
         lat=data.get("lat"),
         lng=data.get("lng"),
+        geo_state=_geo_state(data.get("lat"), data.get("lng")),
         contact_name=(data.get("contact_name") or "").strip(),
         contact_phone=(data.get("contact_phone") or "").strip(),
         notes=(data.get("notes") or "").strip(),
@@ -246,8 +254,12 @@ def job_detail(job: Job, viewer: Any = None) -> dict[str, Any]:
     response) nothing is hidden."""
     hide = viewer is not None and not job_authz.may_see_contact_phones(viewer, job)
     view = job_view(job)
-    view["pickup_location"] = _location_view(job.pickup_location, hide_phone=hide)
-    view["destination_location"] = _location_view(job.destination_location, hide_phone=hide)
+    # The same people see exact map pins; anyone else (an operator still
+    # looking or negotiating) sees only the ~1 km area (maps MD-2).
+    view["pickup_location"] = _location_view(job.pickup_location, hide_phone=hide, coarsen=hide)
+    view["destination_location"] = _location_view(
+        job.destination_location, hide_phone=hide, coarsen=hide
+    )
     view["recipient_name"] = job.recipient_name
     view["recipient_phone"] = "" if hide else job.recipient_phone
     view["contacts_hidden"] = hide
@@ -269,17 +281,28 @@ def job_detail(job: Job, viewer: Any = None) -> dict[str, Any]:
     return view
 
 
+#: Two decimal places of latitude/longitude is about 1.1 km at the equator:
+#: enough to judge distance, not enough to find a house (maps MD-2).
+_COARSE = Decimal("0.01")
+
+
 def _location_view(
-    location: JobLocation | None, *, hide_phone: bool = False
+    location: JobLocation | None, *, hide_phone: bool = False, coarsen: bool = False
 ) -> dict[str, Any] | None:
     if location is None:
         return None
+    lat, lng, geo_state = location.lat, location.lng, location.geo_state
+    if coarsen and lat is not None and lng is not None:
+        lat = lat.quantize(_COARSE, rounding=ROUND_HALF_UP)
+        lng = lng.quantize(_COARSE, rounding=ROUND_HALF_UP)
+        geo_state = GeoState.COARSENED
     return {
         "id": str(location.id),
         "type": location.type,
         "address_text": location.address_text,
-        "lat": location.lat,
-        "lng": location.lng,
+        "lat": lat,
+        "lng": lng,
+        "geo_state": geo_state,
         "contact_name": location.contact_name,
         "contact_phone": "" if hide_phone else location.contact_phone,
     }

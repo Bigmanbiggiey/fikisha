@@ -107,5 +107,21 @@
   "offline": {
     "emptyTitle": "Uko nje ya mtandao",
     "emptyBody": "Hii haiwezi kupakia hadi urudi mtandaoni. Kilichokwisha pakiwa bado kinaonyeshwa."
+  },
+  "map": {
+    "useMyLocation": "Tumia eneo langu",
+    "pinCentre": "Weka alama katikati ya ramani",
+    "locateFailed": "Imeshindwa kupata eneo lako. Sogeza ramani na ubonyeze mahali badala yake.",
+    "unavailable": "Ramani haiwezi kufunguka sasa. Andika anwani au alama ya eneo badala yake.",
+    "tapToPin": "Bonyeza ramani mahali lilipo. Unaweza kuburuta alama kuirekebisha.",
+    "pinned": "Alama iko {{lat}}, {{lng}}",
+    "outsideArea": "Alama hii iko nje ya Kitengela na maeneo ya karibu. Hakikisha iko mahali sahihi.",
+    "jobMapTitle": "Ramani",
+    "jobMapLabel": "Ramani ya mahali pa kuchukua na mahali pa kufikisha",
+    "pickup": "Kuchukua",
+    "destination": "Kufikisha",
+    "openInGoogleMaps": "Fungua kwenye Google Maps",
+    "approximateNote": "Eneo la jumla tu linaonyeshwa kwa sasa. Mahali kamili litaonekana safari ikikabidhiwa kwako.",
+    "noPin": "Bado hakuna alama kwenye ramani"
   }
 }

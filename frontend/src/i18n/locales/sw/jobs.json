@@ -105,13 +105,16 @@
       "contactPhone": "Simu ya mawasiliano ya kuchukua",
       "savedLocation": "Chukua kutoka",
       "anotherAddress": "Anwani nyingine",
-      "contactOverrideHint": "Acha wazi ili kutumia mawasiliano yaliyohifadhiwa kwa eneo hili."
+      "contactOverrideHint": "Acha wazi ili kutumia mawasiliano yaliyohifadhiwa kwa eneo hili.",
+      "noPin": "Eneo hili halina alama kwenye ramani, kwa hivyo dereva hawezi kuelekezwa huko.",
+      "addPin": "Weka alama"
     },
     "destination": {
       "address": "Mahali pa kufikishwa",
       "recipientName": "Jina la mpokezi",
       "recipientPhone": "Simu ya mpokezi",
-      "phoneHint": "Inatumika kwa kiungo cha kufuatilia na mawasiliano ya kuchukua/kukabidhi."
+      "phoneHint": "Inatumika kwa kiungo cha kufuatilia na mawasiliano ya kuchukua/kukabidhi.",
+      "mapLabel": "Ramani: mizigo inakokwenda"
     },
     "cargo": {
       "description": "Maelezo",

@@ -16,9 +16,10 @@ import { ORGANISATION_EVIDENCE_KINDS } from '@/features/verification/verificatio
 import { VerificationPanel } from '@/features/verification/VerificationPanel';
 import { localizeError } from '@/services/errorMessage';
 
+import { BusinessLocationsCard } from './BusinessLocationsCard';
 import { BusinessVerificationBanner } from './BusinessVerificationBanner';
 import { orgApi } from './orgApi';
-import { BUSINESS_ROLES, LOCATION_TYPES } from './types';
+import { BUSINESS_ROLES } from './types';
 
 export function BusinessDetailPage(): JSX.Element {
   const { businessId = '' } = useParams();
@@ -66,19 +67,6 @@ export function BusinessDetailPage(): JSX.Element {
       void qc.invalidateQueries({ queryKey: ['business', businessId, 'members'] });
     },
     onError: (err) => setMemberError(localizeError(err, t)),
-  });
-
-  const [locLabel, setLocLabel] = useState('');
-  const [locType, setLocType] = useState<string>('BRANCH');
-  const [locError, setLocError] = useState<string | null>(null);
-  const addLocation = useMutation({
-    mutationFn: () => orgApi.addLocation(businessId, { label: locLabel.trim(), type: locType }),
-    onSuccess: () => {
-      setLocLabel('');
-      setLocError(null);
-      void qc.invalidateQueries({ queryKey: ['business', businessId, 'locations'] });
-    },
-    onError: (err) => setLocError(localizeError(err, t)),
   });
 
   if (biz.isLoading) return <PageLoader />;
@@ -217,82 +205,11 @@ export function BusinessDetailPage(): JSX.Element {
         )}
       </Card>
 
-      <Card>
-        <h2 className="text-label text-fg-secondary">{t('org:business.locations')}</h2>
-        <p className="mt-1 text-caption text-fg-muted">{t('org:business.mainLocationNote')}</p>
-        <ul className="mt-2 divide-y divide-line text-body-sm">
-          {(locations.data?.data ?? []).map((l) => (
-            <li key={l.id} className="flex items-center justify-between py-2">
-              <span>
-                {l.label}
-                {l.zone_code ? ` · ${l.zone_code}` : ''}
-              </span>
-              <span className="flex items-center gap-2">
-                <StatusBadge
-                  tone={l.type === 'MAIN' ? 'success' : 'neutral'}
-                  icon={l.type === 'MAIN' ? 'check' : undefined}
-                  label={l.type}
-                />
-                {canManageLocations && (
-                  <Button
-                    variant="destructive"
-                    onClick={() =>
-                      orgApi
-                        .removeLocation(businessId, l.id)
-                        .then(() =>
-                          qc.invalidateQueries({
-                            queryKey: ['business', businessId, 'locations'],
-                          }),
-                        )
-                        .catch(() => undefined)
-                    }
-                  >
-                    {t('org:common.remove')}
-                  </Button>
-                )}
-              </span>
-            </li>
-          ))}
-        </ul>
-
-        {canManageLocations && (
-          <form
-            className="mt-3 flex flex-col gap-2 md:flex-row md:items-end"
-            onSubmit={(e: FormEvent) => {
-              e.preventDefault();
-              if (locLabel.trim()) addLocation.mutate();
-            }}
-          >
-            <div className="flex-1">
-              <Field label={t('org:business.locationLabel')}>
-                {({ id }) => (
-                  <Input id={id} value={locLabel} onChange={(e) => setLocLabel(e.target.value)} />
-                )}
-              </Field>
-            </div>
-            <Select
-              inline
-              aria-label={t('org:business.locationType')}
-              value={locType}
-              onChange={(e) => setLocType(e.target.value)}
-            >
-              {LOCATION_TYPES.map((ty) => (
-                <option key={ty} value={ty}>
-                  {ty}
-                </option>
-              ))}
-            </Select>
-            <Button type="submit" loading={addLocation.isPending}>
-              {t('org:common.add')}
-            </Button>
-          </form>
-        )}
-        {locError && (
-          <div className="mt-2">
-            <Alert tone="danger">{locError}</Alert>
-          </div>
-        )}
-      </Card>
+      <BusinessLocationsCard
+        businessId={businessId}
+        locations={locations.data?.data ?? []}
+        canManage={canManageLocations}
+      />
 
       {/* The owner submits (or resubmits) the business's details; documents
           are optional (D-1). */}
