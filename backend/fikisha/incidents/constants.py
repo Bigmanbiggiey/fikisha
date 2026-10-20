@@ -88,6 +88,26 @@ class CommissionTreatment(models.TextChoices):
     WAIVE = "WAIVE", "Waive"
 
 
+#: Why an incident was closed (trust-and-disputes plan A1). Closure never
+#: says who was at fault; that is a separate finding. ``DISPUTE_RESOLVED``
+#: is written only by dispute resolution, never chosen by hand.
+class ClosureReason(models.TextChoices):
+    RESOLVED_BETWEEN_PARTIES = "RESOLVED_BETWEEN_PARTIES", "Resolved between the parties"
+    PAYMENT_MADE = "PAYMENT_MADE", "Payment made"
+    WITHDRAWN = "WITHDRAWN", "Withdrawn by the reporter"
+    NO_ACTION_NEEDED = "NO_ACTION_NEEDED", "No action needed"
+    DISPUTE_RESOLVED = "DISPUTE_RESOLVED", "Dispute resolved"
+    OTHER = "OTHER", "Other"
+
+
+#: Reasons a staff member may pick when closing an incident by hand.
+MANUAL_CLOSURE_REASONS: tuple[str, ...] = tuple(
+    r for r in ClosureReason.values if r != ClosureReason.DISPUTE_RESOLVED
+)
+
+CLOSURE_NOTE_MIN_LENGTH = 10
+
+
 #: Recorded intents only (FR-D-6) — Step 8 does not execute any of these; there
 #: is no rating/trust/suspension engine to execute them against (ADR-2D-21).
 class ResolutionAction(models.TextChoices):

@@ -36,6 +36,11 @@ class EscalateSerializer(serializers.Serializer[dict[str, Any]]):
     advised_external_options = serializers.BooleanField(required=False, default=False)
 
 
+class CloseIncidentSerializer(serializers.Serializer[dict[str, Any]]):
+    reason_code = serializers.CharField(max_length=32, allow_blank=True)
+    note = serializers.CharField(max_length=4000, allow_blank=True)
+
+
 class OpenDisputeSerializer(serializers.Serializer[dict[str, Any]]):
     incident_ids = serializers.ListField(child=serializers.UUIDField(), min_length=1)
 

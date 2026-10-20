@@ -37,7 +37,7 @@
     "clean_elevated_jobs": "Kazi kubwa zilizokamilika bila tatizo: {{current}} kati ya {{target}}",
     "at_fault_findings": "Hakuna uamuzi wa kosa dhidi yako",
     "good_conduct": "Cheti cha Tabia Njema kimethibitishwa",
-    "no_cancellation_flag": "Ughairi wa kuchelewa chini ya {{target}} ndani ya siku 30 (una {{current}})"
+    "no_cancellation_flag": "Ughairi wa kuchelewa au kutofika ni mchache"
   },
   "ready": {
     "self": "Umetimiza kila tunachopima kwa {{level}}. Fikisha itakagua.",

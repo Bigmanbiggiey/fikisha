@@ -3,7 +3,8 @@ plan T-2). Deterministic and explainable: every criterion is a row with
 its status, the operator's current figure and the target, and the whole
 list is what a proposal snapshots.
 
-Ratings and at-fault findings don't exist yet (TD-3): their rows are
+Ratings and at-fault findings don't exist yet (TD-3), and operator
+cancellations / no-shows aren't recorded (CF-1): their rows are
 ``NOT_MEASURED`` and never block. Sources are the other modules' public
 read surfaces (``jobs.driver_record``, ``incidents.trust_facts``,
 ``verification.services``).
@@ -81,12 +82,8 @@ def facts(profile: Any) -> dict[str, Any]:
     from fikisha.verification.models import Domain
     from fikisha.verification.services import subject_meets
 
-    cfg = tier_config()
-    flag = cfg.get("late_cancellation_flag") or {}
-    record = driver_record(
-        profile.id, user_id=profile.user_id, late_window_days=int(flag.get("window_days", 30))
-    )
-    incidents = incident_facts(record["driven_job_ids"])
+    record = driver_record(profile.id)
+    incidents = incident_facts(record["driven_job_ids"], driver_user_id=profile.user_id)
     with_incidents = incidents["job_ids_with_incidents"]
     clean_elevated = [j for j in record["elevated_completed_ids"] if j not in with_incidents]
     return {
@@ -97,8 +94,6 @@ def facts(profile: Any) -> dict[str, Any]:
         "unresolved_incident_ids": incidents["unresolved_ids"],
         "clean_elevated_jobs": len(clean_elevated),
         "clean_elevated_job_ids": clean_elevated,
-        "late_cancellations": record["late_cancellations"],
-        "late_cancellation_limit": int(flag.get("count", 3)),
         "good_conduct": subject_meets(profile, [Domain.GOOD_CONDUCT]),
     }
 
@@ -107,7 +102,6 @@ def rows_for(target: str, f: dict[str, Any]) -> list[dict[str, Any]]:
     """The criteria for reaching ``target`` (L2 or L3) given the facts."""
     cfg = tier_config()
     need = cfg.get(target) or {}
-    flagged = f["late_cancellations"] >= f["late_cancellation_limit"]
     rows = [
         _at_least("completed_jobs", f["completed_jobs"], int(need.get("min_completed_jobs", 0))),
         _at_least("days_active", f["days_active"], int(need.get("min_days_active", 0))),
@@ -127,12 +121,8 @@ def rows_for(target: str, f: dict[str, Any]) -> list[dict[str, Any]]:
     rows += [
         _row("at_fault_findings", NOT_MEASURED),
         _row("good_conduct", MET if f["good_conduct"] else NOT_MET),
-        _row(
-            "no_cancellation_flag",
-            NOT_MET if flagged else MET,
-            f["late_cancellations"],
-            f["late_cancellation_limit"],
-        ),
+        # Operators can't cancel and no-shows aren't recorded (CF-1).
+        _row("no_cancellation_flag", NOT_MEASURED),
     ]
     return rows
 

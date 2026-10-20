@@ -37,7 +37,7 @@
     "clean_elevated_jobs": "Larger jobs completed with no issue: {{current}} of {{target}}",
     "at_fault_findings": "No at-fault findings",
     "good_conduct": "Certificate of Good Conduct verified",
-    "no_cancellation_flag": "Fewer than {{target}} late cancellations in 30 days (you have {{current}})"
+    "no_cancellation_flag": "Few late cancellations or no-shows"
   },
   "ready": {
     "self": "You meet everything we measure for {{level}}. Fikisha will review it.",

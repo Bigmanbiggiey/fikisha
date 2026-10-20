@@ -51,7 +51,29 @@
     "startAmicable": "Start amicable resolution",
     "openDispute": "Open a dispute (freeze this Job)",
     "escalateReason": "Reason for escalating",
-    "escalate": "Escalate to Platform Admin"
+    "escalate": "Escalate to Platform Admin",
+    "close": {
+      "title": "Close this incident",
+      "reason": "Why it's being closed",
+      "choose": "Choose a reason",
+      "note": "Note for Fikisha staff",
+      "noteHint": "At least 10 characters. Only staff see this note.",
+      "submit": "Close incident",
+      "inDispute": "This incident is part of an open dispute. It closes when the dispute is resolved."
+    },
+    "closure": {
+      "title": "Closed",
+      "reasonLine": "Reason: {{reason}}",
+      "note": "Staff note",
+      "reason": {
+        "RESOLVED_BETWEEN_PARTIES": "Resolved between the parties",
+        "PAYMENT_MADE": "Payment made",
+        "WITHDRAWN": "Withdrawn by the reporter",
+        "NO_ACTION_NEEDED": "No action needed",
+        "DISPUTE_RESOLVED": "Dispute resolved",
+        "OTHER": "Other"
+      }
+    }
   },
   "dispute": {
     "title": "Dispute",

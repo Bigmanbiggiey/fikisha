@@ -352,6 +352,9 @@ def set_level(*, actor: Any, operator_id: Any, level: str, reason: str) -> Trust
         state = _locked_state(profile.id)
         if state.level == level:
             raise TierChangeNotAllowed(f"This operator is already {level}.")
+        if state.level == Tier.RESTRICTED and level != Tier.L1:
+            # TD-4: leaving Restricted goes back to L1 only.
+            raise TierChangeNotAllowed("An operator leaves Restricted to L1 only.")
         return _apply(
             actor=actor,
             profile=profile,

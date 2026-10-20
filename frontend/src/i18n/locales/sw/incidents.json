@@ -51,7 +51,29 @@
     "startAmicable": "Anza ufumbuzi wa amani",
     "openDispute": "Fungua mgogoro (simamisha Kazi hii)",
     "escalateReason": "Sababu ya kupandisha",
-    "escalate": "Pandisha kwa Msimamizi wa Jukwaa"
+    "escalate": "Pandisha kwa Msimamizi wa Jukwaa",
+    "close": {
+      "title": "Funga tukio hili",
+      "reason": "Sababu ya kulifunga",
+      "choose": "Chagua sababu",
+      "note": "Maelezo kwa wafanyakazi wa Fikisha",
+      "noteHint": "Angalau herufi 10. Wafanyakazi pekee wanaona maelezo haya.",
+      "submit": "Funga tukio",
+      "inDispute": "Tukio hili ni sehemu ya mzozo ulio wazi. Litafungwa mzozo ukitatuliwa."
+    },
+    "closure": {
+      "title": "Limefungwa",
+      "reasonLine": "Sababu: {{reason}}",
+      "note": "Maelezo ya wafanyakazi",
+      "reason": {
+        "RESOLVED_BETWEEN_PARTIES": "Limetatuliwa kati ya wahusika",
+        "PAYMENT_MADE": "Malipo yamefanyika",
+        "WITHDRAWN": "Limeondolewa na aliyeripoti",
+        "NO_ACTION_NEEDED": "Hakuna hatua inayohitajika",
+        "DISPUTE_RESOLVED": "Mzozo umetatuliwa",
+        "OTHER": "Nyingine"
+      }
+    }
   },
   "dispute": {
     "title": "Mgogoro",

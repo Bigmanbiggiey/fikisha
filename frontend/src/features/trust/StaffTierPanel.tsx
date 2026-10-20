@@ -116,7 +116,10 @@ export function StaffTierPanel({ operatorId }: { operatorId: string }): JSX.Elem
               </label>
               <Select id="tier-target" inline value={target} onChange={(e) => setTarget(e.target.value as StoredTier | '')}>
                 <option value="">{t('trust:admin.choose')}</option>
-                {STORED_TIERS.filter((l) => l !== view.stored_level).map((l) => (
+                {STORED_TIERS.filter((l) =>
+                  // TD-4: leaving Restricted goes back to L1 only
+                  view.stored_level === 'RESTRICTED' ? l === 'L1' : l !== view.stored_level,
+                ).map((l) => (
                   <option key={l} value={l}>
                     {lvl(l)}
                   </option>

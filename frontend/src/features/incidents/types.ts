@@ -68,6 +68,25 @@ export interface IncidentStatementItem {
   created_at: string;
 }
 
+/** Reasons staff may choose when closing an incident by hand
+ * (`MANUAL_CLOSURE_REASONS`); `DISPUTE_RESOLVED` is written only by
+ * resolving a dispute. */
+export const MANUAL_CLOSURE_REASONS = [
+  'RESOLVED_BETWEEN_PARTIES',
+  'PAYMENT_MADE',
+  'WITHDRAWN',
+  'NO_ACTION_NEEDED',
+  'OTHER',
+] as const;
+export type ClosureReason = (typeof MANUAL_CLOSURE_REASONS)[number] | 'DISPUTE_RESOLVED';
+
+export interface IncidentClosure {
+  reason_code: ClosureReason;
+  created_at: string;
+  /** staff only */
+  note?: string;
+}
+
 export interface Incident {
   id: string;
   job_id: string;
@@ -83,6 +102,7 @@ export interface Incident {
   sla_resolution_due_at: string | null;
   evidence: IncidentEvidenceItem[];
   statements: IncidentStatementItem[];
+  closure: IncidentClosure | null;
 }
 
 export interface Resolution {
@@ -110,6 +130,11 @@ export interface ReportIncidentBody {
   severity?: IncidentSeverity;
   description?: string;
   other_label?: string;
+}
+
+export interface CloseIncidentBody {
+  reason_code: ClosureReason;
+  note: string;
 }
 
 export interface ResolveDisputeBody {

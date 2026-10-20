@@ -25,6 +25,7 @@ from django.db import models
 from fikisha.common.models import AppendOnlyModel, AppendOnlyQuerySet, TimestampedModel
 from fikisha.incidents.constants import (
     ROUTABLE_JOB_STATUSES,
+    ClosureReason,
     CommissionTreatment,
     DisputeStatus,
     IncidentSeverity,
@@ -62,6 +63,13 @@ class Incident(TimestampedModel):
     # append-only-survives-the-link-lifecycle reasoning as
     # RecipientReportedIssue.reported_via_link_id.
     reported_by_link_id = models.UUIDField(null=True, blank=True)
+    #: The reporter's side of the job when they reported it (BUSINESS /
+    #: OPERATOR / GROUP / RECIPIENT / ADMIN), fixed at creation so later
+    #: membership changes never re-attribute it. Blank on incidents reported
+    #: before it existed (trust-and-disputes plan A5).
+    reporter_party = models.CharField(
+        max_length=16, choices=PartyKind.choices, blank=True, default=""
+    )
     # The originating recipient report, if this incident was intake'd from one
     # (plan §19 Step 8 brief §7) — never mutated, only referenced.
     source_report_id = models.UUIDField(null=True, blank=True)
@@ -141,6 +149,28 @@ class IncidentStatement(AppendOnlyModel):
         db_table = "incident_statement"
         ordering = ["created_at"]
         indexes = [models.Index(fields=["incident", "created_at"])]
+
+
+class IncidentClosure(AppendOnlyModel):
+    """Why and by whom an incident was closed (trust-and-disputes plan A1).
+    One per incident, append-only. Says nothing about fault."""
+
+    incident = models.OneToOneField(Incident, on_delete=models.PROTECT, related_name="closure")
+    reason_code = models.CharField(max_length=32, choices=ClosureReason.choices)
+    note = models.TextField()
+    closed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="+"
+    )
+    closed_by_is_platform_admin = models.BooleanField(default=False)
+    #: Set when the closure came from resolving this dispute.
+    dispute = models.ForeignKey(
+        "Dispute", null=True, blank=True, on_delete=models.PROTECT, related_name="closures"
+    )
+
+    objects = AppendOnlyQuerySet.as_manager()
+
+    class Meta:
+        db_table = "incident_closure"
 
 
 class Dispute(TimestampedModel):

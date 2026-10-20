@@ -2,6 +2,7 @@ import { jobVersion, rememberJobVersion } from '@/features/jobs/jobVersions';
 import { apiRequest, fetchBlob } from '@/services/apiClient';
 
 import type {
+  CloseIncidentBody,
   Dispute,
   Incident,
   IncidentStatementItem,
@@ -41,6 +42,8 @@ export const incidentsApi = {
     apiRequest<Incident>(`/incidents/${incidentId}/review`, { method: 'POST' }),
   startAmicable: (incidentId: string) =>
     apiRequest<Incident>(`/incidents/${incidentId}/amicable`, { method: 'POST' }),
+  close: (incidentId: string, body: CloseIncidentBody) =>
+    apiRequest<Incident>(`/incidents/${incidentId}/close`, { method: 'POST', body }),
   escalate: (incidentId: string, reason: string) =>
     apiRequest<{ id: string; incident_id: string; dispute_id: string | null; escalated_to: string }>(
       `/incidents/${incidentId}/escalate`,

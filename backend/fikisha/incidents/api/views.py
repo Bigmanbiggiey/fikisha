@@ -21,6 +21,7 @@ from fikisha.incidents import services
 from fikisha.incidents.api.serializers import (
     AddStatementSerializer,
     AttachEvidenceSerializer,
+    CloseIncidentSerializer,
     EscalateSerializer,
     OpenDisputeSerializer,
     ReportIncidentSerializer,
@@ -29,7 +30,22 @@ from fikisha.incidents.api.serializers import (
 from fikisha.incidents.models import Dispute, Incident, IncidentEvidence
 
 
-def _incident_view(incident: Incident) -> dict[str, object]:
+def _closure_view(incident: Incident, *, staff: bool) -> dict[str, object] | None:
+    """Why the incident was closed. The note is staff-only (trust-and-disputes
+    plan A1); parties see the reason."""
+    closure = getattr(incident, "closure", None) if incident.status == "RESOLVED" else None
+    if closure is None:
+        return None
+    view: dict[str, object] = {
+        "reason_code": closure.reason_code,
+        "created_at": closure.created_at.isoformat(),
+    }
+    if staff:
+        view["note"] = closure.note
+    return view
+
+
+def _incident_view(incident: Incident, *, staff: bool = False) -> dict[str, object]:
     return {
         "id": str(incident.id),
         "job_id": str(incident.job_id),
@@ -69,6 +85,7 @@ def _incident_view(incident: Incident) -> dict[str, object]:
             }
             for s in incident.statements.all()
         ],
+        "closure": _closure_view(incident, staff=staff),
     }
 
 
@@ -94,6 +111,12 @@ def _dispute_view(dispute: Dispute) -> dict[str, object]:
             else None
         ),
     }
+
+
+def _is_staff(request: Request) -> bool:
+    from fikisha.incidents import authz as incidents_authz
+
+    return incidents_authz.is_admin(actor_from_request(request))
 
 
 def _idempotency_key(request: Request) -> str:
@@ -122,7 +145,8 @@ class IncidentCollectionView(OrgApiView):
             .prefetch_related("evidence", "statements")
             .order_by("-created_at")
         )
-        return Response({"data": [_incident_view(i) for i in incidents]})
+        staff = incidents_authz.is_admin(self.actor(request))
+        return Response({"data": [_incident_view(i, staff=staff) for i in incidents]})
 
     def post(self, request: Request, job_id: str) -> Response:
         serializer = ReportIncidentSerializer(data=request.data)
@@ -137,7 +161,9 @@ class IncidentCollectionView(OrgApiView):
                 description=serializer.validated_data.get("description", ""),
                 other_label=serializer.validated_data.get("other_label", ""),
             )
-            return Response(_incident_view(incident), status=status.HTTP_201_CREATED)
+            return Response(
+                _incident_view(incident, staff=_is_staff(request)), status=status.HTTP_201_CREATED
+            )
 
         return idempotent(request, actor_id=str(request.user.id), run=run)
 
@@ -153,7 +179,7 @@ class IncidentDetailView(OrgApiView):
 
     def get(self, request: Request, incident_id: str) -> Response:
         incident = self.get_authz_resource()
-        return Response(_incident_view(incident))
+        return Response(_incident_view(incident, staff=_is_staff(request)))
 
 
 class IncidentEvidenceContentView(OrgApiView):
@@ -237,7 +263,7 @@ class IncidentReviewView(OrgApiView):
 
     def post(self, request: Request, incident_id: str) -> Response:
         incident = services.start_review(actor=self.actor(request), incident_id=incident_id)
-        return Response(_incident_view(incident))
+        return Response(_incident_view(incident, staff=True))
 
 
 class IncidentAmicableView(OrgApiView):
@@ -247,7 +273,25 @@ class IncidentAmicableView(OrgApiView):
         incident = services.start_amicable_window(
             actor=self.actor(request), incident_id=incident_id
         )
-        return Response(_incident_view(incident))
+        return Response(_incident_view(incident, staff=True))
+
+
+class IncidentCloseView(OrgApiView):
+    """Close an incident outside a dispute (trust-and-disputes plan A1)."""
+
+    action_post = "incident.review"
+
+    def post(self, request: Request, incident_id: str) -> Response:
+        serializer = CloseIncidentSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        incident = services.close_incident(
+            actor=self.actor(request),
+            incident_id=incident_id,
+            reason_code=serializer.validated_data["reason_code"],
+            note=serializer.validated_data["note"],
+        )
+        incident = Incident.objects.prefetch_related("evidence", "statements").get(id=incident.id)
+        return Response(_incident_view(incident, staff=True))
 
 
 class IncidentEscalateView(OrgApiView):
