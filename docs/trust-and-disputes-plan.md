@@ -5,8 +5,12 @@ after three review rounds (Claude Code ↔ ChatGPT ↔ founder). Every decision
 below is the recommended option. **One item is still open: RC-1** (recipient
 completion) had no recommendation and is not part of this plan.
 
-Nothing in this plan is built yet. Each increment (§8) still needs the
-founder's go-ahead to start, and stops at a founder gate when done.
+**Part A (trust engine) built 2026-10-20** on `feat/trust-engine`
+(increments 1–8, ADR-2D-53; founder go-ahead "let's build the engine
+first"). One recorded deviation: a cancellation flag's status is a mutable
+workflow column so the database can enforce one open flag per business; each
+review decision is the append-only row. **Part B (resume) is not started**
+and needs the founder's go-ahead.
 
 **Order (founder, 2026-10-20):** the trust engine first (Part A), then the
 dispute rules (Part B).
