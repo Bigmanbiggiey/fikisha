@@ -14,6 +14,11 @@ urlpatterns = [
         name="directory-detail",
     ),
     path(
+        "admin/directory/businesses/<uuid:account_id>/record",
+        views.BusinessRecordView.as_view(),
+        name="business-record",
+    ),
+    path(
         "admin/directory/<str:kind>/<uuid:account_id>/contact",
         views.DirectoryContactView.as_view(),
         name="directory-contact",

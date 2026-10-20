@@ -32,6 +32,16 @@ urlpatterns = [
     # ─── Operations Officer console (Design Phase 6 Increment 8) ────
     path("ops/jobs", views.OpsJobMonitorView.as_view(), name="ops-jobs"),
     path("ops/high-value", views.OpsHighValueQueueView.as_view(), name="ops-high-value"),
+    path(
+        "ops/cancellation-flags",
+        views.OpsCancellationFlagsView.as_view(),
+        name="ops-cancellation-flags",
+    ),
+    path(
+        "ops/cancellation-flags/<uuid:flag_id>/review",
+        views.CancellationFlagReviewView.as_view(),
+        name="cancellation-flag-review",
+    ),
     path("jobs/<uuid:job_id>/notes", views.JobNotesView.as_view(), name="notes"),
     path("jobs/<uuid:job_id>/events", views.JobEventsView.as_view(), name="events"),
     path(

@@ -5,7 +5,7 @@ export const STORED_TIERS: StoredTier[] = ['L1', 'L2', 'L3', 'RESTRICTED'];
 
 export interface TierCriterion {
   key: string;
-  status: 'MET' | 'NOT_MET' | 'NOT_MEASURED';
+  status: 'MET' | 'NOT_MET' | 'NOT_MEASURED' | 'INSUFFICIENT_DATA';
   current: number | null;
   target: number | null;
 }
@@ -14,7 +14,14 @@ export interface TierChange {
   id: string;
   from_level: TierLevel;
   to_level: TierLevel;
-  trigger: 'AUTO_PROPOSED' | 'ADMIN_CONFIRMED' | 'ADMIN_REJECTED' | 'ADMIN_OVERRIDE';
+  trigger:
+    | 'AUTO_PROPOSED'
+    | 'ADMIN_CONFIRMED'
+    | 'ADMIN_REJECTED'
+    | 'ADMIN_OVERRIDE'
+    | 'INCIDENT'
+    | 'RATING_DROP'
+    | 'REMEDIATION_EXIT';
   status: 'PROPOSED' | 'APPLIED' | 'REJECTED';
   reason: string;
   created_at: string;
@@ -37,6 +44,8 @@ export interface TierView {
   ready_for_review: boolean;
   open_proposal: TierChange | null;
   history: TierChange[];
+  /** Staff only: how many counted ratings came from one business (T-5). */
+  rating_concentration?: { top: number; of: number } | null;
 }
 
 export interface TierProposal extends TierChange {

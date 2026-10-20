@@ -1,0 +1,24 @@
+{
+  "titleOperator": "Rate the operator",
+  "titleBusiness": "Rate the business",
+  "staffTitle": "Ratings",
+  "none": "No ratings yet.",
+  "scoreLabel": "Your rating",
+  "scoreOption": "{{score}} out of 5",
+  "scale": "1 is poor, 5 is excellent.",
+  "comment": "Comment (optional)",
+  "commentHint": "Only Fikisha staff read comments.",
+  "submit": "Send rating",
+  "yourRating": "You rated {{score}} out of 5.",
+  "theirRating": "Their rating of you: {{score}} out of 5.",
+  "waiting": "The other side's rating shows once they rate or the time to rate is up.",
+  "closed": "The time to rate this job has passed.",
+  "notCounted": "Not counted: the job's outcome is under review or changed.",
+  "counted": "Counted",
+  "unpublished": "Not shown yet",
+  "outOf5": "{{score}}/5",
+  "side": {
+    "BUSINESS_RATES_OPERATOR": "Business → operator",
+    "OPERATOR_RATES_BUSINESS": "Operator → business"
+  }
+}

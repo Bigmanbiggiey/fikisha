@@ -91,6 +91,31 @@ class DirectoryDetailView(OrgApiView):
         return Response(data)
 
 
+class BusinessRecordView(OrgApiView):
+    """``GET /admin/directory/businesses/<id>/record`` — the business's track
+    record for staff (trust-and-disputes plan A8): open reports, closed
+    incidents and how, current findings against it (superseded ones in
+    history), reports found unfounded, its rating from operators and its
+    cancellation flags. Staff only; nothing here changes standing."""
+
+    action_get = "admin.directory.read"
+
+    def get(self, request: Request, account_id: uuid.UUID) -> Response:
+        from fikisha.incidents.business_record import business_record
+        from fikisha.jobs import cancellation_flags
+        from fikisha.ratings import services as ratings
+
+        _directory("businesses").detail(account_id)  # 404 for an unknown business
+        avg = ratings.average("BUSINESS", account_id)
+        return Response(
+            {
+                **business_record(account_id),
+                "rating": {"average": avg["average"], "count": avg["count"]},
+                "cancellation_flags": cancellation_flags.flags_for_business(account_id),
+            }
+        )
+
+
 class DirectoryContactView(OrgApiView):
     """``POST /admin/directory/<kind>/<id>/contact`` — the full phone,
     audited."""

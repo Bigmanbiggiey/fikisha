@@ -149,6 +149,15 @@ export function DisputeDetailPage(): JSX.Element {
             })}
           </p>
           <p className="text-body-sm text-fg-secondary">{d.resolution.rationale}</p>
+          {isAdminViewer && (d.resolution.recorded_actions ?? []).length > 0 && (
+            <p className="text-caption text-fg-muted">
+              {t('dispute.resolution.recordedIntent', {
+                actions: (d.resolution.recorded_actions ?? [])
+                  .map((a) => t(`dispute.resolution.action.${a}`))
+                  .join(', '),
+              })}
+            </p>
+          )}
         </Card>
       )}
 

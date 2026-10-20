@@ -12,6 +12,7 @@ import { verificationApi } from '@/features/verification/verificationApi';
 import { formatRelative } from '@/services/datetime';
 
 import { JobReferenceJump } from './JobReferenceJump';
+import { CancellationFlagsCard } from './CancellationFlagsCard';
 import { opsApi } from './opsApi';
 import { Queue, QueueRow } from './Queue';
 import type { AttentionFilter, OpsJobRow } from './types';
@@ -158,6 +159,8 @@ export function OpsHomePage(): JSX.Element {
           </Queue>
         </div>
       )}
+
+      <CancellationFlagsCard />
     </div>
   );
 }

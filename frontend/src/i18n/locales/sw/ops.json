@@ -148,5 +148,15 @@
     "nothingHint": "Mengine yote yako kwenye muhtasari wa Uendeshaji.",
     "opsHint": "Kazi zinazohitaji kushughulikiwa, matukio, migogoro ya kiwango cha Kawaida na foleni ya uthibitishaji ziko kwenye muhtasari wa Uendeshaji.",
     "openOps": "Fungua muhtasari wa Uendeshaji"
+  },
+  "cancellationFlags": {
+    "title": "Alama za ughairi",
+    "row": "Ughairi {{count}} wa kuchelewa au safari za bure ndani ya siku 30",
+    "clear": "Ondoa",
+    "mistaken": "Funga kama kosa",
+    "clearTitle": "Ondoa alama hii",
+    "mistakenTitle": "Funga alama hii kama kosa",
+    "clearRestate": "Ondoa alama ya ughairi ya {{name}}. Hakuna kingine kinachobadilika.",
+    "mistakenRestate": "Funga alama ya ughairi ya {{name}} kama kosa. Hakuna kingine kinachobadilika."
   }
 }

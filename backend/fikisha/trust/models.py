@@ -57,6 +57,10 @@ class TrustLevelChange(AppendOnlyModel):
     evidence_job_ids = models.JSONField(default=list, blank=True)
     evidence_incident_ids = models.JSONField(default=list, blank=True)
     config_version = models.IntegerField(null=True, blank=True)
+    #: What a demotion proposal rests on (trust-and-disputes plan A6): the
+    #: finding id (INCIDENT) or a hash of the counted rating ids
+    #: (RATING_DROP). The same evidence is never proposed twice.
+    evidence_key = models.CharField(max_length=64, blank=True, default="")
 
     objects = AppendOnlyQuerySet.as_manager()
 
@@ -70,5 +74,15 @@ class TrustLevelChange(AppendOnlyModel):
                 fields=["decides"],
                 condition=models.Q(decides__isnull=False),
                 name="uniq_trust_change_one_decision",
+            ),
+            models.UniqueConstraint(
+                fields=["operator", "trigger", "evidence_key"],
+                condition=models.Q(trigger="RATING_DROP", status="PROPOSED"),
+                name="uq_trust_rating_drop_evidence",
+            ),
+            models.UniqueConstraint(
+                fields=["evidence_key"],
+                condition=models.Q(trigger="INCIDENT", status="PROPOSED"),
+                name="uq_trust_incident_evidence",
             ),
         ]

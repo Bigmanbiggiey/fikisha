@@ -73,6 +73,7 @@ LOCAL_APPS = [
     "fikisha.statements",
     # Operator tiers (operator-tiers plan, ADR-2D-52).
     "fikisha.trust",
+    "fikisha.ratings",
 ]
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 

@@ -194,6 +194,22 @@ describe('Configuration', () => {
     ],
   };
 
+  it('the live-criteria switch is a yes/no box (trust plan A5)', async () => {
+    api.config.mockResolvedValue({
+      ...view,
+      config: { ...view.config, trust_tiers: { live_criteria: false } },
+      editable_paths: [...view.editable_paths, 'trust_tiers.live_criteria'],
+    });
+    api.previewConfig.mockResolvedValue({ version: 3, changes: [], commission_samples: [] });
+    renderWithProviders(<ConfigPage />);
+
+    const box = await screen.findByLabelText('Ratings and fault findings count toward tiers');
+    expect(box).not.toBeChecked();
+    await userEvent.click(box);
+    await userEvent.click(screen.getByRole('button', { name: 'Preview changes' }));
+    expect(api.previewConfig).toHaveBeenCalledWith({ 'trust_tiers.live_criteria': true });
+  });
+
   it('previews a change in people units and sends config units', async () => {
     api.config.mockResolvedValue(view);
     api.previewConfig.mockResolvedValue({
