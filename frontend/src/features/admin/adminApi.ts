@@ -29,7 +29,19 @@ export interface UncategorisedCargo {
   last_seen: string;
 }
 
+/** A business's track record for staff (trust plan A8). */
+export interface BusinessRecord {
+  open_reports: { id: string; job_id: string; type: string; reporter_party: string; created_at: string }[];
+  closed_incidents: { id: string; job_id: string; type: string; reason_code: string | null; closed_at: string | null }[];
+  findings_against: { id: string; incident_id: string; type: string; reason: string; current: boolean; created_at: string }[];
+  unfounded_reports: { incident_id: string; type: string; reason: string; created_at: string }[];
+  rating: { average: number | null; count: number };
+  cancellation_flags: { id: string; status: string; count: number; created_at: string }[];
+}
+
 export const adminApi = {
+  businessRecord: (businessId: string) =>
+    apiRequest<BusinessRecord>(`/admin/directory/businesses/${businessId}/record`),
   /** Cargo the keyword matcher filed under Other (assessment 2026-10-19 D-5). */
   uncategorisedCargo: () => apiRequest<{ data: UncategorisedCargo[] }>('/admin/cargo-categories/uncategorised'),
   addCargoKeyword: (body: { category_code: string; keyword: string; rationale: string }) =>

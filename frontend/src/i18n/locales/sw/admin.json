@@ -209,5 +209,24 @@
     "newKeywords": "Maneno makuu, yakitenganishwa kwa koma",
     "addCategory": "Ongeza aina",
     "categoryAdded": "{{code}} imeongezwa."
+  },
+  "record": {
+    "title": "Rekodi ya utendaji",
+    "rating": "Ukadiriaji kutoka kwa wahudumu: {{average}} ({{count}} unahesabiwa)",
+    "ratingNone": "Ukadiriaji kutoka kwa wahudumu: bado hautoshi ({{count}} unahesabiwa)",
+    "openReports": "Ripoti zilizo wazi",
+    "closed": "Matukio yaliyofungwa",
+    "findings": "Maamuzi dhidi ya biashara hii",
+    "unfounded": "Ripoti za biashara hii zisizo na msingi",
+    "flags": "Alama za ughairi",
+    "none": "Hakuna.",
+    "noClosure": "lilifungwa kabla sababu za kufunga hazijarekodiwa",
+    "superseded": "limebadilishwa",
+    "flagRow": "Ughairi {{count}} wa kuchelewa au safari za bure",
+    "flagStatus": {
+      "OPEN": "wazi",
+      "CLEARED": "imeondolewa",
+      "MISTAKEN": "imefungwa kama kosa"
+    }
   }
 }

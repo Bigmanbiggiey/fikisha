@@ -16,6 +16,8 @@ import { formatDateTime } from '@/services/datetime';
 
 import { StaffTierPanel } from '@/features/trust/StaffTierPanel';
 
+import { BusinessRecordCard } from './BusinessRecordCard';
+
 import { AccountStateBadge } from './AccountStateBadge';
 import { AdminActionDialog } from './AdminActionDialog';
 import { adminApi } from './adminApi';
@@ -157,6 +159,7 @@ export function DirectoryDetailPage(): JSX.Element {
       </Card>
 
       {kind === 'operators' && <StaffTierPanel operatorId={d.id} />}
+      {kind === 'businesses' && <BusinessRecordCard businessId={d.id} />}
 
       <Card className="space-y-2">
         <h2 className="text-h3 text-fg">{t('admin:detail.inFlightTitle')}</h2>
