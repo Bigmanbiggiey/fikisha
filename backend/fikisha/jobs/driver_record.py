@@ -46,3 +46,8 @@ def recent_driven_job_ids(operator_id: Any, *, limit: int) -> list[str]:
         .order_by("-assigned_at", "-id")
         .values_list("id", flat=True)[:limit]
     ]
+
+
+def group_completed_jobs(group_id: Any) -> int:
+    """Completed jobs assigned to a group (trust-and-disputes plan A9)."""
+    return Job.objects.filter(assignment__group_id=group_id, status=JobStatus.COMPLETED).count()

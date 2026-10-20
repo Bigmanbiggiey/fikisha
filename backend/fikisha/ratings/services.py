@@ -295,3 +295,22 @@ def businesses_of(rating_ids: list[str]) -> dict[str, int]:
     ):
         out[str(business_id)] = out.get(str(business_id), 0) + 1
     return out
+
+
+def party_summary(*, operator_id: Any = None, group_id: Any = None) -> dict[str, Any]:
+    """What a business sees about an operator or group it is negotiating
+    with (TE-7, FR-R-3): completed jobs and the average rating once at least
+    ``min_counted`` ratings count. No tier, no incidents, no identity data."""
+    from fikisha.jobs.driver_record import driver_record, group_completed_jobs
+
+    if group_id is not None:
+        completed = group_completed_jobs(group_id)
+        avg = average(SubjectKind.GROUP, group_id)
+    else:
+        completed = driver_record(operator_id)["completed_jobs"]
+        avg = average(SubjectKind.DRIVER, operator_id)
+    return {
+        "completed_jobs": completed,
+        "average_rating": avg["average"],
+        "rating_count": avg["count"],
+    }

@@ -240,8 +240,17 @@ describe('NegotiationPage', () => {
   it('shows a picker when more than one operator has responded', async () => {
     listThreads.mockResolvedValue({
       data: [
-        baseThread({ thread_id: 'th1', operator_display_name: 'Athi Movers' }),
-        baseThread({ thread_id: 'th2', operator_display_name: 'Kitengela Yard', operator_id: 'op2' }),
+        baseThread({
+          thread_id: 'th1',
+          operator_display_name: 'Athi Movers',
+          operator_summary: { completed_jobs: 12, average_rating: 4.6, rating_count: 8 },
+        }),
+        baseThread({
+          thread_id: 'th2',
+          operator_display_name: 'Kitengela Yard',
+          operator_id: 'op2',
+          operator_summary: { completed_jobs: 1, average_rating: null, rating_count: 1 },
+        }),
       ],
     });
     const user = userEvent.setup();
@@ -250,6 +259,9 @@ describe('NegotiationPage', () => {
     expect(await screen.findByText('Offers (2)')).toBeInTheDocument();
     expect(screen.getByText('Athi Movers')).toBeInTheDocument();
     expect(screen.getByText('Kitengela Yard')).toBeInTheDocument();
+    // what the business sees about each operator (trust plan A9)
+    expect(screen.getByText('12 jobs completed · rated 4.6 out of 5 (8 ratings)')).toBeInTheDocument();
+    expect(screen.getByText('1 job completed · not enough ratings yet')).toBeInTheDocument();
 
     await user.click(screen.getByText('Kitengela Yard'));
     await waitFor(() => expect(screen.getByRole('button', { name: '← Back to offers' })).toBeInTheDocument());

@@ -268,7 +268,22 @@ def _thread_payload(
         "counterparty_offer": counterparty_offer,
         "mutual_acceptance": {"reached": reached, "amount_kes": amount, "entry_ids": ids},
         "entries": annotate_entries(thread),
+        # What the business sees about this operator (TE-7): only on its own
+        # job's thread, never the tier or incidents.
+        "operator_summary": _operator_summary(thread)
+        if viewer_side == EntryActorRole.BUSINESS
+        else None,
     }
+
+
+def _operator_summary(thread: NegotiationThread) -> dict[str, Any] | None:
+    from fikisha.ratings import services as ratings
+
+    if thread.group_id:
+        return ratings.party_summary(group_id=thread.group_id)
+    if thread.operator_id:
+        return ratings.party_summary(operator_id=thread.operator_id)
+    return None
 
 
 # ─── reads ─────────────────────────────────────────────────────────────

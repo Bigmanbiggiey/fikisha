@@ -168,6 +168,17 @@ function ThreadPicker({
                     {th.standing_offer ? formatKes(th.standing_offer.amount_kes) : '—'}
                   </span>
                 </div>
+                {th.operator_summary && (
+                  <p className="mt-1 text-body-sm text-fg-muted">
+                    {t('negotiation:summary.jobs', { count: th.operator_summary.completed_jobs })} ·{' '}
+                    {th.operator_summary.average_rating === null
+                      ? t('negotiation:summary.noRating')
+                      : t('negotiation:summary.rating', {
+                          average: th.operator_summary.average_rating,
+                          count: th.operator_summary.rating_count,
+                        })}
+                  </p>
+                )}
               </Card>
             </button>
           </li>

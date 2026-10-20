@@ -36,5 +36,11 @@
   },
   "nothingToAcceptYet": "Waiting for the operator's next move.",
   "nothingToAcceptYetBusiness": "Waiting for the business's next move.",
-  "invalidOfferRefreshed": "The operator changed their offer — here's the latest."
+  "invalidOfferRefreshed": "The operator changed their offer — here's the latest.",
+  "summary": {
+    "jobs_one": "{{count}} job completed",
+    "jobs_other": "{{count}} jobs completed",
+    "noRating": "not enough ratings yet",
+    "rating": "rated {{average}} out of 5 ({{count}} ratings)"
+  }
 }

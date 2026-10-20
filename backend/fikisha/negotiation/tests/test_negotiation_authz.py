@@ -113,3 +113,19 @@ def test_accept_replay_cannot_leak_a_different_threads_payload(
 
     with pytest.raises(NotANegotiationParty):
         services.accept(actor=op_a, thread_id=thread_b.id, idempotency_key="shared-key")
+
+
+def test_the_business_sees_a_summary_of_the_operator_and_the_operator_does_not(
+    requested_job: Any, operator_a: Any, owner_actor: Any, _actor: Any
+) -> None:
+    """TE-7 / FR-R-3: completed jobs and the rating once enough count; no
+    tier, no incidents."""
+    _thread_for(requested_job, operator_a, _actor)
+    [business_view] = services.list_threads(actor=owner_actor, job_id=requested_job.id)
+    assert business_view["operator_summary"] == {
+        "completed_jobs": 0,
+        "average_rating": None,
+        "rating_count": 0,
+    }
+    [operator_view] = services.list_threads(actor=_actor(operator_a.user), job_id=requested_job.id)
+    assert operator_view["operator_summary"] is None
