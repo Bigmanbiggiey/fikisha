@@ -82,7 +82,13 @@
     "noLinkedIncidents": "Hakuna matukio yaliyounganishwa.",
     "resolution": {
       "title": "Ufumbuzi",
-      "outcome": "Imetatuliwa — Kazi {{status}}"
+      "outcome": "Imetatuliwa — Kazi {{status}}",
+      "recordedIntent": "Nia iliyorekodiwa (kabla ya maamuzi): {{actions}}",
+      "action": {
+        "RATING_IMPACT": "athari kwa ukadiriaji",
+        "TRUST_CHANGE": "badiliko la daraja",
+        "SUSPENSION": "kusimamishwa"
+      }
     },
     "underReview": "Fikisha inapitia hili. Utajulishwa litakapotatuliwa.",
     "needsPlatformAdmin": "Hii inahitaji Msimamizi wa Jukwaa.",
@@ -111,6 +117,40 @@
       "reason": "Sababu ya kuendelea",
       "action": "Endelea na Kazi hii hadi {{status}}",
       "notAvailable": "Itaendelea mfumo halali utakapokubali — bado haipatikani."
+    }
+  },
+  "finding": {
+    "title": "Uamuzi wa Fikisha",
+    "disclaimer": "Huu ni uamuzi wa Fikisha kuhusu kazi hii, si hukumu ya kisheria.",
+    "none": "Hakuna uamuzi uliorekodiwa.",
+    "outcome": {
+      "AT_FAULT": "Ana kosa",
+      "NO_FAULT": "Hakuna kosa",
+      "UNDETERMINED": "Haikuweza kubainika"
+    },
+    "atFault": "Wenye kosa: {{parties}}",
+    "party": {
+      "BUSINESS": "Biashara",
+      "DRIVER": "Dereva",
+      "GROUP": "Kikundi"
+    },
+    "reason": "Sababu",
+    "history": "Maamuzi ya awali",
+    "replaced": "Limebadilishwa",
+    "record": "Rekodi uamuzi",
+    "replace": "Badilisha uamuzi",
+    "outcomeLabel": "Uamuzi",
+    "choose": "Chagua uamuzi",
+    "partiesLabel": "Nani ana kosa",
+    "groupHint": "Kukitaja kikundi hakumtaji dereva, na kumtaja dereva hakukitaji kikundi.",
+    "reasonLabel": "Sababu (angalau herufi 10)",
+    "submit": "Hifadhi uamuzi",
+    "unfounded": {
+      "title": "Ripoti isiyo na msingi",
+      "explain": "Baada tu ya kufunga kwa \"Hakuna kosa\". Inarekodiwa dhidi ya aliyeripoti; haina athari ya moja kwa moja.",
+      "reason": "Kwa nini ripoti haikuwa na msingi",
+      "submit": "Weka alama ripoti haina msingi",
+      "recorded": "Ripoti hii imewekwa alama kuwa haina msingi."
     }
   }
 }

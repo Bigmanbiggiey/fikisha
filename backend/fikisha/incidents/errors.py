@@ -102,3 +102,22 @@ class IncidentInOpenDispute(ConflictError):
     default_detail = (
         "This incident is part of an open dispute; it closes when the dispute is resolved."
     )
+
+
+class InvalidFinding(DomainError):
+    default_code = "invalid_finding"
+    status_code = status.HTTP_422_UNPROCESSABLE_ENTITY
+    default_detail = "Check the finding: an at-fault finding names at least one party of this job."
+
+
+class FindingReasonRequired(DomainError):
+    default_code = "finding_reason_required"
+    status_code = status.HTTP_422_UNPROCESSABLE_ENTITY
+    default_detail = "Give a reason of at least 10 characters."
+
+
+class UnfoundedNotAllowed(ConflictError):
+    default_code = "unfounded_not_allowed"
+    default_detail = (
+        "A report can be marked unfounded only once it is closed and Fikisha found no fault."
+    )

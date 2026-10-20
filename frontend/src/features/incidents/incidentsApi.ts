@@ -6,6 +6,7 @@ import type {
   Dispute,
   Incident,
   IncidentStatementItem,
+  RecordFindingBody,
   ReportIncidentBody,
   ResolveDisputeBody,
 } from './types';
@@ -44,6 +45,13 @@ export const incidentsApi = {
     apiRequest<Incident>(`/incidents/${incidentId}/amicable`, { method: 'POST' }),
   close: (incidentId: string, body: CloseIncidentBody) =>
     apiRequest<Incident>(`/incidents/${incidentId}/close`, { method: 'POST', body }),
+  recordFinding: (incidentId: string, body: RecordFindingBody) =>
+    apiRequest<Incident>(`/incidents/${incidentId}/findings`, { method: 'POST', body }),
+  markUnfounded: (incidentId: string, reason: string) =>
+    apiRequest<Incident>(`/incidents/${incidentId}/unfounded`, {
+      method: 'POST',
+      body: { reason },
+    }),
   escalate: (incidentId: string, reason: string) =>
     apiRequest<{ id: string; incident_id: string; dispute_id: string | null; escalated_to: string }>(
       `/incidents/${incidentId}/escalate`,

@@ -62,5 +62,8 @@
   "tier_proposal_not_open": "This proposal has already been decided or is out of date. The page has the latest.",
   "invalid_closure_reason": "Choose why the incident is being closed.",
   "closure_note_required": "Add a note of at least 10 characters.",
-  "incident_in_open_dispute": "This incident is part of an open dispute; it closes when the dispute is resolved."
+  "incident_in_open_dispute": "This incident is part of an open dispute; it closes when the dispute is resolved.",
+  "invalid_finding": "Check the finding: an at-fault finding names at least one party of this job.",
+  "finding_reason_required": "Give a reason of at least 10 characters.",
+  "unfounded_not_allowed": "A report can be marked unfounded only once it is closed and Fikisha found no fault."
 }

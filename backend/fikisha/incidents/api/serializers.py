@@ -41,6 +41,18 @@ class CloseIncidentSerializer(serializers.Serializer[dict[str, Any]]):
     note = serializers.CharField(max_length=4000, allow_blank=True)
 
 
+class RecordFindingSerializer(serializers.Serializer[dict[str, Any]]):
+    outcome = serializers.CharField(max_length=16)
+    parties = serializers.ListField(
+        child=serializers.CharField(max_length=10), required=False, default=list
+    )
+    reason = serializers.CharField(max_length=4000, allow_blank=True)
+
+
+class UnfoundedSerializer(serializers.Serializer[dict[str, Any]]):
+    reason = serializers.CharField(max_length=4000, allow_blank=True)
+
+
 class OpenDisputeSerializer(serializers.Serializer[dict[str, Any]]):
     incident_ids = serializers.ListField(child=serializers.UUIDField(), min_length=1)
 

@@ -87,6 +87,21 @@ export interface IncidentClosure {
   note?: string;
 }
 
+export const FINDING_OUTCOMES = ['AT_FAULT', 'NO_FAULT', 'UNDETERMINED'] as const;
+export type FindingOutcome = (typeof FINDING_OUTCOMES)[number];
+export type FindingPartyKind = 'BUSINESS' | 'DRIVER' | 'GROUP';
+
+/** Fikisha's finding (trust plan A2). `reason` and the rest are staff-only. */
+export interface IncidentFinding {
+  id: string;
+  outcome: FindingOutcome;
+  parties: FindingPartyKind[];
+  created_at: string;
+  reason?: string;
+  decided_by_is_platform_admin?: boolean;
+  supersedes_id?: string | null;
+}
+
 export interface Incident {
   id: string;
   job_id: string;
@@ -103,6 +118,11 @@ export interface Incident {
   evidence: IncidentEvidenceItem[];
   statements: IncidentStatementItem[];
   closure: IncidentClosure | null;
+  finding: IncidentFinding | null;
+  /** staff only */
+  finding_history?: IncidentFinding[];
+  finding_candidates?: FindingPartyKind[];
+  unfounded?: { reason: string; created_at: string } | null;
 }
 
 export interface Resolution {
@@ -111,6 +131,8 @@ export interface Resolution {
   rationale: string;
   routed_job_status: RoutableJobStatus;
   commission_treatment: CommissionTreatment;
+  /** intent flags recorded before findings existed; history only */
+  recorded_actions?: string[];
   created_at: string;
 }
 
@@ -135,6 +157,12 @@ export interface ReportIncidentBody {
 export interface CloseIncidentBody {
   reason_code: ClosureReason;
   note: string;
+}
+
+export interface RecordFindingBody {
+  outcome: FindingOutcome;
+  parties: FindingPartyKind[];
+  reason: string;
 }
 
 export interface ResolveDisputeBody {

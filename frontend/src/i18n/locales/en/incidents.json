@@ -82,7 +82,13 @@
     "noLinkedIncidents": "No linked incidents.",
     "resolution": {
       "title": "Resolution",
-      "outcome": "Resolved — Job {{status}}"
+      "outcome": "Resolved — Job {{status}}",
+      "recordedIntent": "Recorded intent (before findings): {{actions}}",
+      "action": {
+        "RATING_IMPACT": "rating impact",
+        "TRUST_CHANGE": "trust change",
+        "SUSPENSION": "suspension"
+      }
     },
     "underReview": "Fikisha is reviewing this. You'll be notified when it's resolved.",
     "needsPlatformAdmin": "This needs a Platform Administrator.",
@@ -111,6 +117,40 @@
       "reason": "Reason for resuming",
       "action": "Resume this Job to {{status}}",
       "notAvailable": "Resume when the authoritative system permits it — not available yet."
+    }
+  },
+  "finding": {
+    "title": "Fikisha's finding",
+    "disclaimer": "This is Fikisha's finding on this job, not a legal ruling.",
+    "none": "No finding recorded.",
+    "outcome": {
+      "AT_FAULT": "At fault",
+      "NO_FAULT": "No fault found",
+      "UNDETERMINED": "Couldn't be determined"
+    },
+    "atFault": "Found at fault: {{parties}}",
+    "party": {
+      "BUSINESS": "Business",
+      "DRIVER": "Driver",
+      "GROUP": "Group"
+    },
+    "reason": "Reason",
+    "history": "Earlier findings",
+    "replaced": "Replaced",
+    "record": "Record a finding",
+    "replace": "Replace the finding",
+    "outcomeLabel": "Finding",
+    "choose": "Choose a finding",
+    "partiesLabel": "Who was at fault",
+    "groupHint": "Naming the group doesn't name the driver, and naming the driver doesn't name the group.",
+    "reasonLabel": "Reason (at least 10 characters)",
+    "submit": "Save finding",
+    "unfounded": {
+      "title": "Report unfounded",
+      "explain": "Only after closing with \"No fault found\". Recorded against the reporter; it has no automatic effect.",
+      "reason": "Why the report was unfounded",
+      "submit": "Mark report unfounded",
+      "recorded": "This report was marked unfounded."
     }
   }
 }

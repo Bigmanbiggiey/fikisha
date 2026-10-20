@@ -28,6 +28,8 @@ from fikisha.incidents.constants import (
     ClosureReason,
     CommissionTreatment,
     DisputeStatus,
+    FindingOutcome,
+    FindingPartyKind,
     IncidentSeverity,
     IncidentStatus,
     IncidentType,
@@ -171,6 +173,81 @@ class IncidentClosure(AppendOnlyModel):
 
     class Meta:
         db_table = "incident_closure"
+
+
+class IncidentFinding(AppendOnlyModel):
+    """Fikisha's finding on an incident (trust-and-disputes plan A2).
+    Append-only; a correction is a new row that ``supersedes`` the current
+    one. The current finding is the one nothing supersedes: the database
+    allows one first finding per incident and each finding to be superseded
+    once, so there is exactly one current finding per incident."""
+
+    incident = models.ForeignKey(Incident, on_delete=models.PROTECT, related_name="findings")
+    outcome = models.CharField(max_length=16, choices=FindingOutcome.choices)
+    reason = models.TextField()
+    decided_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="+"
+    )
+    decided_by_is_platform_admin = models.BooleanField(default=False)
+    supersedes = models.OneToOneField(
+        "self", null=True, blank=True, on_delete=models.PROTECT, related_name="superseded_by"
+    )
+
+    objects = AppendOnlyQuerySet.as_manager()
+
+    class Meta:
+        db_table = "incident_finding"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["incident"],
+                condition=models.Q(supersedes__isnull=True),
+                name="uq_incident_finding_one_first",
+            ),
+        ]
+        indexes = [models.Index(fields=["incident", "created_at"])]
+
+
+class IncidentFindingParty(AppendOnlyModel):
+    """A party an AT_FAULT finding names. ``subject_id`` is the business,
+    the driver's operator profile, or the group, derived from the job."""
+
+    finding = models.ForeignKey(IncidentFinding, on_delete=models.PROTECT, related_name="parties")
+    kind = models.CharField(max_length=10, choices=FindingPartyKind.choices)
+    subject_id = models.UUIDField()
+
+    objects = AppendOnlyQuerySet.as_manager()
+
+    class Meta:
+        db_table = "incident_finding_party"
+        constraints = [
+            models.UniqueConstraint(fields=["finding", "kind"], name="uq_finding_party_kind"),
+        ]
+        indexes = [models.Index(fields=["kind", "subject_id"], name="ix_finding_party_subject")]
+
+
+class UnfoundedReport(AppendOnlyModel):
+    """A Platform Admin's record that a report was unfounded (plan A3, UF-1),
+    against the reporter. Only on a closed incident whose current finding is
+    NO_FAULT. No automatic effect."""
+
+    incident = models.OneToOneField(
+        Incident, on_delete=models.PROTECT, related_name="unfounded_report"
+    )
+    finding = models.ForeignKey(IncidentFinding, on_delete=models.PROTECT, related_name="+")
+    reporter_party = models.CharField(max_length=16, choices=PartyKind.choices, blank=True)
+    reporter_user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.PROTECT, related_name="+"
+    )
+    reporter_link_id = models.UUIDField(null=True, blank=True)
+    reason = models.TextField()
+    decided_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="+"
+    )
+
+    objects = AppendOnlyQuerySet.as_manager()
+
+    class Meta:
+        db_table = "unfounded_report"
 
 
 class Dispute(TimestampedModel):

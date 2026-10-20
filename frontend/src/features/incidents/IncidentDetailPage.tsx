@@ -14,6 +14,7 @@ import { useAuth } from '@/features/auth/useAuth';
 import { jobReference } from '@/features/jobs/jobHelpers';
 import { localizeError } from '@/services/errorMessage';
 
+import { FindingPanel } from './FindingPanel';
 import { disputesApi, incidentsApi } from './incidentsApi';
 import { type ClosureReason, MANUAL_CLOSURE_REASONS } from './types';
 
@@ -211,6 +212,13 @@ export function IncidentDetailPage(): JSX.Element {
           {t('detail.send')}
         </Button>
       </Card>
+
+      <FindingPanel
+        incident={inc}
+        isStaff={isAdminViewer}
+        isPlatformAdmin={isPlatformAdmin}
+        onChanged={invalidate}
+      />
 
       {linkedDispute && (
         <Alert tone="info">

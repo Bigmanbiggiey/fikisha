@@ -17,15 +17,17 @@ from fikisha.common.idempotency import idempotent
 from fikisha.evidence import services as evidence_services
 from fikisha.identity.authz.actors import actor_from_request
 from fikisha.identity.authz.step_up import require_step_up, require_step_up_for_staff_pii
-from fikisha.incidents import services
+from fikisha.incidents import findings, services
 from fikisha.incidents.api.serializers import (
     AddStatementSerializer,
     AttachEvidenceSerializer,
     CloseIncidentSerializer,
     EscalateSerializer,
     OpenDisputeSerializer,
+    RecordFindingSerializer,
     ReportIncidentSerializer,
     ResolveDisputeSerializer,
+    UnfoundedSerializer,
 )
 from fikisha.incidents.models import Dispute, Incident, IncidentEvidence
 
@@ -42,6 +44,28 @@ def _closure_view(incident: Incident, *, staff: bool) -> dict[str, object] | Non
     }
     if staff:
         view["note"] = closure.note
+    return view
+
+
+def _findings_view(incident: Incident, *, staff: bool) -> dict[str, object]:
+    """Fikisha's current finding for everyone who can read the incident;
+    staff also see the history, the parties a finding may name and any
+    unfounded-report record (trust-and-disputes plan A2, A3)."""
+    current = findings.current_finding(incident.id)
+    view: dict[str, object] = {
+        "finding": findings.finding_view(current, staff=staff) if current else None,
+    }
+    if staff:
+        view["finding_history"] = [
+            findings.finding_view(f, staff=True) for f in findings.history(incident.id)
+        ]
+        view["finding_candidates"] = sorted(findings.candidates(incident))
+        unfounded = getattr(incident, "unfounded_report", None)
+        view["unfounded"] = (
+            {"reason": unfounded.reason, "created_at": unfounded.created_at.isoformat()}
+            if unfounded is not None
+            else None
+        )
     return view
 
 
@@ -86,6 +110,7 @@ def _incident_view(incident: Incident, *, staff: bool = False) -> dict[str, obje
             for s in incident.statements.all()
         ],
         "closure": _closure_view(incident, staff=staff),
+        **_findings_view(incident, staff=staff),
     }
 
 
@@ -105,6 +130,9 @@ def _dispute_view(dispute: Dispute) -> dict[str, object]:
                 "rationale": resolution.rationale,
                 "routed_job_status": resolution.routed_job_status,
                 "commission_treatment": resolution.commission_treatment,
+                # intent flags recorded before findings existed (ADR-2D-21);
+                # shown as history, never executed
+                "recorded_actions": [a for a in (resolution.actions or []) if a != "NONE"],
                 "created_at": resolution.created_at.isoformat(),
             }
             if resolution is not None
@@ -292,6 +320,42 @@ class IncidentCloseView(OrgApiView):
         )
         incident = Incident.objects.prefetch_related("evidence", "statements").get(id=incident.id)
         return Response(_incident_view(incident, staff=True))
+
+
+class IncidentFindingView(OrgApiView):
+    """Record Fikisha's finding on an incident (trust-and-disputes plan A2)."""
+
+    action_post = "incident.review"
+
+    def post(self, request: Request, incident_id: str) -> Response:
+        serializer = RecordFindingSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        findings.record_finding(
+            actor=self.actor(request),
+            incident_id=incident_id,
+            outcome=serializer.validated_data["outcome"],
+            parties=serializer.validated_data.get("parties", []),
+            reason=serializer.validated_data["reason"],
+        )
+        incident = Incident.objects.prefetch_related("evidence", "statements").get(id=incident_id)
+        return Response(_incident_view(incident, staff=True), status=status.HTTP_201_CREATED)
+
+
+class IncidentUnfoundedView(OrgApiView):
+    """A Platform Admin marks a report unfounded (plan A3, UF-1)."""
+
+    action_post = "incident.review"
+
+    def post(self, request: Request, incident_id: str) -> Response:
+        serializer = UnfoundedSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        findings.record_unfounded(
+            actor=self.actor(request),
+            incident_id=incident_id,
+            reason=serializer.validated_data["reason"],
+        )
+        incident = Incident.objects.prefetch_related("evidence", "statements").get(id=incident_id)
+        return Response(_incident_view(incident, staff=True), status=status.HTTP_201_CREATED)
 
 
 class IncidentEscalateView(OrgApiView):
