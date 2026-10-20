@@ -69,5 +69,8 @@
   "not_rating_party": "Only the job's business or operator side can rate it.",
   "rating_not_open": "This job can't be rated now.",
   "already_rated": "Your side has already rated this job.",
-  "invalid_rating": "Give a score from 1 to 5; a comment can be up to 1,000 characters."
+  "invalid_rating": "Give a score from 1 to 5; a comment can be up to 1,000 characters.",
+  "cancellation_flag_not_open": "This flag has already been reviewed.",
+  "flag_note_required": "Add a note of at least 10 characters.",
+  "invalid_flag_review": "Choose to clear the flag or close it as mistaken."
 }

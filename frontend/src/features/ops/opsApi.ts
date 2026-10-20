@@ -34,7 +34,22 @@ function withQuery(path: string, params: URLSearchParams, cursor?: string | null
   return qs ? `${path}?${qs}` : path;
 }
 
+/** Open late-cancellation flags (trust plan A7). */
+export interface CancellationFlagRow {
+  id: string;
+  business_id: string;
+  business_name: string;
+  count: number;
+  created_at: string;
+}
+
 export const opsApi = {
+  cancellationFlags: () => apiRequest<{ data: CancellationFlagRow[] }>('/ops/cancellation-flags'),
+  reviewCancellationFlag: (flagId: string, body: { outcome: 'CLEARED' | 'MISTAKEN'; note: string }) =>
+    apiRequest<{ id: string; status: string }>(`/ops/cancellation-flags/${flagId}/review`, {
+      method: 'POST',
+      body,
+    }),
   monitor: (filters: MonitorFilters = {}, cursor?: string | null) => {
     const p = new URLSearchParams();
     if (filters.status && filters.status.length) p.set('status', filters.status.join(','));

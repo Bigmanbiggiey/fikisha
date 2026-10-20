@@ -229,6 +229,39 @@ class OpsJobMonitorView(OrgApiView):
         return _paginate_rows(request, qs, ops.ops_rows)
 
 
+class OpsCancellationFlagsView(OrgApiView):
+    """Open late-cancellation flags (trust-and-disputes plan A7)."""
+
+    action_get = "job.monitor.view"
+
+    def get(self, request: Request) -> Response:
+        from fikisha.jobs import cancellation_flags
+
+        return Response({"data": cancellation_flags.open_flags()})
+
+
+class CancellationFlagReviewView(OrgApiView):
+    """Staff clear a flag with a note, or close it as mistaken."""
+
+    action_post = "job.intervene"
+
+    def post(self, request: Request, flag_id: str) -> Response:
+        from fikisha.jobs import cancellation_flags
+
+        outcome = str(request.data.get("outcome") or "")
+        if outcome not in ("CLEARED", "MISTAKEN"):
+            from fikisha.common.exceptions import DomainError
+
+            raise DomainError("Choose CLEARED or MISTAKEN.", code="invalid_flag_review")
+        flag = cancellation_flags.review_flag(
+            actor=self.actor(request),
+            flag_id=flag_id,
+            mistaken=outcome == "MISTAKEN",
+            note=str(request.data.get("note") or ""),
+        )
+        return Response({"id": str(flag.id), "status": flag.status})
+
+
 class OpsHighValueQueueView(OrgApiView):
     action_get = "job.monitor.view"
 

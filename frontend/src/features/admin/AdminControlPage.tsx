@@ -11,6 +11,7 @@ import { useOnline } from '@/design/useOnline';
 import { opsApi } from '@/features/ops/opsApi';
 import { Queue, QueueRow } from '@/features/ops/Queue';
 import { StatementsSummaryCard } from '@/features/statements/StatementsSummaryCard';
+import { CancellationFlagsCard } from '@/features/ops/CancellationFlagsCard';
 import { TierReviewsCard } from '@/features/trust/TierReviewsCard';
 import { localizeError } from '@/services/errorMessage';
 import { formatDateTime } from '@/services/datetime';
@@ -113,6 +114,8 @@ export function AdminControlPage(): JSX.Element {
       )}
 
       <TierReviewsCard />
+
+      <CancellationFlagsCard />
 
       <StatementsSummaryCard />
 

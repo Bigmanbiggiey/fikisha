@@ -69,5 +69,8 @@
   "not_rating_party": "Biashara au upande wa mhudumu wa kazi hii pekee ndio wanaweza kuikadiria.",
   "rating_not_open": "Kazi hii haiwezi kukadiriwa sasa.",
   "already_rated": "Upande wako umeshaikadiria kazi hii.",
-  "invalid_rating": "Toa alama kuanzia 1 hadi 5; maoni yasizidi herufi 1,000."
+  "invalid_rating": "Toa alama kuanzia 1 hadi 5; maoni yasizidi herufi 1,000.",
+  "cancellation_flag_not_open": "Alama hii imeshakaguliwa.",
+  "flag_note_required": "Andika maelezo ya angalau herufi 10.",
+  "invalid_flag_review": "Chagua kuondoa alama au kuifunga kama kosa."
 }

@@ -62,11 +62,13 @@ from fikisha.jobs.constants import (
     HIGH_VALUE_BANDS,
     Attestation,
     CancellationReason,
+    CancellingSide,
     ConfirmationMethod,
     JobEventCategory,
     JobEventType,
     JobStatus,
     OperatorParty,
+    PenaltyClass,
     ProofCapturedBy,
     ProofKind,
     TrustLevel,
@@ -234,7 +236,9 @@ def cancel(job: Any, actor: Any, ctx: dict[str, Any]) -> None:
     if job.status == JobStatus.DRAFT:
         _freeze_value_band(job)
     reason_code = ctx.get("reason_code") or CancellationReason.OTHER
-    CancellationRecord.objects.create(
+    tokens = {str(t) for t in (ctx.get("initiator_tokens") or [])}
+    side = CancellingSide.BUSINESS if "BUSINESS_PARTY" in tokens else CancellingSide.STAFF
+    record = CancellationRecord.objects.create(
         job=job,
         cancelled_by_role=_actor_role(actor),
         cancelled_by_user=_actor_user(actor),
@@ -242,7 +246,13 @@ def cancel(job: Any, actor: Any, ctx: dict[str, Any]) -> None:
         reason_code=reason_code,
         reason_text=(ctx.get("reason_text") or "").strip(),
         penalty_class=compute_penalty_class(job.status),
+        cancelling_side=side,
+        business_id=job.business_id,
     )
+    if side == CancellingSide.BUSINESS and record.penalty_class != PenaltyClass.NONE:
+        from fikisha.jobs import cancellation_flags
+
+        cancellation_flags.check_business(job.business_id)
 
 
 def fail(job: Any, actor: Any, ctx: dict[str, Any]) -> None:

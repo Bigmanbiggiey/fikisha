@@ -148,5 +148,15 @@
     "nothingHint": "Everything else is on the Operations overview.",
     "opsHint": "Jobs needing attention, incidents, Standard-band disputes and the verification queue are on the Operations overview.",
     "openOps": "Open the Operations overview"
+  },
+  "cancellationFlags": {
+    "title": "Cancellation flags",
+    "row": "{{count}} late cancellations or wasted trips in 30 days",
+    "clear": "Clear",
+    "mistaken": "Close as mistaken",
+    "clearTitle": "Clear this flag",
+    "mistakenTitle": "Close this flag as mistaken",
+    "clearRestate": "Clear the cancellation flag for {{name}}. Nothing else changes.",
+    "mistakenRestate": "Close the cancellation flag for {{name}} as mistaken. Nothing else changes."
   }
 }
