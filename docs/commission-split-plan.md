@@ -1,7 +1,7 @@
 # Commission split (5% business + 5% operator): plan
 
-**Status:** DRAFT 2026-10-26, awaiting founder decisions (§6). Nothing is
-built yet.
+**Status:** APPROVED 2026-10-26, D-1 to D-7 all as recommended (§8).
+Building as C-1 to C-3 on `feat/commission-split` (stacked on PR #27).
 **Founder decision:** 2026-10-22. Commission stays at 10% of each completed
 job, but it is split: **5% paid by the sender (business) and 5% paid by the
 operator**, with **no minimum and no maximum** ("we take what we get";
@@ -243,10 +243,13 @@ business terms of service also need to state the fee.
 
 | # | Decision | Recommendation | Founder answer |
 |---|---|---|---|
-| D-1 | How the business pays | (a) weekly business statement, same paybill | |
-| D-2 | Rounding | (a) each side rounded on its own | |
-| D-3 | Who sees business statements | (a) Owner only | |
-| D-4 | When the fee is fixed | (b) at agreement | |
-| D-5 | Commission in disputes | (b) per side, "same for both" pre-selected | |
-| D-6 | Unpaid business statements | (a) overdue marker only | |
-| D-7 | Tax-advisor confirmation covers business statements | Founder action before the first real business statement | |
+| D-1 | How the business pays | (a) weekly business statement, same paybill | **(a)** |
+| D-2 | Rounding | (a) each side rounded on its own | **(a)** |
+| D-3 | Who sees business statements | (a) Owner only | **(a)** |
+| D-4 | When the fee is fixed | (b) at agreement | **(b)** |
+| D-5 | Commission in disputes | (b) per side, "same for both" pre-selected | **(b)** |
+| D-6 | Unpaid business statements | (a) overdue marker only | **(a)** |
+| D-7 | Tax-advisor confirmation covers business statements | Founder action before the first real business statement | **Agreed.** Founder action before the first real business statement |
+
+Answered by the founder in session, 2026-10-26: "all as recommended, build".
+This table is the authoritative copy.
