@@ -177,7 +177,10 @@ def test_config_change_api_needs_a_fresh_step_up(client_for: Callable, platform_
     from fikisha.platform_config import services as config_services
 
     before = config_services.current_version()
-    body = {"changes": {"commission.rate": 0.08}, "rationale": "Pilot test of a lower rate"}
+    body = {
+        "changes": {"commission.business_rate": 0.04},
+        "rationale": "Pilot test of a lower rate",
+    }
     stale = _stale_step_up(client_for(platform_admin))
     r = stale.post(f"{API}/admin/config", body, format="json")
     assert r.status_code == 403, r.content
@@ -422,8 +425,14 @@ def test_suspended_group_cannot_negotiate(
 # ─── Configuration ─────────────────────────────────────────────────────
 def test_config_view(client_for: Callable, platform_admin: Any) -> None:
     r = client_for(platform_admin).get(f"{API}/admin/config")
-    assert r.data["config"]["commission"]["rate"] == 0.10
-    assert "commission.rate" in r.data["editable_paths"]
+    assert r.data["config"]["commission"] == {
+        "model": "SPLIT_FLAT",
+        "business_rate": 0.05,
+        "operator_rate": 0.05,
+    }
+    assert "commission.business_rate" in r.data["editable_paths"]
+    assert "commission.operator_rate" in r.data["editable_paths"]
+    assert "commission.min_fee_kes" not in r.data["editable_paths"]
     assert "role_permissions" not in " ".join(r.data["editable_paths"])
     assert r.data["versions"][0]["version"] == r.data["version"]
 
@@ -434,15 +443,18 @@ def test_config_preview_shows_diff_and_effect(client_for: Callable, platform_adm
     before = config_services.current_version()
     r = client_for(platform_admin).post(
         f"{API}/admin/config/preview",
-        {"changes": {"commission.rate": 0.08, "timeouts.offer_expiry_hours": 6}},
+        {"changes": {"commission.business_rate": 0.03, "timeouts.offer_expiry_hours": 6}},
         format="json",
     )
     assert r.status_code == 200, r.content
     assert {c["path"]: (c["before"], c["after"]) for c in r.data["changes"]} == {
-        "commission.rate": (0.10, 0.08),
+        "commission.business_rate": (0.05, 0.03),
         "timeouts.offer_expiry_hours": (4, 6),
     }
+    # each side on a KES 3,000 job: 5% + 5% today, 3% + 5% after
     sample = next(s for s in r.data["commission_samples"] if s["agreed_price_kes"] == 300_000)
+    assert sample["before"] == {"business_kes": 15_000, "operator_kes": 15_000}
+    assert sample["after"] == {"business_kes": 9_000, "operator_kes": 15_000}
     assert (sample["before_kes"], sample["after_kes"]) == (30_000, 24_000)
     assert config_services.current_version() == before
 
@@ -452,10 +464,12 @@ def test_config_preview_shows_diff_and_effect(client_for: Callable, platform_adm
     [
         ({"role_permissions.OPERATIONS_OFFICER": ["*"]}, "config_key_not_editable"),
         ({"high_value_threshold_kes": 1}, "config_key_not_editable"),
-        ({"commission.rate": 2}, "invalid_config_change"),
-        ({"commission.rate": "0.1"}, "invalid_config_change"),
-        ({"commission.cap_kes": -1}, "invalid_config_change"),
-        ({"commission.rate": 0.10}, "invalid_config_change"),
+        ({"commission.business_rate": 2}, "invalid_config_change"),
+        ({"commission.operator_rate": -0.01}, "invalid_config_change"),
+        ({"commission.business_rate": "0.1"}, "invalid_config_change"),
+        ({"commission.cap_kes": 500000}, "config_key_not_editable"),
+        ({"commission.rate": 0.10}, "config_key_not_editable"),
+        ({"commission.operator_rate": 0.05}, "invalid_config_change"),
         ({}, "invalid_config_change"),
     ],
 )
@@ -475,15 +489,15 @@ def test_config_apply_behind_the_gate(stepped_up_admin: Any) -> None:
     before = config_services.current_version()
     result = services.apply_config_change(
         actor=stepped_up_admin,
-        changes={"commission.rate": 0.08},
+        changes={"commission.operator_rate": 0.04},
         rationale="Pilot test of a lower rate",
     )
     assert result["version"] == before + 1
-    assert config_services.get("commission.rate") == 0.08
+    assert config_services.get("commission.operator_rate") == 0.04
     assert AuditLogEntry.objects.filter(action="platform_config.changed").exists()
     with pytest.raises(services.InvalidConfigChange):
         services.apply_config_change(
-            actor=stepped_up_admin, changes={"commission.rate": 0.07}, rationale="short"
+            actor=stepped_up_admin, changes={"commission.operator_rate": 0.07}, rationale="short"
         )
 
 
@@ -520,12 +534,31 @@ def test_commission_ledger(
     r = client_for(platform_admin).get(f"{API}/admin/commission")
     assert r.status_code == 200, r.content
     assert r.data["statements_available"] is True
-    [row] = r.data["data"]
-    assert row["job_id"] == str(job.id)
-    assert row["payee"]["id"] == str(eligible_driver.id)
-    assert row["effective_kes"] == row["commission_kes"] > 0
-    assert r.data["totals"]["records"] == 1
-    assert r.data["totals"]["effective_kes"] == row["effective_kes"]
+    rows = {row["party"]: row for row in r.data["data"]}
+    assert set(rows) == {"BUSINESS", "OPERATOR"}  # one per paying side (ADR-2D-55)
+    for row in rows.values():
+        assert row["job_id"] == str(job.id)
+        assert row["effective_kes"] == row["commission_kes"] > 0
+        assert row["min_fee_kes"] is None and row["cap_kes"] is None
+    assert rows["OPERATOR"]["payee"]["id"] == str(eligible_driver.id)
+    assert rows["BUSINESS"]["payee"] == {
+        "kind": "BUSINESS",
+        "id": str(job.business_id),
+        "name": "Kitengela Traders",
+    }
+    assert r.data["totals"]["records"] == 2
+    assert r.data["totals"]["effective_kes"] == sum(x["effective_kes"] for x in rows.values())
+
+    # filters: a side; an operator owes only the operator side; a business its own
+    by_party = client_for(platform_admin).get(f"{API}/admin/commission?party=BUSINESS")
+    assert [x["party"] for x in by_party.data["data"]] == ["BUSINESS"]
+    by_op = client_for(platform_admin).get(
+        f"{API}/admin/commission?operator_id={eligible_driver.id}"
+    )
+    assert [x["party"] for x in by_op.data["data"]] == ["OPERATOR"]
+    by_biz = client_for(platform_admin).get(f"{API}/admin/commission?business_id={job.business_id}")
+    assert [x["party"] for x in by_biz.data["data"]] == ["BUSINESS"]
+    assert client_for(platform_admin).get(f"{API}/admin/commission?party=X").status_code == 422
 
     r = client_for(platform_admin).get(f"{API}/admin/commission?since=2999-01-01T00:00:00Z")
     assert r.data["data"] == []

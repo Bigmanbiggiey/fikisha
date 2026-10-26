@@ -21,6 +21,7 @@ from rest_framework.response import Response
 
 from fikisha.common.api import OrgApiView
 from fikisha.common.pagination import CursorPagination
+from fikisha.jobs.constants import CommissionParty
 from fikisha.statements import services
 from fikisha.statements.models import CommissionStatement, PayeeKind, SettlementMethod
 
@@ -87,12 +88,19 @@ class StatementDetailView(OrgApiView):
 
 
 class JobEarningsView(OrgApiView):
-    """``GET /jobs/<id>/earnings`` — "Earnings for this Job" (P3 §7.4)."""
+    """``GET /jobs/<id>/earnings?party=`` — "Earnings for this Job" (P3 §7.4)
+    for the operator side, "Cost for this job" for the business side
+    (ADR-2D-55)."""
 
     action_get = "statements.job_earnings"
 
     def get(self, request: Request, job_id: uuid.UUID) -> Response:
-        return Response(services.job_earnings(actor=self.actor(request), job_id=job_id))
+        party = (request.query_params.get("party") or "").strip().upper() or None
+        if party and party not in CommissionParty.values:
+            raise services.InvalidPeriod("party must be BUSINESS or OPERATOR.")
+        return Response(
+            services.job_earnings(actor=self.actor(request), job_id=job_id, party=party)
+        )
 
 
 def _date_param(request: Request, name: str) -> Any:
@@ -114,7 +122,7 @@ class AdminStatementsView(OrgApiView):
     def get(self, request: Request) -> Response:
         payee_kind = (request.query_params.get("payee_kind") or "").strip().upper() or None
         if payee_kind and payee_kind not in PayeeKind.values:
-            raise services.InvalidPeriod("payee_kind must be OPERATOR or GROUP.")
+            raise services.InvalidPeriod("payee_kind must be OPERATOR, GROUP or BUSINESS.")
         payee_id = (request.query_params.get("payee_id") or "").strip() or None
         if payee_id:
             try:

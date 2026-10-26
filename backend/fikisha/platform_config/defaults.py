@@ -5,7 +5,8 @@ Phase 1 database-design §4.15; business tuning happens via
 ``ConfigService.apply_change`` (no deploy). Money is integer KES minor units.
 
 Confirmed founder values already baked in (Phase 0 decisions):
-  * commission: flat 10%, KES 40 minimum, KES 5,000 cap (Phase 2A brief §3 / D-BIZ-5 clarified)
+  * commission: 5% from the business + 5% from the operator, no minimum or cap
+    (founder decision 2026-10-22, ADR-2D-55; replaced 10% / KES 40 / KES 5,000)
   * value bands: 50k / 250k / 1M ; high-value review threshold KES 250,000 (D-TRU-5)
   * UI languages English + Swahili (D-PIL-4)
   * pilot admin roles: PLATFORM_ADMIN + OPERATIONS_OFFICER (D-ADM-1)
@@ -23,13 +24,15 @@ DEFAULT_CONFIG: dict[str, Any] = {
     "brand": {"name": "Fikisha"},
     "locales": {"supported": ["en", "sw"], "operator_default": "sw", "default": "en"},
     "pilot": {"area": "Kitengela, Kajiado County + environs"},
-    # ─── Commission (Phase 2A brief §3) ───────────────────────────────
+    # ─── Commission (commission split plan, ADR-2D-55) ───────────────
+    # Each side pays its own rate on the agreed price, rounded half up to
+    # the cent on its own; no minimum, no cap. A rate of 0 means no fee for
+    # that side. The rates are fixed on the agreement when the price is
+    # agreed (D-4).
     "commission": {
-        "model": "FLAT_WITH_MIN_CAP",  # the only implemented model
-        "rate": 0.10,
-        "min_fee_kes": 4000,  # KES 40.00
-        "cap_kes": 500000,  # KES 5,000.00
-        "party_liable": "OPERATOR",
+        "model": "SPLIT_FLAT",  # the only implemented model
+        "business_rate": 0.05,
+        "operator_rate": 0.05,
     },
     # ─── Commission statements (Commission & Statements plan, ADR-2D-42) ─
     "statements": {
@@ -370,7 +373,8 @@ DEFAULT_CONFIG: dict[str, Any] = {
     },
 }
 
-_ALLOWED_COMMISSION_MODELS = {"FLAT_WITH_MIN_CAP", "BANDED_TAPER", "RAMPED"}
+_ALLOWED_COMMISSION_MODELS = {"SPLIT_FLAT"}
+COMMISSION_RATE_KEYS = ("business_rate", "operator_rate")
 _REQUIRED_TOP_LEVEL = {
     "schema_version",
     "commission",
@@ -396,15 +400,15 @@ def validate(data: dict[str, Any]) -> None:
     commission = data["commission"]
     if commission.get("model") not in _ALLOWED_COMMISSION_MODELS:
         raise ConfigValidationError(f"commission.model must be one of {_ALLOWED_COMMISSION_MODELS}")
-    for money_key in ("min_fee_kes", "cap_kes"):
-        value = commission.get(money_key)
-        if not isinstance(value, int) or isinstance(value, bool) or value < 0:
-            raise ConfigValidationError(
-                f"commission.{money_key} must be a non-negative int (minor units)"
-            )
-    rate = commission.get("rate")
-    if not isinstance(rate, int | float) or not (0 <= rate <= 1):
-        raise ConfigValidationError("commission.rate must be a number between 0 and 1")
+    for rate_key in COMMISSION_RATE_KEYS:
+        rate = commission.get(rate_key)
+        if isinstance(rate, bool) or not isinstance(rate, int | float) or not (0 <= rate <= 1):
+            raise ConfigValidationError(f"commission.{rate_key} must be a number between 0 and 1")
+    stale = set(commission) - {"model", *COMMISSION_RATE_KEYS}
+    if stale:
+        raise ConfigValidationError(
+            f"commission has keys the split model doesn't use: {sorted(stale)}"
+        )
 
     hv = data["high_value_threshold_kes"]
     if not isinstance(hv, int) or isinstance(hv, bool) or hv < 0:

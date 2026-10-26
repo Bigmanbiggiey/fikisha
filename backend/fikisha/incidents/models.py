@@ -305,10 +305,17 @@ class Resolution(AppendOnlyModel):
     dispute = models.OneToOneField(Dispute, on_delete=models.PROTECT, related_name="resolution")
     outcome_code = models.CharField(max_length=20, choices=ResolutionOutcome.choices)
     rationale = models.TextField()
+    #: The operator side's commission (and, before the commission split,
+    #: the only side).
     commission_treatment = models.CharField(
         max_length=8, choices=CommissionTreatment.choices, default=CommissionTreatment.APPLY
     )
     reduced_amount_kes = models.BigIntegerField(null=True, blank=True)
+    #: The business side's commission (commission split D-5, ADR-2D-55).
+    business_commission_treatment = models.CharField(
+        max_length=8, choices=CommissionTreatment.choices, default=CommissionTreatment.APPLY
+    )
+    business_reduced_amount_kes = models.BigIntegerField(null=True, blank=True)
     agreed_compensation_kes = models.BigIntegerField(null=True, blank=True)
     actions = models.JSONField(default=list, blank=True)
     routed_job_status = models.CharField(max_length=16, choices=JobStatus.choices)
@@ -337,6 +344,13 @@ class Resolution(AppendOnlyModel):
                     models.Q(reduced_amount_kes__isnull=True) | models.Q(reduced_amount_kes__gte=0)
                 ),
                 name="ck_resolution_reduced_amount_non_negative",
+            ),
+            models.CheckConstraint(
+                condition=(
+                    models.Q(business_reduced_amount_kes__isnull=True)
+                    | models.Q(business_reduced_amount_kes__gte=0)
+                ),
+                name="ck_resolution_business_reduced_amount_non_negative",
             ),
         ]
 

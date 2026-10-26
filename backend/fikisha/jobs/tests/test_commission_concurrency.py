@@ -57,7 +57,7 @@ def test_concurrent_completion_attempts_produce_exactly_one_commission_record(
     # DELIVERED once); the rest legitimately fail once the first commits —
     # never a raw IntegrityError, never a duplicate commission record.
     assert len(results) == 1, (results, errors)
-    assert CommissionRecord.objects.filter(job=job).count() == 1
+    assert CommissionRecord.objects.filter(job=job).count() == 2  # one per side
     job.refresh_from_db()
     assert job.status == JobStatus.COMPLETED
 
@@ -80,9 +80,9 @@ def test_concurrent_commission_creation_calls_are_idempotent_not_duplicating(
 
     def _ensure() -> None:
         try:
-            record = commission.create_commission_record_locked(job=job, actor=None)
+            records = commission.create_commission_records_locked(job=job, actor=None)
             with lock:
-                found.append(record.id)
+                found.append(tuple(sorted(str(r.id) for r in records)))
         except BaseException as exc:
             with lock:
                 errors.append(exc)
@@ -97,7 +97,7 @@ def test_concurrent_commission_creation_calls_are_idempotent_not_duplicating(
 
     assert not errors, errors
     assert len(set(found)) == 1
-    assert CommissionRecord.objects.filter(job=job).count() == 1
+    assert CommissionRecord.objects.filter(job=job).count() == 2
 
 
 def test_concurrent_adjustments_cannot_overdraw_the_effective_commission(
@@ -107,7 +107,7 @@ def test_concurrent_adjustments_cannot_overdraw_the_effective_commission(
 
     job = delivered_job()
     complete_job(job)
-    record = CommissionRecord.objects.get(job=job)
+    record = CommissionRecord.objects.get(job=job, party="OPERATOR")
     # Whatever the fixture's default agreed price yields (the calculation
     # itself is covered exhaustively in test_commission_calculation.py) — the
     # point here is purely the concurrency behaviour against that amount.

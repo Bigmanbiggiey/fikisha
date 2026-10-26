@@ -4,7 +4,13 @@ wallet/escrow, and this module moves no money — it records the platform's own
 commission entitlement for a completed Job, and (append-only) any authorized
 correction to it.
 
-``create_commission_record_locked`` is called **only** from
+Commission split (ADR-2D-55, founder decision 2026-10-22): the business and
+the operator each owe their own rate of the agreed price (5% and 5% by
+default), with no minimum or cap. Each side is a separate
+``CommissionRecord`` (``party``), rounded on its own (D-2). The rates are
+fixed on the ``Agreement`` when the price is agreed (D-4).
+
+``create_commission_records_locked`` is called **only** from
 ``jobs.apply_fns.complete`` — inside ``JobLifecycleService.transition()``'s
 own transaction, with the Job row already locked (``SELECT ... FOR UPDATE``).
 That is the entire atomicity story: if this raises, the whole transition
@@ -16,7 +22,7 @@ dispute()`` — the *only* authorized caller (an explicit, admin-reviewed
 Resolution; never automatic). ``jobs`` never imports ``fikisha.incidents``
 (ADR-2D-01/22); the caller supplies its own dispute/resolution ids for
 forensic cross-reference as plain UUIDs, not FKs. Unlike
-``create_commission_record_locked`` (which relies entirely on the caller
+``create_commission_records_locked`` (which relies entirely on the caller
 already holding the Job row lock inside the transition's own transaction),
 ``create_adjustment`` opens its own ``@transaction.atomic`` and takes its own
 ``select_for_update()`` on the commission record — it is not only ever called
@@ -31,7 +37,7 @@ from typing import Any
 from django.db import transaction
 
 from fikisha.audit import services as audit
-from fikisha.jobs.constants import CommissionAdjustmentKind
+from fikisha.jobs.constants import CommissionAdjustmentKind, CommissionParty
 from fikisha.jobs.errors import (
     CommissionAdjustmentReasonRequired,
     CommissionAgreementMissing,
@@ -44,12 +50,15 @@ from fikisha.jobs.selectors import current_config_version
 from fikisha.outbox.services import emit
 from fikisha.platform_config import services as config
 
-#: The only commission model actually implemented (defaults.py's
-#: ``_ALLOWED_COMMISSION_MODELS`` also lists ``BANDED_TAPER`` / ``RAMPED`` as
-#: *syntactically* valid config values for a future phase — Step 9 brief §2
-#: explicitly forbids introducing a taper/ramp now, so this module refuses to
-#: silently miscalculate against either).
-_IMPLEMENTED_MODEL = "FLAT_WITH_MIN_CAP"
+#: The only commission model implemented (ADR-2D-55). The calculator
+#: refuses any other value rather than silently miscalculating.
+_IMPLEMENTED_MODEL = "SPLIT_FLAT"
+
+#: Config key for each side's rate.
+_RATE_KEYS = {
+    CommissionParty.BUSINESS: "business_rate",
+    CommissionParty.OPERATOR: "operator_rate",
+}
 
 
 def _actor_user(actor: Any) -> Any:
@@ -73,15 +82,12 @@ def can_adjust_commission(actor: Any) -> bool:
     return _is_platform_admin(actor)
 
 
-def calculate_commission_kes(
-    agreed_price_kes: int, *, rate: float | Decimal, min_fee_kes: int, cap_kes: int
-) -> int:
-    """``commission = max(min_fee, min(price * rate, cap))`` — deterministic,
-    integer-in/integer-out. ``rate`` is converted via ``Decimal(str(rate))``
-    (never ``Decimal(rate)`` on a float — that reproduces the binary float's
-    rounding error) so the *approved* rate (0.10) is exact; the product is
-    rounded to the nearest whole KES minor unit, half up (Step 9 brief §6:
-    "exact integer arithmetic", "avoid floating point")."""
+def calculate_fee_kes(agreed_price_kes: int, *, rate: float | Decimal) -> int:
+    """One side's fee: ``price * rate``, rounded to the nearest whole KES
+    minor unit, half up (D-2: each side on its own). Integer in, integer
+    out. ``rate`` goes through ``Decimal(str(rate))`` (never ``Decimal(rate)``
+    on a float, which would carry the binary float's error) so 0.05 is
+    exact."""
     if not isinstance(agreed_price_kes, int) or isinstance(agreed_price_kes, bool):
         raise TypeError("agreed_price_kes must be an int (KES minor units)")
     if agreed_price_kes < 0:
@@ -89,91 +95,170 @@ def calculate_commission_kes(
     raw = (Decimal(agreed_price_kes) * Decimal(str(rate))).quantize(
         Decimal("1"), rounding=ROUND_HALF_UP
     )
-    return max(int(min_fee_kes), min(int(raw), int(cap_kes)))
+    return int(raw)
 
 
-def _resolve_commission_config() -> dict[str, Any]:
+def live_rates() -> dict[str, Decimal]:
+    """Each side's rate from the live config. Raises
+    ``CommissionConfigInvalid`` for any model other than the split."""
     commission = config.get("commission", {}) or {}
     if commission.get("model") != _IMPLEMENTED_MODEL:
         raise CommissionConfigInvalid(
             f"commission.model={commission.get('model')!r} is not implemented "
             f"(only {_IMPLEMENTED_MODEL!r} is)."
         )
-    return commission
+    rates: dict[str, Decimal] = {}
+    for party, key in _RATE_KEYS.items():
+        value = commission.get(key)
+        if isinstance(value, bool) or not isinstance(value, int | float) or not 0 <= value <= 1:
+            raise CommissionConfigInvalid(f"commission.{key}={value!r} is not a rate.")
+        rates[party] = Decimal(str(value)).quantize(Decimal("0.0001"))
+    return rates
 
 
-def create_commission_record_locked(*, job: Job, actor: Any) -> CommissionRecord:
-    """Idempotent: returns the existing record if the job already has one — a
-    job can reach ``COMPLETED`` more than once (an original completion, then
-    later a post-completion dispute resolved back to ``COMPLETED``); never
-    creates a second row (the ``OneToOneField`` on ``job`` is the DB-level
-    backstop, ``UNIQUE(job_id)``). Must be called with the Job row already
-    locked (``SELECT ... FOR UPDATE``) — true for every caller, since this
-    only ever runs from inside the lifecycle transition's own apply fn."""
-    existing = CommissionRecord.objects.filter(job=job).first()
-    if existing is not None:
+def pinned_rates() -> dict[str, Any]:
+    """The rates to fix on a new ``Agreement`` (D-4), with the config version
+    they came from. Called from the ``confirm`` apply fn."""
+    rates = live_rates()
+    return {
+        "business_rate": rates[CommissionParty.BUSINESS],
+        "operator_rate": rates[CommissionParty.OPERATOR],
+        "rates_config_version": current_config_version(),
+    }
+
+
+def rates_for(agreement: Any) -> dict[str, Decimal]:
+    """The rates an agreement charges: the ones fixed on it, or, for an
+    agreement made before the split (no rates fixed), the live ones."""
+    if agreement.business_rate is not None and agreement.operator_rate is not None:
+        return {
+            CommissionParty.BUSINESS: agreement.business_rate,
+            CommissionParty.OPERATOR: agreement.operator_rate,
+        }
+    return live_rates()
+
+
+def fee_view(agreed_price_kes: int, party: str, rate: Decimal) -> dict[str, Any]:
+    """What one side sees about its fee on a price: the rate, the fee, and
+    what that means for them (the business pays price + fee; the operator
+    keeps price - fee). Computed here, never in the browser."""
+    fee = calculate_fee_kes(int(agreed_price_kes), rate=rate)
+    view: dict[str, Any] = {"party": party, "rate": str(rate), "fee_kes": fee}
+    if party == CommissionParty.BUSINESS:
+        view["total_cost_kes"] = int(agreed_price_kes) + fee
+    else:
+        view["operator_keeps_kes"] = int(agreed_price_kes) - fee
+    return view
+
+
+def quote(agreed_price_kes: int, party: str) -> dict[str, Any]:
+    """One side's fee on a price at the live rates (while negotiating, before
+    any rate is fixed)."""
+    return fee_view(agreed_price_kes, party, live_rates()[party])
+
+
+def fees_for_job(job: Job, parties: Any) -> list[dict[str, Any]]:
+    """The fee views for ``parties`` on a job's agreed price. Once the job has
+    commission records, what was actually recorded (after any dispute
+    adjustment): a job completed before the split shows its operator-only
+    10% and no business fee. Before that, the rates fixed on the agreement
+    (or, for an agreement made before the split, the live ones)."""
+    agreement = job.agreement
+    records = {
+        r.party: r for r in CommissionRecord.objects.filter(job=job).prefetch_related("adjustments")
+    }
+    if records:
+        views = []
+        for party in parties:
+            record = records.get(party)
+            if record is None:
+                continue
+            view = fee_view(record.agreed_price_kes, party, record.rate)
+            effective = effective_commission_kes(record)
+            view["fee_kes"] = effective
+            if party == CommissionParty.BUSINESS:
+                view["total_cost_kes"] = record.agreed_price_kes + effective
+            else:
+                view["operator_keeps_kes"] = record.agreed_price_kes - effective
+            views.append(view)
+        return views
+    if agreement is None:
+        return []
+    rates = rates_for(agreement)
+    return [fee_view(agreement.agreed_price_kes, party, rates[party]) for party in parties]
+
+
+def create_commission_records_locked(*, job: Job, actor: Any) -> list[CommissionRecord]:
+    """One record per side with a rate above zero, computed from the job's
+    frozen ``Agreement`` and its fixed rates. Commission is fixed once, the
+    first time the job completes: a job can reach ``COMPLETED`` again (a
+    post-completion dispute resolved back to ``COMPLETED``) and then gets
+    nothing new (``UNIQUE(job_id, party)`` is the DB backstop). Must be
+    called with the Job row already locked (``SELECT ... FOR UPDATE``) —
+    true for every caller, since this only ever runs from inside the
+    lifecycle transition's own apply fn."""
+    existing = list(CommissionRecord.objects.filter(job=job).order_by("party"))
+    if existing:
         return existing
 
     agreement = job.agreement
     if agreement is None:  # pragma: no cover - guarded by the state machine
         raise CommissionAgreementMissing()
 
-    commission_cfg = _resolve_commission_config()
-    rate = commission_cfg["rate"]
-    min_fee_kes = int(commission_cfg["min_fee_kes"])
-    cap_kes = int(commission_cfg["cap_kes"])
+    rates = rates_for(agreement)
     agreed_price_kes = int(agreement.agreed_price_kes)
-    commission_kes = calculate_commission_kes(
-        agreed_price_kes, rate=rate, min_fee_kes=min_fee_kes, cap_kes=cap_kes
-    )
     version = current_config_version()
+    records: list[CommissionRecord] = []
+    for party in (CommissionParty.BUSINESS, CommissionParty.OPERATOR):
+        rate = rates[party]
+        if rate <= 0:
+            continue
+        commission_kes = calculate_fee_kes(agreed_price_kes, rate=rate)
+        record = CommissionRecord.objects.create(
+            job=job,
+            party=party,
+            agreement=agreement,
+            agreed_price_kes=agreed_price_kes,
+            rate=rate,
+            commission_kes=commission_kes,
+            config_version=version,
+        )
+        audit.record(
+            actor=actor,
+            action="commission.recorded",
+            entity_type="commission_record",
+            entity_id=record.id,
+            after={
+                "job_id": str(job.id),
+                "party": party,
+                "agreed_price_kes": agreed_price_kes,
+                "rate": str(record.rate),
+                "commission_kes": commission_kes,
+                "config_version": version.version if version else None,
+            },
+        )
+        emit(
+            event_type="CommissionRecorded",
+            aggregate_type="commission_record",
+            aggregate_id=str(record.id),
+            # Identifiers only — the commission amount is commercially
+            # sensitive (Step 9 brief §23) and stays behind the DB's own
+            # access control; a later statement/notification consumer looks
+            # it up. The full calculation is in the audit entry above.
+            payload={"job_id": str(job.id), "party": party},
+        )
+        records.append(record)
+    return records
 
-    record = CommissionRecord.objects.create(
-        job=job,
-        agreement=agreement,
-        agreed_price_kes=agreed_price_kes,
-        rate=Decimal(str(rate)),
-        min_fee_kes=min_fee_kes,
-        cap_kes=cap_kes,
-        commission_kes=commission_kes,
-        config_version=version,
-    )
-    audit.record(
-        actor=actor,
-        action="commission.recorded",
-        entity_type="commission_record",
-        entity_id=record.id,
-        after={
-            "job_id": str(job.id),
-            "agreed_price_kes": agreed_price_kes,
-            "rate": str(record.rate),
-            "min_fee_kes": min_fee_kes,
-            "cap_kes": cap_kes,
-            "commission_kes": commission_kes,
-            "config_version": version.version if version else None,
-        },
-    )
-    emit(
-        event_type="CommissionRecorded",
-        aggregate_type="commission_record",
-        aggregate_id=str(record.id),
-        # Identifiers only — the commission amount is commercially sensitive
-        # (Step 9 brief §23) and stays behind the DB's own access control; a
-        # future statement/notification consumer looks it up, never receives
-        # it broadcast through the event stream. The full calculation detail
-        # is in the audit entry above, which already has stricter access.
-        payload={"job_id": str(job.id)},
-    )
-    return record
 
-
-def get_commission_record(job: Job) -> CommissionRecord | None:
-    """``None`` if the job has never completed (e.g. a dispute opened and
-    resolved to ``FAILED``/``CANCELLED`` before any ``COMPLETED`` pass ever
-    created one) — callers (``incidents.services.resolve_dispute()``) treat a
-    ``commission_treatment`` other than ``APPLY`` on such a job as
-    "nothing to adjust", not an error."""
-    return CommissionRecord.objects.filter(job=job).first()
+def get_commission_records(job: Job) -> dict[str, CommissionRecord]:
+    """The job's records by party; empty if the job has never completed (e.g.
+    a dispute opened and resolved to ``FAILED``/``CANCELLED`` before any
+    ``COMPLETED`` pass created them). Callers
+    (``incidents.services.resolve_dispute()``) treat a treatment other than
+    ``APPLY`` on a side with no record as "nothing to adjust", not an
+    error."""
+    return {r.party: r for r in CommissionRecord.objects.filter(job=job)}
 
 
 def effective_commission_kes(commission_record: CommissionRecord) -> int:
@@ -243,6 +328,7 @@ def create_adjustment(
         after={
             "commission_record_id": str(locked.id),
             "job_id": str(locked.job_id),
+            "party": locked.party,
             "kind": kind,
             "amount_kes": amount_kes,
             "reason": reason,
@@ -262,11 +348,15 @@ def create_adjustment(
 
 # ─── Billing reads for the statement run (Commission & Statements S-1) ──────
 # ``fikisha.statements`` never imports these models (module boundary rule); it
-# asks here for plain rows. Payee: the confirmed operator for a solo job, the
-# group for a group job (FR-O-8).
+# asks here for plain rows. Who is billed: the business for a ``BUSINESS``
+# record (ADR-2D-55); for an ``OPERATOR`` record the confirmed operator on a
+# solo job, the group on a group job (FR-O-8).
 
 
-def _payee_of(agreement: Any) -> tuple[str, str]:
+def _payee_of(record: CommissionRecord) -> tuple[str, str]:
+    if record.party == CommissionParty.BUSINESS:
+        return "BUSINESS", str(record.job.business_id)
+    agreement = record.agreement
     if agreement.operator_id is not None:
         return "OPERATOR", str(agreement.operator_id)
     return "GROUP", str(agreement.group_id)
@@ -303,10 +393,11 @@ def billable_commission(*, as_of: Any, exclude_record_ids: Any) -> list[dict[str
         closes_at = job.completed_at + timedelta(hours=post_completion_window_hours(job))
         if closes_at > as_of:
             continue
-        payee_kind, payee_id = _payee_of(record.agreement)
+        payee_kind, payee_id = _payee_of(record)
         rows.append(
             {
                 "record_id": str(record.id),
+                "party": record.party,
                 "job_id": str(job.id),
                 "job_reference": job_reference(job.id),
                 "payee_kind": payee_kind,
@@ -328,7 +419,9 @@ def unbilled_adjustments(
     from fikisha.jobs.ops import job_reference
 
     qs = (
-        CommissionAdjustment.objects.select_related("commission_record__agreement")
+        CommissionAdjustment.objects.select_related(
+            "commission_record__agreement", "commission_record__job"
+        )
         .filter(commission_record_id__in=record_ids, created_at__lt=created_before)
         .exclude(id__in=exclude_adjustment_ids)
         .order_by("created_at", "id")
@@ -336,7 +429,7 @@ def unbilled_adjustments(
     rows = []
     for adj in qs:
         record = adj.commission_record
-        payee_kind, payee_id = _payee_of(record.agreement)
+        payee_kind, payee_id = _payee_of(record)
         rows.append(
             {
                 "adjustment_id": str(adj.id),
@@ -352,29 +445,37 @@ def unbilled_adjustments(
     return rows
 
 
-def commission_for_job(job_id: Any) -> dict[str, Any] | None:
-    """One job's commission for its payee's "Earnings for this Job" (P3 §7.4):
-    agreed price, commission, adjustments, net. ``None`` if the job has no
-    commission record. Authorization is the caller's (``statements``)."""
-    record = (
-        CommissionRecord.objects.select_related("agreement")
+def commission_for_job(job_id: Any) -> list[dict[str, Any]]:
+    """Each side's commission on one job, for "Earnings for this job" /
+    "Cost for this job" (P3 §7.4): agreed price, commission, adjustments,
+    and what it means for that side. Empty if the job has no commission
+    record. Authorization is the caller's (``statements``), per side."""
+    records = (
+        CommissionRecord.objects.select_related("agreement", "job")
         .prefetch_related("adjustments")
         .filter(job_id=job_id)
-        .first()
+        .order_by("party")
     )
-    if record is None:
-        return None
-    payee_kind, payee_id = _payee_of(record.agreement)
-    adjustments_kes = sum(a.amount_kes for a in record.adjustments.all())
-    effective = record.commission_kes + adjustments_kes
-    return {
-        "job_id": str(record.job_id),
-        "record_id": str(record.id),
-        "payee_kind": payee_kind,
-        "payee_id": payee_id,
-        "agreed_price_kes": record.agreed_price_kes,
-        "commission_kes": record.commission_kes,
-        "adjustments_kes": adjustments_kes,
-        "effective_commission_kes": effective,
-        "net_to_operator_kes": record.agreed_price_kes - effective,
-    }
+    rows = []
+    for record in records:
+        payee_kind, payee_id = _payee_of(record)
+        adjustments_kes = sum(a.amount_kes for a in record.adjustments.all())
+        effective = record.commission_kes + adjustments_kes
+        row = {
+            "job_id": str(record.job_id),
+            "record_id": str(record.id),
+            "party": record.party,
+            "payee_kind": payee_kind,
+            "payee_id": payee_id,
+            "agreed_price_kes": record.agreed_price_kes,
+            "rate": str(record.rate),
+            "commission_kes": record.commission_kes,
+            "adjustments_kes": adjustments_kes,
+            "effective_commission_kes": effective,
+        }
+        if record.party == CommissionParty.BUSINESS:
+            row["total_cost_kes"] = record.agreed_price_kes + effective
+        else:
+            row["net_to_operator_kes"] = record.agreed_price_kes - effective
+        rows.append(row)
+    return rows

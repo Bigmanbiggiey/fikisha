@@ -50,22 +50,30 @@ def business_is_party(actor: Any, job: Any) -> bool:
     return business_authz.has_role(actor, _BusinessRef(job.business_id), _BUSINESS_PARTY_ROLES)
 
 
+def is_agreed_operator(actor: Any, job: Any) -> bool:
+    """True if ``actor`` controls the job's confirmed operator (a solo
+    operator) or group (its owner/manager): the side that owes the
+    operator's commission (ADR-2D-55). Not a driver, not a negotiator."""
+    agreement = getattr(job, "agreement", None)
+    if agreement is None:
+        return False
+    if agreement.operator_id is not None and operators_authz.owns_profile(
+        actor, {"operator_id": str(agreement.operator_id)}
+    ):
+        return True
+    return agreement.group_id is not None and groups_authz.can_manage(
+        actor, {"group_id": str(agreement.group_id)}
+    )
+
+
 def operator_is_party(actor: Any, job: Any) -> bool:
     """True if ``actor`` controls the job's confirmed operator/group
     (``job.agreement``), is the specific assigned driver (``job.assignment``),
     or is a party to any negotiation thread on the job (pre-confirmation —
     an operator who has only *proposed*, not yet been confirmed, still
     legitimately needs to read the job they are negotiating over)."""
-    agreement = getattr(job, "agreement", None)
-    if agreement is not None:
-        if agreement.operator_id is not None and operators_authz.owns_profile(
-            actor, {"operator_id": str(agreement.operator_id)}
-        ):
-            return True
-        if agreement.group_id is not None and groups_authz.can_manage(
-            actor, {"group_id": str(agreement.group_id)}
-        ):
-            return True
+    if is_agreed_operator(actor, job):
+        return True
     assignment = getattr(job, "assignment", None)
     if assignment is not None:
         driver = assignment.assigned_driver_profile

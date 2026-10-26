@@ -397,9 +397,8 @@ def add_cargo_category(
 #: requirements stay read-only: they underpin approved invariants and
 #: privilege boundaries.
 EDITABLE_CONFIG_PATHS = (
-    "commission.rate",
-    "commission.min_fee_kes",
-    "commission.cap_kes",
+    "commission.business_rate",
+    "commission.operator_rate",
     "timeouts.request_expiry_hours",
     "timeouts.offer_expiry_hours",
     "timeouts.delivery_acceptance.standard_hours",
@@ -412,10 +411,13 @@ EDITABLE_CONFIG_PATHS = (
 
 #: Editable yes/no values (everything else is a number).
 BOOLEAN_CONFIG_PATHS = ("trust_tiers.live_criteria",)
+#: Editable rates: any number from 0 to 1 (everything else numeric is a
+#: whole number).
+RATE_CONFIG_PATHS = ("commission.business_rate", "commission.operator_rate")
 
 
 def _patch_from(changes: dict[str, Any]) -> dict[str, Any]:
-    """``{"commission.rate": 0.08}`` → ``{"commission": {"rate": 0.08}}``,
+    """``{"commission.business_rate": 0.04}`` → ``{"commission": {"business_rate": 0.04}}``,
     refusing any path outside the allowlist and any non-number value."""
     if not isinstance(changes, dict) or not changes:
         raise InvalidConfigChange("Nothing to change.")
@@ -428,7 +430,10 @@ def _patch_from(changes: dict[str, Any]) -> dict[str, Any]:
                 raise InvalidConfigChange(f"{path} must be true or false.")
         elif isinstance(value, bool) or not isinstance(value, int | float):
             raise InvalidConfigChange(f"{path} must be a number.")
-        elif path != "commission.rate" and (not isinstance(value, int) or value < 0):
+        elif path in RATE_CONFIG_PATHS:
+            if not 0 <= value <= 1:
+                raise InvalidConfigChange(f"{path} must be a rate from 0 to 1 (0.05 is 5%).")
+        elif not isinstance(value, int) or value < 0:
             raise InvalidConfigChange(f"{path} must be a whole number, 0 or more.")
         node = patch
         *parents, leaf = path.split(".")
@@ -465,9 +470,9 @@ def _validated_changes(changes: dict[str, Any]) -> tuple[dict[str, Any], list[di
 
 
 def preview_config_change(*, actor: Any, changes: dict[str, Any]) -> dict[str, Any]:
-    """What would change, and the commission on a few sample prices before
-    and after. Changes nothing."""
-    from fikisha.jobs.commission import calculate_commission_kes
+    """What would change, and each side's commission on a few sample prices
+    before and after (ADR-2D-55). Changes nothing."""
+    from fikisha.jobs.commission import calculate_fee_kes
     from fikisha.platform_config import services as config_services
 
     _require(actor, "admin.config.read")
@@ -479,20 +484,25 @@ def preview_config_change(*, actor: Any, changes: dict[str, Any]) -> dict[str, A
         if change["path"].startswith("commission."):
             proposed[change["path"].split(".", 1)[1]] = change["after"]
 
-    def fee(price: int, cfg: dict[str, Any]) -> int:
-        return calculate_commission_kes(
-            price, rate=cfg["rate"], min_fee_kes=cfg["min_fee_kes"], cap_kes=cfg["cap_kes"]
-        )
-
-    samples = [
-        {
-            "agreed_price_kes": price,
-            "before_kes": fee(price, live),
-            "after_kes": fee(price, proposed),
+    def fees(price: int, cfg: dict[str, Any]) -> dict[str, int]:
+        return {
+            "business_kes": calculate_fee_kes(price, rate=cfg["business_rate"]),
+            "operator_kes": calculate_fee_kes(price, rate=cfg["operator_rate"]),
         }
-        # KES 300 / 3,000 / 10,000 / 100,000
-        for price in (30_000, 300_000, 1_000_000, 10_000_000)
-    ]
+
+    samples = []
+    # KES 300 / 3,000 / 10,000 / 100,000
+    for price in (30_000, 300_000, 1_000_000, 10_000_000):
+        before, after = fees(price, live), fees(price, proposed)
+        samples.append(
+            {
+                "agreed_price_kes": price,
+                "before": before,
+                "after": after,
+                "before_kes": before["business_kes"] + before["operator_kes"],
+                "after_kes": after["business_kes"] + after["operator_kes"],
+            }
+        )
     return {
         "version": config_services.current_version(),
         "changes": diff,

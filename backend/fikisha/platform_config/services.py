@@ -94,7 +94,51 @@ def apply_change(
     cfg = PlatformConfig.objects.select_for_update().get(pk=1)
 
     before = copy.deepcopy(cfg.data)
-    after = _deep_merge(before, patch)
+    return _commit(
+        cfg=cfg,
+        after=_deep_merge(before, patch),
+        changed_keys=sorted(patch),
+        changed_by=changed_by,
+        rationale=rationale,
+    )
+
+
+@transaction.atomic
+def replace_section(
+    *, key: str, value: Any, changed_by: Any, rationale: str, source_channel: str = "ADMIN_UI"
+) -> PlatformConfigVersion | None:
+    """Replace one top-level section whole, rather than merging into it, so
+    keys the new shape drops really go (the commission split, ADR-2D-55,
+    drops ``rate`` / ``min_fee_kes`` / ``cap_kes``). Versioned, validated,
+    audited and announced exactly like :func:`apply_change`. Returns ``None``
+    if no live config exists yet (the bootstrap will use the defaults) or the
+    section already has this value."""
+    if not rationale or not rationale.strip():
+        raise ValueError("A non-empty rationale is required for a configuration change.")
+    cfg = PlatformConfig.objects.select_for_update().filter(pk=1).first()
+    if cfg is None or cfg.data.get(key) == value:
+        return None
+    after = copy.deepcopy(cfg.data)
+    after[key] = copy.deepcopy(value)
+    return _commit(
+        cfg=cfg,
+        after=after,
+        changed_keys=[key],
+        changed_by=changed_by,
+        rationale=rationale,
+        source_channel=source_channel,
+    )
+
+
+def _commit(
+    *,
+    cfg: PlatformConfig,
+    after: dict[str, Any],
+    changed_keys: list[str],
+    changed_by: Any,
+    rationale: str,
+    source_channel: str = "ADMIN_UI",
+) -> PlatformConfigVersion:
     validate(after)
 
     next_version = (
@@ -116,15 +160,15 @@ def apply_change(
         action="platform_config.changed",
         entity_type="platform_config",
         entity_id=None,
-        before={"version": next_version - 1, "keys": sorted(patch)},
+        before={"version": next_version - 1, "keys": changed_keys},
         after={"version": next_version},
-        source_channel="ADMIN_UI",
+        source_channel=source_channel,
     )
     emit(
         event_type=CONFIG_CHANGED_EVENT,
         aggregate_type="platform_config",
         aggregate_id=None,
-        payload={"version": next_version, "changed_keys": sorted(patch)},
+        payload={"version": next_version, "changed_keys": changed_keys},
     )
     return version
 

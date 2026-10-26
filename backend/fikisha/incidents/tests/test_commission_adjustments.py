@@ -3,7 +3,8 @@
 (Step 9 brief §11/§12/§19). Covers authorized/unauthorized adjustment, the
 Platform-Admin-only boundary (distinct from "may resolve this dispute at
 all"), source association, and that the original CommissionRecord never
-changes."""
+changes. Since the commission split (D-5, ADR-2D-55) each side has its own
+treatment; left out, the business side follows the operator side."""
 
 from __future__ import annotations
 
@@ -44,7 +45,7 @@ def test_platform_admin_may_waive_commission_on_resolution(
     completed_job_with_open_dispute: Any, admin_actor: Any
 ) -> None:
     job, dispute = completed_job_with_open_dispute
-    original = CommissionRecord.objects.get(job=job)
+    original = CommissionRecord.objects.get(job=job, party="OPERATOR")
     original_commission_kes = original.commission_kes
 
     resolution, view = resolve_dispute(
@@ -67,13 +68,17 @@ def test_platform_admin_may_waive_commission_on_resolution(
     original.refresh_from_db()
     assert original.commission_kes == original_commission_kes  # the original row is untouched
     assert commission.effective_commission_kes(original) == 0
+    # "same for both": the business side is waived too
+    business = CommissionRecord.objects.get(job=job, party="BUSINESS")
+    assert commission.effective_commission_kes(business) == 0
+    assert resolution.business_commission_treatment == "WAIVE"
 
 
 def test_platform_admin_may_partially_reduce_commission(
     completed_job_with_open_dispute: Any, admin_actor: Any
 ) -> None:
     job, dispute = completed_job_with_open_dispute
-    original = CommissionRecord.objects.get(job=job)
+    original = CommissionRecord.objects.get(job=job, party="OPERATOR")
     reduce_by = original.commission_kes // 2 or 1
 
     resolve_dispute(
@@ -89,6 +94,9 @@ def test_platform_admin_may_partially_reduce_commission(
     assert adjustment.kind == "REDUCTION"
     assert adjustment.amount_kes == -reduce_by
     assert commission.effective_commission_kes(original) == original.commission_kes - reduce_by
+    # the same amount off the business side (each side's fee is the same 5%)
+    business = CommissionRecord.objects.get(job=job, party="BUSINESS")
+    assert CommissionAdjustment.objects.get(commission_record=business).amount_kes == -reduce_by
 
 
 def test_apply_treatment_never_creates_an_adjustment(
@@ -103,8 +111,7 @@ def test_apply_treatment_never_creates_an_adjustment(
         routed_job_status=JobStatus.COMPLETED,
         commission_treatment="APPLY",
     )
-    record = CommissionRecord.objects.get(job=job)
-    assert not CommissionAdjustment.objects.filter(commission_record=record).exists()
+    assert not CommissionAdjustment.objects.filter(commission_record__job=job).exists()
 
 
 def test_an_ops_officer_may_resolve_a_dispute_but_not_reduce_commission(
@@ -215,8 +222,67 @@ def test_adjustment_is_audited(completed_job_with_open_dispute: Any, admin_actor
         routed_job_status=JobStatus.COMPLETED,
         commission_treatment="WAIVE",
     )
-    record = CommissionRecord.objects.get(job=job)
-    adjustment = CommissionAdjustment.objects.get(commission_record=record)
-    entry = AuditLogEntry.objects.get(action="commission.adjusted", entity_id=adjustment.id)
-    assert entry.after["commission_record_id"] == str(record.id)
-    assert entry.after["amount_kes"] == adjustment.amount_kes
+    for record in CommissionRecord.objects.filter(job=job):
+        adjustment = CommissionAdjustment.objects.get(commission_record=record)
+        entry = AuditLogEntry.objects.get(action="commission.adjusted", entity_id=adjustment.id)
+        assert entry.after["commission_record_id"] == str(record.id)
+        assert entry.after["party"] == record.party
+        assert entry.after["amount_kes"] == adjustment.amount_kes
+
+
+def test_each_side_can_be_treated_differently(
+    completed_job_with_open_dispute: Any, admin_actor: Any
+) -> None:
+    """D-5: e.g. waive the business's fee when the operator was at fault, and
+    leave the operator's in place."""
+    job, dispute = completed_job_with_open_dispute
+    resolution, _view = resolve_dispute(
+        actor=admin_actor,
+        dispute_id=dispute.id,
+        outcome_code="ADMIN_DETERMINATION",
+        rationale="Operator at fault; the business pays no fee for this job.",
+        routed_job_status=JobStatus.COMPLETED,
+        commission_treatment="APPLY",
+        business_commission_treatment="WAIVE",
+    )
+    business = CommissionRecord.objects.get(job=job, party="BUSINESS")
+    operator = CommissionRecord.objects.get(job=job, party="OPERATOR")
+    assert commission.effective_commission_kes(business) == 0
+    assert commission.effective_commission_kes(operator) == operator.commission_kes
+    assert not CommissionAdjustment.objects.filter(commission_record=operator).exists()
+    assert (resolution.commission_treatment, resolution.business_commission_treatment) == (
+        "APPLY",
+        "WAIVE",
+    )
+
+
+def test_a_business_side_reduction_needs_its_own_amount(
+    completed_job_with_open_dispute: Any, admin_actor: Any
+) -> None:
+    _job, dispute = completed_job_with_open_dispute
+    with pytest.raises(InvalidCommissionAdjustmentAmount):
+        resolve_dispute(
+            actor=admin_actor,
+            dispute_id=dispute.id,
+            outcome_code="ADMIN_DETERMINATION",
+            rationale="reduce the business side with no amount",
+            routed_job_status=JobStatus.COMPLETED,
+            commission_treatment="APPLY",
+            business_commission_treatment="REDUCE",
+        )
+
+
+def test_an_ops_officer_cannot_waive_the_business_side_either(
+    completed_job_with_open_dispute: Any, ops_actor: Any
+) -> None:
+    _job, dispute = completed_job_with_open_dispute
+    with pytest.raises(NotAuthorisedForCommissionAdjustment):
+        resolve_dispute(
+            actor=ops_actor,
+            dispute_id=dispute.id,
+            outcome_code="ADMIN_DETERMINATION",
+            rationale="Ops Officer attempting to waive the business fee",
+            routed_job_status=JobStatus.COMPLETED,
+            commission_treatment="APPLY",
+            business_commission_treatment="WAIVE",
+        )

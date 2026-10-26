@@ -131,6 +131,7 @@ def _dispute_view(dispute: Dispute) -> dict[str, object]:
                 "rationale": resolution.rationale,
                 "routed_job_status": resolution.routed_job_status,
                 "commission_treatment": resolution.commission_treatment,
+                "business_commission_treatment": resolution.business_commission_treatment,
                 # intent flags recorded before findings existed (ADR-2D-21);
                 # shown as history, never executed
                 "recorded_actions": [a for a in (resolution.actions or []) if a != "NONE"],
@@ -482,6 +483,12 @@ class DisputeResolveView(OrgApiView):
             routed_job_status=serializer.validated_data["routed_job_status"],
             commission_treatment=serializer.validated_data.get("commission_treatment", "APPLY"),
             reduced_amount_kes=serializer.validated_data.get("reduced_amount_kes"),
+            business_commission_treatment=serializer.validated_data.get(
+                "business_commission_treatment"
+            ),
+            business_reduced_amount_kes=serializer.validated_data.get(
+                "business_reduced_amount_kes"
+            ),
             agreed_compensation_kes=serializer.validated_data.get("agreed_compensation_kes"),
             actions=serializer.validated_data.get("actions"),
             idempotency_key=_idempotency_key(request),

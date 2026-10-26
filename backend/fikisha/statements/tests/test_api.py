@@ -90,8 +90,8 @@ def test_job_earnings_for_the_payee_and_staff_only(
         data["net_to_operator_kes"],
     ) == (
         250_000,
-        25_000,
-        225_000,
+        12_500,
+        237_500,
     )
     assert data["statement"]["reference"] == billed["solo_statement"].reference
     assert client_for(billed["manager"].user).get(url).status_code == 404
@@ -110,9 +110,9 @@ def test_admin_list_has_totals_and_ops_can_read_but_not_act(
     assert len(body["data"]) == 2
     assert body["totals"] == {
         "statements": 2,
-        "invoiced_kes": 50_000,
+        "invoiced_kes": 25_000,
         "settled_kes": 0,
-        "outstanding_kes": 50_000,
+        "outstanding_kes": 25_000,
     }
     ops = client_for(ops_officer)
     assert ops.post(f"{API}/admin/statements/run", {}, format="json").status_code == 403
@@ -144,7 +144,7 @@ def test_payment_and_reversal_over_http_need_a_fresh_step_up(
     from fikisha.identity.models import AuthSession
 
     url = f"{API}/admin/statements/{billed['solo_statement'].id}/payments"
-    pay = {"amount_kes": 25_000, "payment_ref": "SJK4ABC123", "paid_on": "2026-10-13"}
+    pay = {"amount_kes": 12_500, "payment_ref": "SJK4ABC123", "paid_on": "2026-10-13"}
 
     stale = client_for(platform_admin)
     AuthSession.objects.filter(user=platform_admin).update(
