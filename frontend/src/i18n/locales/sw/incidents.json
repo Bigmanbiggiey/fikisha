@@ -115,7 +115,7 @@
       "commissionBothSides": "Ada za biashara na mhudumu",
       "commissionOperatorSide": "Ada ya mhudumu",
       "commissionBusinessSide": "Ada ya biashara",
-      "reducedAmountEach": "Kiasi cha kupunguza kwenye ada ya kila upande (KSh)"
+      "reducedAmountEach": "Jumla ya kupunguza kwenye ada za kazi hii (KSh), nusu kwa biashara na nusu kwa mhudumu"
     },
     "resume": {
       "title": "Endeleza kazi hii hadi {{status}}",

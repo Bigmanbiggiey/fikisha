@@ -115,7 +115,7 @@
       "commissionBothSides": "Business and operator fees",
       "commissionOperatorSide": "Operator’s fee",
       "commissionBusinessSide": "Business’s fee",
-      "reducedAmountEach": "Amount to take off each side’s fee (KSh)"
+      "reducedAmountEach": "Total to take off this job’s fees (KSh), split half and half between the business and the operator"
     },
     "resume": {
       "title": "Resume this job to {{status}}",

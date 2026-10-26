@@ -671,22 +671,24 @@ def resolve_dispute(
 
     Commission split (D-5, ADR-2D-55): ``commission_treatment`` /
     ``reduced_amount_kes`` are the operator side's; ``business_*`` the
-    business side's. A business value left out (``None``) means "the same as
-    the operator side" — the same treatment, and for ``REDUCE`` the same
-    amount (each side's fee is the same 5%)."""
+    business side's. A business treatment left out (``None``) means "the same
+    for both sides": the same treatment, and for ``REDUCE`` the amount is the
+    job's **total** reduction, split half and half between the two fees (an
+    odd cent to the operator side), or all of it to the one side that has a
+    record (a job completed before the split)."""
     if not incidents_authz.is_admin(actor):
         raise NotAuthorisedForBindingResolution()
     if routed_job_status not in ROUTABLE_JOB_STATUSES:
         raise InvalidResolutionRouting()
     if outcome_code not in ResolutionOutcome.values:
         raise InvalidResolutionOutcome()
-    if business_commission_treatment is None:
-        business_commission_treatment = commission_treatment
-        if business_reduced_amount_kes is None:
-            business_reduced_amount_kes = reduced_amount_kes
+    same_for_both = business_commission_treatment is None
+    business_treatment: str = business_commission_treatment or commission_treatment
+    if same_for_both:
+        business_reduced_amount_kes = reduced_amount_kes
     treatments = {
         CommissionParty.OPERATOR: (commission_treatment, reduced_amount_kes),
-        CommissionParty.BUSINESS: (business_commission_treatment, business_reduced_amount_kes),
+        CommissionParty.BUSINESS: (business_treatment, business_reduced_amount_kes),
     }
     for treatment, amount in treatments.values():
         if treatment not in CommissionTreatment.values:
@@ -713,13 +715,29 @@ def resolve_dispute(
 
     job = job_for_update(dispute.job_id)
 
+    records = commission_service.get_commission_records(job)
+    if same_for_both and commission_treatment == CommissionTreatment.REDUCE:
+        total = int(reduced_amount_kes)  # type: ignore[arg-type]  # validated positive above
+        if CommissionParty.BUSINESS not in records:
+            operator_share, business_share = total, 0
+        elif CommissionParty.OPERATOR not in records:
+            operator_share, business_share = 0, total
+        else:
+            business_share = total // 2
+            operator_share = total - business_share
+        reduced_amount_kes, business_reduced_amount_kes = operator_share, business_share
+        treatments = {
+            CommissionParty.OPERATOR: (commission_treatment, operator_share),
+            CommissionParty.BUSINESS: (commission_treatment, business_share),
+        }
+
     resolution = Resolution.objects.create(
         dispute=dispute,
         outcome_code=outcome_code,
         rationale=rationale,
         commission_treatment=commission_treatment,
         reduced_amount_kes=reduced_amount_kes,
-        business_commission_treatment=business_commission_treatment,
+        business_commission_treatment=business_treatment,
         business_reduced_amount_kes=business_reduced_amount_kes,
         agreed_compensation_kes=agreed_compensation_kes,
         actions=list(actions or []),
@@ -760,7 +778,6 @@ def resolve_dispute(
             dispute=dispute,
         )
 
-    records = commission_service.get_commission_records(job)
     for party, (treatment, amount) in treatments.items():
         commission_record = records.get(party)
         if (

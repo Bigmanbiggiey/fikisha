@@ -253,4 +253,7 @@ business terms of service also need to state the fee.
 | D-7 | Tax-advisor confirmation covers business statements | Founder action before the first real business statement | **Agreed.** Founder action before the first real business statement |
 
 Answered by the founder in session, 2026-10-26: "all as recommended, build".
+D-5 detail, ruled 2026-10-26 after the first build: with "same for both", a
+reduction is the job's **total**, split half and half between the two fees
+(an odd cent to the operator side), not the amount off each side.
 This table is the authoritative copy.

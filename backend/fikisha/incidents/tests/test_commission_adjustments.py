@@ -77,26 +77,131 @@ def test_platform_admin_may_waive_commission_on_resolution(
 def test_platform_admin_may_partially_reduce_commission(
     completed_job_with_open_dispute: Any, admin_actor: Any
 ) -> None:
+    """ "Same for both" (D-5): the amount is the job's total reduction, split
+    half and half between the two fees."""
     job, dispute = completed_job_with_open_dispute
-    original = CommissionRecord.objects.get(job=job, party="OPERATOR")
-    reduce_by = original.commission_kes // 2 or 1
+    operator = CommissionRecord.objects.get(job=job, party="OPERATOR")
+    business = CommissionRecord.objects.get(job=job, party="BUSINESS")
 
-    resolve_dispute(
+    resolution, _view = resolve_dispute(
         actor=admin_actor,
         dispute_id=dispute.id,
         outcome_code="ADMIN_DETERMINATION",
         rationale="Partial damage; reducing our commission proportionally.",
         routed_job_status=JobStatus.COMPLETED,
         commission_treatment="REDUCE",
-        reduced_amount_kes=reduce_by,
+        reduced_amount_kes=10_000,
     )
-    adjustment = CommissionAdjustment.objects.get(commission_record=original)
-    assert adjustment.kind == "REDUCTION"
-    assert adjustment.amount_kes == -reduce_by
-    assert commission.effective_commission_kes(original) == original.commission_kes - reduce_by
-    # the same amount off the business side (each side's fee is the same 5%)
-    business = CommissionRecord.objects.get(job=job, party="BUSINESS")
-    assert CommissionAdjustment.objects.get(commission_record=business).amount_kes == -reduce_by
+    for record in (operator, business):
+        adjustment = CommissionAdjustment.objects.get(commission_record=record)
+        assert adjustment.kind == "REDUCTION"
+        assert adjustment.amount_kes == -5_000
+    total_off = sum(
+        CommissionAdjustment.objects.filter(commission_record__job=job).values_list(
+            "amount_kes", flat=True
+        )
+    )
+    assert total_off == -10_000  # the total entered, not twice it
+    assert (resolution.reduced_amount_kes, resolution.business_reduced_amount_kes) == (
+        5_000,
+        5_000,
+    )
+
+
+def test_an_odd_cent_of_a_shared_reduction_goes_to_the_operator_side(
+    completed_job_with_open_dispute: Any, admin_actor: Any
+) -> None:
+    job, dispute = completed_job_with_open_dispute
+    resolve_dispute(
+        actor=admin_actor,
+        dispute_id=dispute.id,
+        outcome_code="ADMIN_DETERMINATION",
+        rationale="Reducing by an odd amount in total.",
+        routed_job_status=JobStatus.COMPLETED,
+        commission_treatment="REDUCE",
+        reduced_amount_kes=1_001,
+    )
+    off = dict(
+        CommissionAdjustment.objects.filter(commission_record__job=job).values_list(
+            "commission_record__party", "amount_kes"
+        )
+    )
+    assert off == {"OPERATOR": -501, "BUSINESS": -500}
+
+
+def test_a_one_cent_shared_reduction_comes_off_the_operator_side_only(
+    completed_job_with_open_dispute: Any, admin_actor: Any
+) -> None:
+    job, dispute = completed_job_with_open_dispute
+    resolve_dispute(
+        actor=admin_actor,
+        dispute_id=dispute.id,
+        outcome_code="ADMIN_DETERMINATION",
+        rationale="Reducing by a single cent in total.",
+        routed_job_status=JobStatus.COMPLETED,
+        commission_treatment="REDUCE",
+        reduced_amount_kes=1,
+    )
+    off = list(
+        CommissionAdjustment.objects.filter(commission_record__job=job).values_list(
+            "commission_record__party", "amount_kes"
+        )
+    )
+    assert off == [("OPERATOR", -1)]
+
+
+def test_a_shared_reduction_on_a_job_with_one_record_comes_off_that_record(
+    completed_job_with_open_dispute: Any, admin_actor: Any
+) -> None:
+    """A job completed before the split has only the operator's record: the
+    whole total comes off it, none is lost to a side that owes nothing."""
+    from django.db import connection
+
+    job, dispute = completed_job_with_open_dispute
+    with connection.cursor() as cur:
+        cur.execute("SET LOCAL session_replication_role = replica")
+        cur.execute(
+            "DELETE FROM commission_record WHERE job_id = %s AND party = 'BUSINESS'", [job.id]
+        )
+        cur.execute("SET LOCAL session_replication_role = DEFAULT")
+    resolve_dispute(
+        actor=admin_actor,
+        dispute_id=dispute.id,
+        outcome_code="ADMIN_DETERMINATION",
+        rationale="Reducing a pre-split job's commission.",
+        routed_job_status=JobStatus.COMPLETED,
+        commission_treatment="REDUCE",
+        reduced_amount_kes=4_000,
+    )
+    off = list(
+        CommissionAdjustment.objects.filter(commission_record__job=job).values_list(
+            "commission_record__party", "amount_kes"
+        )
+    )
+    assert off == [("OPERATOR", -4_000)]
+
+
+def test_sides_set_separately_each_take_their_own_amount(
+    completed_job_with_open_dispute: Any, admin_actor: Any
+) -> None:
+    job, dispute = completed_job_with_open_dispute
+    resolve_dispute(
+        actor=admin_actor,
+        dispute_id=dispute.id,
+        outcome_code="ADMIN_DETERMINATION",
+        rationale="Different reductions for each side.",
+        routed_job_status=JobStatus.COMPLETED,
+        commission_treatment="REDUCE",
+        reduced_amount_kes=3_000,
+        business_commission_treatment="REDUCE",
+        business_reduced_amount_kes=2_000,
+    )
+    off = dict(
+        CommissionAdjustment.objects.filter(commission_record__job=job).values_list(
+            "commission_record__party", "amount_kes"
+        )
+    )
+    assert off == {"OPERATOR": -3_000, "BUSINESS": -2_000}
 
 
 def test_apply_treatment_never_creates_an_adjustment(

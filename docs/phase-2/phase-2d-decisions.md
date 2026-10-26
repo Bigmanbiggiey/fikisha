@@ -1868,8 +1868,13 @@ side at the live rates. Every amount is computed by the server.
 
 **Disputes (D-5).** `Resolution` gains `business_commission_treatment` /
 `business_reduced_amount_kes`; the existing fields are the operator side's.
-Left out, the business side follows the operator side (same treatment; for
-REDUCE the same amount). REDUCE / WAIVE on either side is Platform Admin only.
+Left out, the business side follows the operator side ("same for both"): the
+same treatment, and for REDUCE the amount is the job's **total** reduction,
+split half and half between the two fees, an odd cent to the operator side,
+or all of it to the one side with a record (a job completed before the
+split); founder ruling 2026-10-26, after the first build took the amount off
+each side (twice the total). REDUCE / WAIVE on either side is Platform Admin
+only.
 Each side's adjustment is written against that side's record.
 
 **Deviation recorded.** `commission-ledger.md` §2 described one record per

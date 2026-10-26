@@ -133,7 +133,7 @@ via the link token itself, not a bearer session.
 | GET | `/jobs/<job_id>/disputes` | `incident.read` | List disputes for the job |
 | POST | `/jobs/<job_id>/disputes` | `dispute.open` | Open a dispute (`* → DISPUTED`; at most one open dispute per job, DB-backed) |
 | GET | `/disputes/<dispute_id>` | `incident.read` | Dispute detail |
-| POST | `/disputes/<dispute_id>/resolve` | `dispute.resolve` | Resolve (`DISPUTED → COMPLETED/CANCELLED/FAILED`); `commission_treatment=REDUCE/WAIVE` requires Platform-Admin specifically (ADR-2D-24), separate from resolution authority itself. `commission_treatment` / `reduced_amount_kes` are the operator side's; `business_commission_treatment` / `business_reduced_amount_kes` the business side's, left out = the same as the operator side (ADR-2D-55) |
+| POST | `/disputes/<dispute_id>/resolve` | `dispute.resolve` | Resolve (`DISPUTED → COMPLETED/CANCELLED/FAILED`); `commission_treatment=REDUCE/WAIVE` requires Platform-Admin specifically (ADR-2D-24), separate from resolution authority itself. `commission_treatment` / `reduced_amount_kes` are the operator side's; `business_commission_treatment` / `business_reduced_amount_kes` the business side's. Business treatment left out = "same for both": for REDUCE, `reduced_amount_kes` is the job's total, split half and half (odd cent to the operator side) (ADR-2D-55) |
 
 `intake_recipient_report(report_id)` (promotes a `RecipientReportedIssue`
 into a full `Incident`) exists as a domain function but has **no HTTP route**
