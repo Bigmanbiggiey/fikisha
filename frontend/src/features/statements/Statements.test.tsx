@@ -246,20 +246,25 @@ describe('StatementDetailPage', () => {
 describe('JobEarningsCard', () => {
   const earnings: JobEarnings = {
     job_id: 'j1',
+    party: 'OPERATOR',
     payee_kind: 'OPERATOR',
     payee_id: 'op1',
     agreed_price_kes: 250_000,
-    commission_kes: 25_000,
+    rate: '0.0500',
+    commission_kes: 12_500,
     adjustments_kes: 0,
-    effective_commission_kes: 25_000,
-    net_to_operator_kes: 225_000,
+    effective_commission_kes: 12_500,
+    net_to_operator_kes: 237_500,
     statement: { id: 's1', reference: 'ST-7F3A2C' },
+    sides: ['OPERATOR'],
   };
 
   it('shows agreed − commission = net and links the statement', async () => {
     jobEarnings.mockResolvedValue(earnings);
-    renderWithProviders(<JobEarningsCard jobId="j1" />);
-    expect(await screen.findByText('KSh 2,250')).toBeInTheDocument();
+    renderWithProviders(<JobEarningsCard jobId="j1" party="OPERATOR" />);
+    expect(await screen.findByText('KSh 2,375')).toBeInTheDocument();
+    expect(screen.getByText('Fikisha fee (5%)')).toBeInTheDocument();
+    expect(jobEarnings).toHaveBeenCalledWith('j1', 'OPERATOR');
     expect(screen.getByRole('link', { name: 'ST-7F3A2C' })).toHaveAttribute(
       'href',
       '/statements/s1',
@@ -268,13 +273,30 @@ describe('JobEarningsCard', () => {
 
   it('says when the job is not billed yet', async () => {
     jobEarnings.mockResolvedValue({ ...earnings, statement: null });
-    renderWithProviders(<JobEarningsCard jobId="j1" />);
+    renderWithProviders(<JobEarningsCard jobId="j1" party="OPERATOR" />);
     expect(await screen.findByText(/once the dispute window closes/)).toBeInTheDocument();
+  });
+
+  it('shows the business side as price + fee = total (ADR-2D-55)', async () => {
+    jobEarnings.mockResolvedValue({
+      ...earnings,
+      party: 'BUSINESS',
+      payee_kind: 'BUSINESS',
+      net_to_operator_kes: undefined,
+      total_cost_kes: 262_500,
+      statement: null,
+      sides: ['BUSINESS'],
+    });
+    renderWithProviders(<JobEarningsCard jobId="j1" party="BUSINESS" />);
+    expect(await screen.findByText('Cost for this job')).toBeInTheDocument();
+    expect(screen.getByText('Paid to the operator')).toBeInTheDocument();
+    expect(screen.getByText('KSh 2,625')).toBeInTheDocument();
+    expect(screen.getByText(/business’s weekly statement/)).toBeInTheDocument();
   });
 
   it('stays hidden when the server refuses (not the payee)', async () => {
     jobEarnings.mockRejectedValue(new Error('404'));
-    const { container } = renderWithProviders(<JobEarningsCard jobId="j1" />);
+    const { container } = renderWithProviders(<JobEarningsCard jobId="j1" party="OPERATOR" />);
     await waitFor(() => expect(jobEarnings).toHaveBeenCalled());
     expect(container).toBeEmptyDOMElement();
   });

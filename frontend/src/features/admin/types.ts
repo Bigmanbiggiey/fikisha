@@ -104,7 +104,15 @@ export interface ConfigChange {
 export interface ConfigPreview {
   version: number;
   changes: ConfigChange[];
-  commission_samples: { agreed_price_kes: number; before_kes: number; after_kes: number }[];
+  /** Fikisha's fee on sample prices, both sides together and per side
+   * (ADR-2D-55). */
+  commission_samples: {
+    agreed_price_kes: number;
+    before_kes: number;
+    after_kes: number;
+    before?: { business_kes: number; operator_kes: number };
+    after?: { business_kes: number; operator_kes: number };
+  }[];
 }
 
 export interface LedgerAdjustment {
@@ -122,11 +130,16 @@ export interface LedgerRow {
   job_id: string;
   job_reference: string;
   business_name: string | null;
-  payee: { kind: 'OPERATOR' | 'GROUP'; id: string; name: string | null };
+  /** Which side owes this record (ADR-2D-55). */
+  party: 'BUSINESS' | 'OPERATOR';
+  /** Who owes it: the business for the business side, else the operator
+   * or group. */
+  payee: { kind: 'OPERATOR' | 'GROUP' | 'BUSINESS'; id: string; name: string | null };
   agreed_price_kes: number;
   rate: string;
-  min_fee_kes: number;
-  cap_kes: number;
+  /** Only records from before the split had a minimum and a cap. */
+  min_fee_kes: number | null;
+  cap_kes: number | null;
   commission_kes: number;
   adjustments_kes: number;
   effective_kes: number;

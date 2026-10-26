@@ -110,7 +110,12 @@
       },
       "reducedAmount": "Reduced amount (KSh)",
       "rationale": "Rationale for this resolution",
-      "apply": "Apply resolution"
+      "apply": "Apply resolution",
+      "sameForBoth": "Same for both sides",
+      "commissionBothSides": "Business and operator fees",
+      "commissionOperatorSide": "Operator’s fee",
+      "commissionBusinessSide": "Business’s fee",
+      "reducedAmountEach": "Amount to take off each side’s fee (KSh)"
     },
     "resume": {
       "title": "Resume this job to {{status}}",

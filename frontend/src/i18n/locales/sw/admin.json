@@ -100,7 +100,7 @@
     "preview": "Hakiki mabadiliko",
     "discard": "Tupa mabadiliko",
     "diffTitle": "Kitakachobadilika",
-    "effect": "Kamisheni kwa bei za mfano",
+    "effect": "Ada ya Fikisha kwa bei za mfano (pande zote mbili)",
     "col": {
       "price": "Bei iliyokubaliwa",
       "before": "Sasa",
@@ -132,9 +132,8 @@
     },
     "key": {
       "commission": {
-        "rate": "Kiwango cha kamisheni (%)",
-        "min_fee_kes": "Kamisheni ya chini kabisa (KSh)",
-        "cap_kes": "Kikomo cha kamisheni (KSh)"
+        "business_rate": "Ada inayolipwa na biashara (%)",
+        "operator_rate": "Ada inayolipwa na mhudumu (%)"
       },
       "timeouts": {
         "request_expiry_hours": "Ombi linaisha baada ya (saa)",
@@ -154,11 +153,12 @@
       }
     },
     "on": "Imewashwa",
-    "off": "Imezimwa"
+    "off": "Imezimwa",
+    "sides": "Biashara {{business}} · mhudumu {{operator}}"
   },
   "commission": {
     "title": "Kamisheni",
-    "subtitle": "Kila rekodi ya kamisheni, pamoja na marekebisho yake. Fikisha inarekodi kamisheni; nauli inapita kati ya biashara na msafirishaji.",
+    "subtitle": "Kila rekodi ya kamisheni, pamoja na marekebisho yake. Kila kazi iliyokamilika ina moja ya biashara na moja ya msafirishaji. Fikisha inarekodi kamisheni; nauli inapita kati ya biashara na msafirishaji.",
     "period": "Kipindi",
     "periodOption": {
       "7": "Siku 7 zilizopita",
@@ -176,7 +176,7 @@
     "loadMore": "Pakia zaidi",
     "col": {
       "job": "Kazi",
-      "payee": "Msafirishaji au kikundi",
+      "payee": "Anayelipa",
       "price": "Bei iliyokubaliwa",
       "commission": "Kamisheni",
       "adjustments": "Marekebisho",
@@ -189,7 +189,11 @@
       "WAIVER": "Imesamehewa"
     },
     "statementsLink": "Taarifa za wiki na malipo yaliyorekodiwa ziko kwenye ukurasa wa Taarifa za malipo.",
-    "statementsOpen": "Fungua taarifa"
+    "statementsOpen": "Fungua taarifa",
+    "party": {
+      "BUSINESS": "Upande wa biashara",
+      "OPERATOR": "Upande wa mhudumu"
+    }
   },
   "cargo": {
     "title": "Aina za mizigo",

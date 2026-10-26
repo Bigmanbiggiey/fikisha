@@ -1,6 +1,8 @@
 /** Field names/shapes taken directly from `fikisha.negotiation.services._thread_payload()`
  * / `selectors.annotate_entries()` — see `docs/phase-2/phase-2d-api.md` §3. */
 
+import type { FeeView } from '@/features/jobs/types';
+
 export const THREAD_STATUSES = ['ACTIVE', 'SUPERSEDED', 'CLOSED'] as const;
 export type ThreadStatus = (typeof THREAD_STATUSES)[number];
 
@@ -30,6 +32,8 @@ export interface StandingOffer {
   entry_id: string;
   actor_role: EntryActorRole;
   amount_kes: number;
+  /** Fikisha's fee on this figure for the viewer's own side (ADR-2D-55). */
+  fee?: FeeView | null;
 }
 
 /** The *viewer's* own counterparty offer — what they specifically could
@@ -41,6 +45,10 @@ export interface StandingOffer {
 export interface CounterpartyOffer {
   entry_id: string;
   amount_kes: number;
+  /** What accepting it means for the viewer: Fikisha's fee for their own
+   * side, and the business's total or the operator's take (ADR-2D-55).
+   * Server-computed at the live rates, which are fixed on agreement. */
+  fee?: FeeView | null;
 }
 
 export interface MutualAcceptance {
@@ -65,7 +73,11 @@ export interface NegotiationThread {
   operator_display_name: string | null;
   /** Business viewer only (trust plan A9): completed jobs and the average
    * rating once at least 3 count; never the tier or incidents. */
-  operator_summary?: { completed_jobs: number; average_rating: number | null; rating_count: number } | null;
+  operator_summary?: {
+    completed_jobs: number;
+    average_rating: number | null;
+    rating_count: number;
+  } | null;
   standing_offer: StandingOffer | null;
   counterparty_offer: CounterpartyOffer | null;
   mutual_acceptance: MutualAcceptance;

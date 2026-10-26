@@ -415,5 +415,16 @@
     "paidCash": "Paid in cash",
     "paidMpesa": "Paid by M-Pesa",
     "paidRef": "M-Pesa code {{ref}}"
+  },
+  "fee": {
+    "fee": "Fikisha fee ({{rate}})",
+    "youPay": "You pay in total",
+    "youKeep": "You keep",
+    "party": {
+      "BUSINESS": "Business side",
+      "OPERATOR": "Operator side"
+    },
+    "businessNote": "Pay the operator the agreed price. Fikisha’s fee comes on your weekly statement.",
+    "operatorNote": "Fikisha’s fee comes on your weekly statement."
   }
 }

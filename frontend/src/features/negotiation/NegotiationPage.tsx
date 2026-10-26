@@ -13,6 +13,7 @@ import { Input } from '@/components/Input';
 import { NegotiationThread as NegotiationThreadList } from '@/components/NegotiationThread';
 import { PageLoader } from '@/components/PageLoader';
 import { jobReference } from '@/features/jobs/jobHelpers';
+import { FeeLines } from '@/features/jobs/FeeLines';
 import { formatKes, parseKesToMinorUnits } from '@/features/jobs/money';
 import { jobsApi } from '@/features/jobs/jobsApi';
 import { type JobViewerRole, useJobViewerRole } from '@/features/jobs/useJobViewerRole';
@@ -336,6 +337,9 @@ function ThreadDetail({
       {!readOnly && thread.status === 'ACTIVE' && !ownAcceptPending && (
         <Card>
           <div className="space-y-3">
+            {thread.counterparty_offer?.fee && (
+              <FeeLines fee={thread.counterparty_offer.fee} compact />
+            )}
             {thread.counterparty_offer && (
               <Button
                 fullWidth

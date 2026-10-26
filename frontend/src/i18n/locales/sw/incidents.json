@@ -110,7 +110,12 @@
       },
       "reducedAmount": "Kiasi kilichopunguzwa (KSh)",
       "rationale": "Sababu ya ufumbuzi huu",
-      "apply": "Tumia ufumbuzi"
+      "apply": "Tumia ufumbuzi",
+      "sameForBoth": "Sawa kwa pande zote mbili",
+      "commissionBothSides": "Ada za biashara na mhudumu",
+      "commissionOperatorSide": "Ada ya mhudumu",
+      "commissionBusinessSide": "Ada ya biashara",
+      "reducedAmountEach": "Kiasi cha kupunguza kwenye ada ya kila upande (KSh)"
     },
     "resume": {
       "title": "Endeleza kazi hii hadi {{status}}",

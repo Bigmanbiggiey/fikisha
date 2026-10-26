@@ -100,7 +100,7 @@
     "preview": "Preview changes",
     "discard": "Discard edits",
     "diffTitle": "What would change",
-    "effect": "Commission on sample prices",
+    "effect": "Fikisha's fee on sample prices (both sides)",
     "col": {
       "price": "Agreed price",
       "before": "Now",
@@ -132,9 +132,8 @@
     },
     "key": {
       "commission": {
-        "rate": "Commission rate (%)",
-        "min_fee_kes": "Minimum commission (KSh)",
-        "cap_kes": "Commission cap (KSh)"
+        "business_rate": "Fee paid by the business (%)",
+        "operator_rate": "Fee paid by the operator (%)"
       },
       "timeouts": {
         "request_expiry_hours": "Request expires after (hours)",
@@ -154,11 +153,12 @@
       }
     },
     "on": "On",
-    "off": "Off"
+    "off": "Off",
+    "sides": "Business {{business}} · operator {{operator}}"
   },
   "commission": {
     "title": "Commission",
-    "subtitle": "Every commission record, with its adjustments. Fikisha records commission; the fare moves between the business and the operator.",
+    "subtitle": "Every commission record, with its adjustments. Each completed job has one for the business and one for the operator. Fikisha records commission; the fare moves between the business and the operator.",
     "period": "Period",
     "periodOption": {
       "7": "Last 7 days",
@@ -176,7 +176,7 @@
     "loadMore": "Load more",
     "col": {
       "job": "Job",
-      "payee": "Operator or group",
+      "payee": "Who pays",
       "price": "Agreed price",
       "commission": "Commission",
       "adjustments": "Adjustments",
@@ -189,7 +189,11 @@
       "WAIVER": "Waived"
     },
     "statementsLink": "Weekly statements and the payments recorded against them are on the Statements page.",
-    "statementsOpen": "Open statements"
+    "statementsOpen": "Open statements",
+    "party": {
+      "BUSINESS": "Business side",
+      "OPERATOR": "Operator side"
+    }
   },
   "cargo": {
     "title": "Cargo categories",

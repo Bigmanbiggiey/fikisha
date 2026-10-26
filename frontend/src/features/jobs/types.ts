@@ -11,7 +11,10 @@ import type { ProofGroups } from './custodyProof';
  * `formatKes()`/`parseKesToMinorUnits()`, never display or parse these raw.
  */
 
-export type Paged<T> = { data: T[]; page: { next_cursor: string | null; prev_cursor: string | null } };
+export type Paged<T> = {
+  data: T[];
+  page: { next_cursor: string | null; prev_cursor: string | null };
+};
 
 /** The 14 approved Job states (`CLAUDE.md` §4) — exact set, never re-mapped. */
 export const JOB_STATUSES = [
@@ -99,6 +102,23 @@ export interface JobTransitionResult {
 
 export type ContactHiddenReason = 'not_assigned' | 'until_pickup' | 'job_closed';
 
+/**
+ * Fikisha's fee on a price for one side (commission split, ADR-2D-55),
+ * computed by the server: the business pays it on top of the price, the
+ * operator keeps the price less it. A viewer only ever gets their own side
+ * (staff get both).
+ */
+export interface FeeView {
+  party: 'BUSINESS' | 'OPERATOR';
+  /** e.g. "0.0500" */
+  rate: string;
+  fee_kes: number;
+  /** business side only: price + fee */
+  total_cost_kes?: number;
+  /** operator side only: price − fee */
+  operator_keeps_kes?: number;
+}
+
 /** Returned by list/detail/create — `job_detail()`, a superset of the above. */
 export interface Job extends JobTransitionResult {
   pickup_location: JobLocation | null;
@@ -107,6 +127,9 @@ export interface Job extends JobTransitionResult {
   recipient_phone: string;
   cargo: JobCargo | null;
   agreed_price_kes: number | null;
+  /** Fikisha's fee on the agreed price at the rates fixed when it was
+   * agreed, for the viewer's own side; empty before agreement. */
+  fees?: FeeView[];
   assigned_driver_id: string | null;
   assigned_vehicle_id: string | null;
   /** Contact phone numbers were blanked for this viewer (an operator not yet
@@ -118,7 +141,11 @@ export interface Job extends JobTransitionResult {
    * 2026-10-20 L-5): groups, all required, any one method per group */
   custody_requirements?: { pickup: ProofGroups; delivery: ProofGroups };
   /** the sender's record of paying the operator, made on close-off (PD-4) */
-  payment_record?: { method: 'CASH' | 'MPESA'; mpesa_reference: string; recorded_at: string } | null;
+  payment_record?: {
+    method: 'CASH' | 'MPESA';
+    mpesa_reference: string;
+    recorded_at: string;
+  } | null;
   /** when Fikisha last resumed the job after a dispute (trust plan B3) */
   resumed_at?: string | null;
   /** the other party's own confirmations already recorded */

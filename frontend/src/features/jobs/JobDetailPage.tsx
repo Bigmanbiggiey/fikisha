@@ -35,6 +35,7 @@ import {
 } from './jobHelpers';
 import { formatKes } from './money';
 import type { Job, JobStatus } from './types';
+import { FeeLines } from './FeeLines';
 import { useJobViewerRole } from './useJobViewerRole';
 import { RateJobCard } from '@/features/ratings/RateJobCard';
 import { JobEarningsCard } from '@/features/statements/JobEarningsCard';
@@ -178,6 +179,13 @@ export function JobDetailPage(): JSX.Element {
               ? `${formatKes(data.proposed_price_kes)} (${t('jobs:detail.proposed')})`
               : '—'}
         </p>
+        {data.fees && data.fees.length > 0 && (
+          <div className="mt-2 space-y-2">
+            {data.fees.map((fee) => (
+              <FeeLines key={fee.party} fee={fee} showParty={data.fees!.length > 1} />
+            ))}
+          </div>
+        )}
       </Card>
 
       <Card>
@@ -187,8 +195,11 @@ export function JobDetailPage(): JSX.Element {
         </div>
       </Card>
 
-      {/* "Earnings for this Job" (P3 §7.4): the payee's view once completed */}
-      {isOperatorViewer && data.status === 'COMPLETED' && <JobEarningsCard jobId={data.id} />}
+      {/* "Earnings for this Job" (P3 §7.4) for the operator side, "Cost for
+          this job" for the business side (ADR-2D-55), once completed */}
+      {data.status === 'COMPLETED' && (isOperatorViewer || viewer.role === 'BUSINESS') && (
+        <JobEarningsCard jobId={data.id} party={isOperatorViewer ? 'OPERATOR' : 'BUSINESS'} />
+      )}
 
       {/* Ratings (trust plan A4): each side rates the other once the job has
           completed; staff see them all. The server hides it from anyone else. */}

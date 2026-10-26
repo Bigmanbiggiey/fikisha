@@ -11,6 +11,7 @@ import { cn } from '@/components/cn';
 import { useAuth } from '@/features/auth/useAuth';
 import { formatKes } from '@/features/jobs/money';
 import { localizeError } from '@/services/errorMessage';
+import { useActiveRole } from '@/shell/activeRole';
 
 import { periodLabel, stateBadge } from './statementFormat';
 import { cursorFrom, statementsApi, statementsQueryKey } from './statementsApi';
@@ -24,6 +25,7 @@ import type { StatementSummary } from './types';
  * button: the payee pays Fikisha's paybill outside the app.
  */
 export function StatementsPage(): JSX.Element {
+  const { role } = useActiveRole();
   const { t, i18n } = useTranslation(['statements', 'errors']);
   const { user } = useAuth();
 
@@ -54,6 +56,11 @@ export function StatementsPage(): JSX.Element {
       <div>
         <h1 className="text-h1 text-fg">{t('statements:title')}</h1>
         <p className="mt-1 max-w-prose text-body-sm text-fg-secondary">{t('statements:intro')}</p>
+        {role === 'BUSINESS' && (
+          <p className="mt-1 max-w-prose text-body-sm text-fg-muted">
+            {t('statements:businessOwnerOnly')}
+          </p>
+        )}
       </div>
 
       {rows.length === 0 ? (

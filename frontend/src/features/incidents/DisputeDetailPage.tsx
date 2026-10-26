@@ -46,8 +46,12 @@ export function DisputeDetailPage(): JSX.Element {
   const [outcomeCode, setOutcomeCode] = useState<ResolutionOutcome>('ADMIN_DETERMINATION');
   const [rationale, setRationale] = useState('');
   const [routedStatus, setRoutedStatus] = useState<RoutableJobStatus>('COMPLETED');
+  // Commission per side (commission split D-5): "same for both" by default.
+  const [sameForBoth, setSameForBoth] = useState(true);
   const [commissionTreatment, setCommissionTreatment] = useState<CommissionTreatment>('APPLY');
   const [reducedAmount, setReducedAmount] = useState('');
+  const [businessTreatment, setBusinessTreatment] = useState<CommissionTreatment>('APPLY');
+  const [businessReducedAmount, setBusinessReducedAmount] = useState('');
 
   const dispute = useQuery({
     queryKey: ['disputes-detail', disputeId],
@@ -71,6 +75,8 @@ export function DisputeDetailPage(): JSX.Element {
   const resolve = useMutation({
     mutationFn: () => {
       const reduced = parseKesToMinorUnits(reducedAmount);
+      const businessReduced = parseKesToMinorUnits(businessReducedAmount);
+      const perSide = isPlatformAdmin && !sameForBoth;
       return disputesApi.resolve(
         disputeId!,
         {
@@ -80,6 +86,13 @@ export function DisputeDetailPage(): JSX.Element {
           commission_treatment: isPlatformAdmin ? commissionTreatment : 'APPLY',
           reduced_amount_kes:
             isPlatformAdmin && commissionTreatment === 'REDUCE' && reduced ? reduced : undefined,
+          ...(perSide
+            ? {
+                business_commission_treatment: businessTreatment,
+                business_reduced_amount_kes:
+                  businessTreatment === 'REDUCE' && businessReduced ? businessReduced : undefined,
+              }
+            : {}),
         },
         crypto.randomUUID(),
       );
@@ -211,31 +224,43 @@ export function DisputeDetailPage(): JSX.Element {
           </label>
 
           {isPlatformAdmin && (
-            <label className="block space-y-1">
-              <span className="text-label text-fg-secondary">{t('dispute.resolve.commissionTreatment')}</span>
-              <Select
-                value={commissionTreatment}
-                onChange={(e) => setCommissionTreatment(e.target.value as CommissionTreatment)}
-              >
-                {COMMISSION_TREATMENTS.map((c) => (
-                  <option key={c} value={c}>
-                    {t(`dispute.resolve.commissionTreatments.${c}`)}
-                  </option>
-                ))}
-              </Select>
-            </label>
-          )}
-
-          {isPlatformAdmin && commissionTreatment === 'REDUCE' && (
-            <label className="block space-y-1">
-              <span className="text-label text-fg-secondary">{t('dispute.resolve.reducedAmount')}</span>
-              <input
-                inputMode="decimal"
-                value={reducedAmount}
-                onChange={(e) => setReducedAmount(e.target.value)}
-                placeholder={formatKes(0)}
+            <fieldset className="space-y-3">
+              <legend className="text-label text-fg-secondary">
+                {t('dispute.resolve.commissionTreatment')}
+              </legend>
+              <label className="flex min-h-11 items-center gap-2 text-body text-fg">
+                <input
+                  type="checkbox"
+                  checked={sameForBoth}
+                  onChange={(e) => setSameForBoth(e.target.checked)}
+                />
+                {t('dispute.resolve.sameForBoth')}
+              </label>
+              <CommissionSideFields
+                label={t(
+                  sameForBoth
+                    ? 'dispute.resolve.commissionBothSides'
+                    : 'dispute.resolve.commissionOperatorSide',
+                )}
+                treatment={commissionTreatment}
+                onTreatment={setCommissionTreatment}
+                amount={reducedAmount}
+                onAmount={setReducedAmount}
+                amountLabel={t(
+                  sameForBoth ? 'dispute.resolve.reducedAmountEach' : 'dispute.resolve.reducedAmount',
+                )}
               />
-            </label>
+              {!sameForBoth && (
+                <CommissionSideFields
+                  label={t('dispute.resolve.commissionBusinessSide')}
+                  treatment={businessTreatment}
+                  onTreatment={setBusinessTreatment}
+                  amount={businessReducedAmount}
+                  onAmount={setBusinessReducedAmount}
+                  amountLabel={t('dispute.resolve.reducedAmount')}
+                />
+              )}
+            </fieldset>
           )}
 
           <Textarea
@@ -258,6 +283,50 @@ export function DisputeDetailPage(): JSX.Element {
       )}
 
       {isAdminViewer && !isResolved && <ResumeCard dispute={d} canResume={isPlatformAdmin} />}
+    </div>
+  );
+}
+
+/** One side's commission choice and, for a reduction, the amount off. */
+function CommissionSideFields({
+  label,
+  treatment,
+  onTreatment,
+  amount,
+  onAmount,
+  amountLabel,
+}: {
+  label: string;
+  treatment: CommissionTreatment;
+  onTreatment: (value: CommissionTreatment) => void;
+  amount: string;
+  onAmount: (value: string) => void;
+  amountLabel: string;
+}): JSX.Element {
+  const { t } = useTranslation('incidents');
+  return (
+    <div className="space-y-2">
+      <label className="block space-y-1">
+        <span className="text-body-sm text-fg-secondary">{label}</span>
+        <Select value={treatment} onChange={(e) => onTreatment(e.target.value as CommissionTreatment)}>
+          {COMMISSION_TREATMENTS.map((c) => (
+            <option key={c} value={c}>
+              {t(`dispute.resolve.commissionTreatments.${c}`)}
+            </option>
+          ))}
+        </Select>
+      </label>
+      {treatment === 'REDUCE' && (
+        <label className="block space-y-1">
+          <span className="text-body-sm text-fg-secondary">{amountLabel}</span>
+          <input
+            inputMode="decimal"
+            value={amount}
+            onChange={(e) => onAmount(e.target.value)}
+            placeholder={formatKes(0)}
+          />
+        </label>
+      )}
     </div>
   );
 }

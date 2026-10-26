@@ -177,12 +177,16 @@ describe('Configuration', () => {
   const view = {
     version: 3,
     config: {
-      commission: { rate: 0.1, min_fee_kes: 4000, cap_kes: 500000 },
+      commission: { model: 'SPLIT_FLAT', business_rate: 0.05, operator_rate: 0.05 },
       timeouts: { offer_expiry_hours: 4 },
       value_bands: [],
       role_permissions: {},
     },
-    editable_paths: ['commission.rate', 'commission.min_fee_kes', 'timeouts.offer_expiry_hours'],
+    editable_paths: [
+      'commission.business_rate',
+      'commission.operator_rate',
+      'timeouts.offer_expiry_hours',
+    ],
     versions: [
       {
         version: 3,
@@ -214,22 +218,31 @@ describe('Configuration', () => {
     api.config.mockResolvedValue(view);
     api.previewConfig.mockResolvedValue({
       version: 3,
-      changes: [{ path: 'commission.rate', before: 0.1, after: 0.08 }],
-      commission_samples: [{ agreed_price_kes: 300000, before_kes: 30000, after_kes: 24000 }],
+      changes: [{ path: 'commission.business_rate', before: 0.05, after: 0.03 }],
+      commission_samples: [
+        {
+          agreed_price_kes: 300000,
+          before_kes: 30000,
+          after_kes: 24000,
+          before: { business_kes: 15000, operator_kes: 15000 },
+          after: { business_kes: 9000, operator_kes: 15000 },
+        },
+      ],
     });
     api.applyConfig.mockRejectedValue(stepUp());
     renderWithProviders(<ConfigPage />);
 
-    const rate = await screen.findByLabelText('Commission rate (%)');
-    expect(rate).toHaveValue('10');
-    expect(screen.getByLabelText('Minimum commission (KSh)')).toHaveValue('40');
+    const rate = await screen.findByLabelText('Fee paid by the business (%)');
+    expect(rate).toHaveValue('5');
+    expect(screen.getByLabelText('Fee paid by the operator (%)')).toHaveValue('5');
     expect(screen.getByRole('button', { name: 'Preview changes' })).toBeDisabled();
 
     await userEvent.clear(rate);
-    await userEvent.type(rate, '8');
+    await userEvent.type(rate, '3');
     await userEvent.click(screen.getByRole('button', { name: 'Preview changes' }));
-    expect(api.previewConfig).toHaveBeenCalledWith({ 'commission.rate': 0.08 });
+    expect(api.previewConfig).toHaveBeenCalledWith({ 'commission.business_rate': 0.03 });
     expect(await screen.findByText('KSh 240')).toBeInTheDocument();
+    expect(screen.getByText('Business KSh 90 · operator KSh 150')).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', { name: 'Apply…' }));
     const dialog = await screen.findByRole('dialog');
@@ -237,7 +250,7 @@ describe('Configuration', () => {
     await userEvent.click(within(dialog).getByRole('button', { name: 'Continue' }));
     await userEvent.click(within(dialog).getByRole('button', { name: 'Apply' }));
     expect(api.applyConfig).toHaveBeenCalledWith(
-      { 'commission.rate': 0.08 },
+      { 'commission.business_rate': 0.03 },
       'Pilot test of a lower rate',
     );
     expect(await within(dialog).findByText(/needs a fresh authenticator code/)).toBeInTheDocument();
@@ -263,6 +276,7 @@ describe('Commission', () => {
           job_id: 'job-1',
           job_reference: 'ABC123',
           business_name: 'Kitengela Traders',
+          party: 'OPERATOR',
           payee: { kind: 'OPERATOR', id: 'op-1', name: 'A. Otieno' },
           agreed_price_kes: 300000,
           rate: '0.1000',

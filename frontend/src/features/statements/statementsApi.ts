@@ -3,6 +3,7 @@ import { apiRequest } from '@/services/apiClient';
 
 import type {
   AdminStatementsPage,
+  CommissionParty,
   JobEarnings,
   PaymentInput,
   RunResult,
@@ -17,7 +18,10 @@ export const statementsApi = {
     ),
   get: (id: string) => apiRequest<StatementDetail>(`/statements/${id}`),
   markSeen: (id: string) => apiRequest<null>(`/statements/${id}/seen`, { method: 'POST' }),
-  jobEarnings: (jobId: string) => apiRequest<JobEarnings>(`/jobs/${jobId}/earnings`),
+  jobEarnings: (jobId: string, party?: CommissionParty) =>
+    apiRequest<JobEarnings>(
+      party ? `/jobs/${jobId}/earnings?party=${party}` : `/jobs/${jobId}/earnings`,
+    ),
   // ─── Staff (S-3): read for Ops and Platform Admin, act for Platform Admin.
   // Recording and reversing a payment need a fresh step-up; the API client
   // asks for the code and retries (StepUpProvider).

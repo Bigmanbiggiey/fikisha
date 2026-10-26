@@ -88,7 +88,9 @@ export const NAV: Record<NavRole, RoleNav> = {
       messages,
     ],
     action: { to: '/jobs/new', labelKey: 'common:nav.requestTransport', icon: 'plus', end: true },
-    secondary: [{ to: '/businesses', labelKey: 'org:nav.businesses', icon: 'box' }],
+    // Statements for the business's own 5% (commission split, ADR-2D-55);
+    // only its Owner has any (D-3), the server answers everyone else empty.
+    secondary: [{ to: '/businesses', labelKey: 'org:nav.businesses', icon: 'box' }, statements],
   },
   OPERATOR: {
     primary: [
