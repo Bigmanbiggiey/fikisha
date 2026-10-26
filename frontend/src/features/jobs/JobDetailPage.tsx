@@ -35,6 +35,7 @@ import {
 import { formatKes } from './money';
 import type { Job, JobStatus } from './types';
 import { useJobViewerRole } from './useJobViewerRole';
+import { RateJobCard } from '@/features/ratings/RateJobCard';
 import { JobEarningsCard } from '@/features/statements/JobEarningsCard';
 import { JobMap } from '@/features/maps/JobMap';
 
@@ -184,6 +185,10 @@ export function JobDetailPage(): JSX.Element {
 
       {/* "Earnings for this Job" (P3 §7.4): the payee's view once completed */}
       {isOperatorViewer && data.status === 'COMPLETED' && <JobEarningsCard jobId={data.id} />}
+
+      {/* Ratings (trust plan A4): each side rates the other once the job has
+          completed; staff see them all. The server hides it from anyone else. */}
+      {data.timestamps.completed_at && <RateJobCard jobId={data.id} />}
 
       <JobNotesSection jobId={data.id} />
     </>

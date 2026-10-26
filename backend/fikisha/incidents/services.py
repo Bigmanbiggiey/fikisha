@@ -36,8 +36,11 @@ from fikisha.evidence import services as evidence_services
 from fikisha.evidence.models import EvidencePurpose, PiiClass, UploaderKind
 from fikisha.incidents import authz as incidents_authz
 from fikisha.incidents.constants import (
+    CLOSURE_NOTE_MIN_LENGTH,
     DEFAULT_SEVERITY,
+    MANUAL_CLOSURE_REASONS,
     ROUTABLE_JOB_STATUSES,
+    ClosureReason,
     CommissionTreatment,
     DisputeStatus,
     IncidentSeverity,
@@ -48,11 +51,14 @@ from fikisha.incidents.constants import (
     ResolutionOutcome,
 )
 from fikisha.incidents.errors import (
+    ClosureNoteRequired,
     DisputeAlreadyOpen,
     DisputeAlreadyResolved,
     DisputeNotFound,
     IncidentAlreadyResolved,
+    IncidentInOpenDispute,
     IncidentNotFound,
+    InvalidClosureReason,
     InvalidIncidentSeverity,
     InvalidIncidentType,
     InvalidResolutionOutcome,
@@ -67,6 +73,7 @@ from fikisha.incidents.models import (
     Dispute,
     Escalation,
     Incident,
+    IncidentClosure,
     IncidentEvidence,
     IncidentStatement,
     Resolution,
@@ -190,6 +197,7 @@ def report_incident(
         if party_kind == PartyKind.ADMIN
         else ReportedByKind.USER,
         reported_by_user=_actor_user(actor),
+        reporter_party=party_kind,
         last_changed_by=_actor_user(actor),
         description=(description or "").strip(),
         status=IncidentStatus.OPEN,
@@ -232,6 +240,7 @@ def intake_recipient_report(*, report_id: Any, actor: Any = None) -> Incident:
         other_label=other_label or (report.other_label or "")[:120],
         severity=DEFAULT_SEVERITY,
         reported_by_kind=ReportedByKind.RECIPIENT_LINK,
+        reporter_party=PartyKind.RECIPIENT,
         reported_by_link_id=report.reported_via_link_id,
         source_report_id=report.id,
         description=(report.description or "").strip(),
@@ -470,6 +479,80 @@ def start_amicable_window(*, actor: Any, incident_id: Any) -> Incident:
     return incident
 
 
+# ─── closing an incident (trust-and-disputes plan A1) ───────────────────
+def _close(
+    *, actor: Any, incident: Incident, reason_code: str, note: str, dispute: Any = None
+) -> IncidentClosure:
+    """Write the closure record and mark the incident resolved, with audit and
+    outbox, inside the caller's transaction. Changes no job status, tier or
+    standing."""
+    closure = IncidentClosure.objects.create(
+        incident=incident,
+        reason_code=reason_code,
+        note=note,
+        closed_by=_actor_user(actor),
+        closed_by_is_platform_admin=incidents_authz.is_platform_admin(actor),
+        dispute=dispute,
+    )
+    incident.status = IncidentStatus.RESOLVED
+    incident.last_changed_by = _actor_user(actor)
+    incident.save(update_fields=["status", "last_changed_by", "updated_at"])
+    audit.record(
+        actor=actor,
+        action="incident.closed",
+        entity_type="incident",
+        entity_id=incident.id,
+        after={
+            "reason_code": reason_code,
+            "dispute_id": str(dispute.id) if dispute is not None else None,
+        },
+    )
+    emit(
+        event_type="IncidentClosed",
+        aggregate_type="incident",
+        aggregate_id=str(incident.id),
+        payload={
+            "job_id": str(incident.job_id),
+            "incident_id": str(incident.id),
+            "reason_code": reason_code,
+        },
+    )
+    return closure
+
+
+@transaction.atomic
+def close_incident(*, actor: Any, incident_id: Any, reason_code: str, note: str) -> Incident:
+    """Close an incident outside a dispute: staff with ``incident.intake``, a
+    Platform Admin above the Standard band. An incident that is part of an
+    open dispute closes only when that dispute is resolved."""
+    _require_review_permission(actor, permission="incident.intake")
+    if reason_code not in MANUAL_CLOSURE_REASONS:
+        raise InvalidClosureReason()
+    note = (note or "").strip()
+    if len(note) < CLOSURE_NOTE_MIN_LENGTH:
+        raise ClosureNoteRequired()
+    try:
+        incident = Incident.objects.select_for_update().select_related("job").get(id=incident_id)
+    except Incident.DoesNotExist as exc:
+        raise IncidentNotFound() from exc
+    if incident.status == IncidentStatus.RESOLVED:
+        raise IncidentAlreadyResolved()
+    band = getattr(incident.job, "value_band", "") or "STANDARD"
+    if band != "STANDARD" and not incidents_authz.is_platform_admin(actor):
+        raise NotAuthorisedForBindingResolution(
+            "Closing an incident above the Standard band requires a Platform Administrator."
+        )
+    in_open_dispute = (
+        Dispute.objects.filter(job_id=incident.job_id, incident_ids__contains=[str(incident.id)])
+        .exclude(status=DisputeStatus.RESOLVED)
+        .exists()
+    )
+    if in_open_dispute:
+        raise IncidentInOpenDispute()
+    _close(actor=actor, incident=incident, reason_code=reason_code, note=note)
+    return incident
+
+
 # ─── dispute open / resolve (writes job.status only via transition()) ───
 @transaction.atomic
 def open_dispute(
@@ -640,9 +723,20 @@ def resolve_dispute(
     dispute.status = DisputeStatus.RESOLVED
     dispute.officer_admin = _actor_user(actor)
     dispute.save(update_fields=["status", "officer_admin", "updated_at"])
-    Incident.objects.filter(id__in=dispute.incident_ids).exclude(
-        status=IncidentStatus.RESOLVED
-    ).update(status=IncidentStatus.RESOLVED, last_changed_by=_actor_user(actor))
+    # One closure record per linked incident still open (trust-and-disputes
+    # plan A1), instead of a bare bulk status update.
+    for incident in (
+        Incident.objects.select_for_update()
+        .filter(id__in=dispute.incident_ids)
+        .exclude(status=IncidentStatus.RESOLVED)
+    ):
+        _close(
+            actor=actor,
+            incident=incident,
+            reason_code=ClosureReason.DISPUTE_RESOLVED,
+            note=rationale,
+            dispute=dispute,
+        )
 
     if commission_treatment in _COMMISSION_TREATMENTS_REQUIRING_ADJUSTMENT:
         commission_record = commission_service.get_commission_record(job)

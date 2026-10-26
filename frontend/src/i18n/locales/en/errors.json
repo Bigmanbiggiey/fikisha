@@ -59,5 +59,18 @@
   "invalid_if_match": "This screen sent an unreadable job version. Refresh the page and try again.",
   "tier_change_not_allowed": "That tier change isn't possible right now.",
   "invalid_tier_change": "Check the tier and give a reason of at least 10 characters.",
-  "tier_proposal_not_open": "This proposal has already been decided or is out of date. The page has the latest."
+  "tier_proposal_not_open": "This proposal has already been decided or is out of date. The page has the latest.",
+  "invalid_closure_reason": "Choose why the incident is being closed.",
+  "closure_note_required": "Add a note of at least 10 characters.",
+  "incident_in_open_dispute": "This incident is part of an open dispute; it closes when the dispute is resolved.",
+  "invalid_finding": "Check the finding: an at-fault finding names at least one party of this job.",
+  "finding_reason_required": "Give a reason of at least 10 characters.",
+  "unfounded_not_allowed": "A report can be marked unfounded only once it is closed and Fikisha found no fault.",
+  "not_rating_party": "Only the job's business or operator side can rate it.",
+  "rating_not_open": "This job can't be rated now.",
+  "already_rated": "Your side has already rated this job.",
+  "invalid_rating": "Give a score from 1 to 5; a comment can be up to 1,000 characters.",
+  "cancellation_flag_not_open": "This flag has already been reviewed.",
+  "flag_note_required": "Add a note of at least 10 characters.",
+  "invalid_flag_review": "Choose to clear the flag or close it as mistaken."
 }

@@ -29,7 +29,9 @@ from fikisha.common.models import (
 from fikisha.jobs.constants import (
     AssignedBy,
     Attestation,
+    CancellationFlagStatus,
     CancellationReason,
+    CancellingSide,
     CommissionAdjustmentKind,
     ConfirmationMethod,
     GeoState,
@@ -332,11 +334,63 @@ class CancellationRecord(AppendOnlyModel):
     penalty_class = models.CharField(
         max_length=20, choices=PenaltyClass.choices, default=PenaltyClass.NONE
     )
+    #: Recorded at cancellation since trust-and-disputes plan A7; blank on
+    #: older rows, which are attributed from ``cancelled_by_role`` when read.
+    cancelling_side = models.CharField(
+        max_length=10, choices=CancellingSide.choices, blank=True, default=""
+    )
+    business = models.ForeignKey(
+        "business.BusinessAccount",
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="+",
+    )
 
     objects = AppendOnlyQuerySet.as_manager()
 
     class Meta:
         db_table = "cancellation_record"
+
+
+class CancellationFlag(TimestampedModel):
+    """A business reached the late-cancellation threshold (D-DIS-3, plan A7):
+    a review item for staff, never an automatic penalty. ``record_ids`` are
+    the cancellations that raised it. The status is a small workflow (open,
+    then cleared or closed as mistaken); each decision is an append-only
+    :class:`CancellationFlagReview`. At most one open flag per business."""
+
+    business = models.ForeignKey(
+        "business.BusinessAccount", on_delete=models.PROTECT, related_name="+"
+    )
+    record_ids = models.JSONField(default=list)
+    status = models.CharField(
+        max_length=10, choices=CancellationFlagStatus.choices, default=CancellationFlagStatus.OPEN
+    )
+
+    class Meta:
+        db_table = "cancellation_flag"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["business"],
+                condition=models.Q(status="OPEN"),
+                name="uq_cancellation_flag_one_open",
+            ),
+        ]
+
+
+class CancellationFlagReview(AppendOnlyModel):
+    flag = models.OneToOneField(CancellationFlag, on_delete=models.PROTECT, related_name="review")
+    outcome = models.CharField(max_length=10, choices=CancellationFlagStatus.choices)
+    note = models.TextField()
+    reviewed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="+"
+    )
+
+    objects = AppendOnlyQuerySet.as_manager()
+
+    class Meta:
+        db_table = "cancellation_flag_review"
 
 
 class FailureRecord(AppendOnlyModel):

@@ -11,6 +11,7 @@ const get = vi.fn();
 const listDisputesForJob = vi.fn();
 const startReview = vi.fn();
 const escalate = vi.fn();
+const close = vi.fn();
 const meMock = vi.fn();
 
 vi.mock('./incidentsApi', () => ({
@@ -19,6 +20,7 @@ vi.mock('./incidentsApi', () => ({
     startReview: (...a: unknown[]) => startReview(...a),
     startAmicable: vi.fn(),
     escalate: (...a: unknown[]) => escalate(...a),
+    close: (...a: unknown[]) => close(...a),
     evidenceBlob: vi.fn(),
   },
   disputesApi: {
@@ -62,6 +64,7 @@ describe('IncidentDetailPage', () => {
     listDisputesForJob.mockReset();
     startReview.mockReset();
     escalate.mockReset();
+    close.mockReset();
     meMock.mockReset();
     listDisputesForJob.mockResolvedValue({ data: [] });
   });
@@ -100,5 +103,54 @@ describe('IncidentDetailPage', () => {
     renderAtIncident('inc1');
 
     expect(await screen.findByLabelText('Reason for escalating')).toBeInTheDocument();
+  });
+
+  const ops = {
+    id: 'u1', phone: '+254700000001', display_name: 'Ops', locale: 'en', status: 'ACTIVE',
+    roles: ['OPERATIONS_OFFICER'], is_admin: true,
+  };
+
+  it('staff close an incident with a reason and a note (trust plan A1)', async () => {
+    meMock.mockResolvedValue(ops);
+    get.mockResolvedValue(baseIncident());
+    close.mockResolvedValue(baseIncident({ status: 'RESOLVED' }));
+    const user = userEvent.setup();
+    renderAtIncident('inc1');
+
+    const submit = await screen.findByRole('button', { name: 'Close incident' });
+    expect(submit).toBeDisabled();
+    await user.selectOptions(screen.getByLabelText("Why it's being closed"), 'PAYMENT_MADE');
+    await user.type(screen.getByLabelText('Note for Fikisha staff'), 'Sender paid by M-Pesa.');
+    await user.click(submit);
+    expect(close).toHaveBeenCalledWith('inc1', {
+      reason_code: 'PAYMENT_MADE',
+      note: 'Sender paid by M-Pesa.',
+    });
+  });
+
+  it('an incident in an open dispute can only close with the dispute', async () => {
+    meMock.mockResolvedValue(ops);
+    get.mockResolvedValue(baseIncident());
+    listDisputesForJob.mockResolvedValue({
+      data: [{ id: 'd1', job_id: 'job1', incident_ids: ['inc1'], status: 'OPEN' }],
+    });
+    renderAtIncident('inc1');
+
+    expect(await screen.findByText(/It closes when the dispute is resolved/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Close incident' })).not.toBeInTheDocument();
+  });
+
+  it('a party sees why it closed but not the staff note', async () => {
+    meMock.mockRejectedValue(new Error('anon'));
+    get.mockResolvedValue(
+      baseIncident({
+        status: 'RESOLVED',
+        closure: { reason_code: 'RESOLVED_BETWEEN_PARTIES', created_at: '2026-10-20T08:00:00Z' },
+      }),
+    );
+    renderAtIncident('inc1');
+
+    expect(await screen.findByText('Reason: Resolved between the parties')).toBeInTheDocument();
+    expect(screen.queryByText(/Staff note/)).not.toBeInTheDocument();
   });
 });

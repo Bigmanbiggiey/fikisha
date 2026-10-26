@@ -83,3 +83,41 @@ class StatementTextRequired(DomainError):
     default_code = "statement_text_required"
     status_code = status.HTTP_422_UNPROCESSABLE_ENTITY
     default_detail = "Statement text is required."
+
+
+class InvalidClosureReason(DomainError):
+    default_code = "invalid_closure_reason"
+    status_code = status.HTTP_422_UNPROCESSABLE_ENTITY
+    default_detail = "Choose why the incident is being closed."
+
+
+class ClosureNoteRequired(DomainError):
+    default_code = "closure_note_required"
+    status_code = status.HTTP_422_UNPROCESSABLE_ENTITY
+    default_detail = "Add a note of at least 10 characters."
+
+
+class IncidentInOpenDispute(ConflictError):
+    default_code = "incident_in_open_dispute"
+    default_detail = (
+        "This incident is part of an open dispute; it closes when the dispute is resolved."
+    )
+
+
+class InvalidFinding(DomainError):
+    default_code = "invalid_finding"
+    status_code = status.HTTP_422_UNPROCESSABLE_ENTITY
+    default_detail = "Check the finding: an at-fault finding names at least one party of this job."
+
+
+class FindingReasonRequired(DomainError):
+    default_code = "finding_reason_required"
+    status_code = status.HTTP_422_UNPROCESSABLE_ENTITY
+    default_detail = "Give a reason of at least 10 characters."
+
+
+class UnfoundedNotAllowed(ConflictError):
+    default_code = "unfounded_not_allowed"
+    default_detail = (
+        "A report can be marked unfounded only once it is closed and Fikisha found no fault."
+    )

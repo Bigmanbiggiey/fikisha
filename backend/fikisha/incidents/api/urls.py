@@ -45,6 +45,21 @@ urlpatterns = [
         name="incident-amicable",
     ),
     path(
+        "incidents/<uuid:incident_id>/close",
+        views.IncidentCloseView.as_view(),
+        name="incident-close",
+    ),
+    path(
+        "incidents/<uuid:incident_id>/findings",
+        views.IncidentFindingView.as_view(),
+        name="incident-findings",
+    ),
+    path(
+        "incidents/<uuid:incident_id>/unfounded",
+        views.IncidentUnfoundedView.as_view(),
+        name="incident-unfounded",
+    ),
+    path(
         "incidents/<uuid:incident_id>/escalate",
         views.IncidentEscalateView.as_view(),
         name="incident-escalate",

@@ -29,6 +29,13 @@ function allowedLine(view: TierView, t: (k: string, o?: Record<string, unknown>)
   return t('trust:allowed.upTo', { amount: formatKes(view.max_value_kes) });
 }
 
+/** Rows that show a figure only once measured have a plain label otherwise. */
+function labelKey(c: TierCriterion): string {
+  if (c.status === 'NOT_MEASURED') return `${c.key}_unmeasured`;
+  if (c.status === 'INSUFFICIENT_DATA') return `${c.key}_insufficient`;
+  return c.key;
+}
+
 function CriterionRow({ c }: { c: TierCriterion }): JSX.Element {
   const { t } = useTranslation('trust');
   const icon = c.status === 'MET' ? 'check' : c.status === 'NOT_MEASURED' ? 'slash' : 'circle';
@@ -40,12 +47,17 @@ function CriterionRow({ c }: { c: TierCriterion }): JSX.Element {
         <Icon name={icon} />
       </span>
       <span className={c.status === 'NOT_MEASURED' ? 'text-fg-muted' : 'text-fg'}>
-        {t(`trust:criterion.${c.key}`, {
+        {t(`trust:criterion.${labelKey(c)}`, {
           current: c.current ?? 0,
           target: c.target ?? 0,
-          defaultValue: c.key,
+          defaultValue: t(`trust:criterion.${c.key}`, {
+            current: c.current ?? 0,
+            target: c.target ?? 0,
+            defaultValue: c.key,
+          }),
         })}
         {c.status === 'NOT_MEASURED' && ` · ${t('trust:notMeasured')}`}
+        {c.status === 'INSUFFICIENT_DATA' && ` · ${t('trust:insufficient', { current: c.current ?? 0 })}`}
         <span className="sr-only"> · {t(`trust:status.${c.status}`)}</span>
       </span>
     </li>
