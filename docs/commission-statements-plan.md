@@ -216,6 +216,9 @@ but businesses are never charged commission (D-BIZ-4).
 
 **Recommend (a).** Record it as a resolved wireframe ambiguity.
 
+> **Reversed 2026-10-26** by the commission split (ADR-2D-55): businesses
+> now pay 5% of each completed job and get statements for it (Owner only).
+
 ### D-8: Unpaid statements
 - **(a)** Show "overdue" to admins after N days (config, default 14). No
   automatic effect on the payee's ability to work.

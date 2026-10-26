@@ -1,7 +1,8 @@
 # Commission split (5% business + 5% operator): plan
 
 **Status:** APPROVED 2026-10-26, D-1 to D-7 all as recommended (§8).
-Building as C-1 to C-3 on `feat/commission-split` (stacked on PR #27).
+C-1 to C-3 BUILT 2026-10-26 on `feat/commission-split` (stacked on PR #27),
+recorded as ADR-2D-55; awaiting founder review.
 **Founder decision:** 2026-10-22. Commission stays at 10% of each completed
 job, but it is split: **5% paid by the sender (business) and 5% paid by the
 operator**, with **no minimum and no maximum** ("we take what we get";
