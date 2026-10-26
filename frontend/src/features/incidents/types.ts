@@ -133,6 +133,8 @@ export interface Resolution {
   commission_treatment: CommissionTreatment;
   /** intent flags recorded before findings existed; history only */
   recorded_actions?: string[];
+  /** resolved by resuming the job to `routed_job_status` (trust plan B1) */
+  resumed?: boolean;
   created_at: string;
 }
 
@@ -162,6 +164,23 @@ export interface CloseIncidentBody {
 export interface RecordFindingBody {
   outcome: FindingOutcome;
   parties: FindingPartyKind[];
+  reason: string;
+}
+
+export const AGREEMENT_METHODS = ['PHONE', 'IN_PERSON', 'IN_APP_MESSAGE'] as const;
+export type AgreementMethod = (typeof AGREEMENT_METHODS)[number];
+
+/** `GET /disputes/:id/resume` (trust plan B1). */
+export interface ResumeChecks {
+  target_status: string;
+  window_ends_at: string;
+  checks: { key: string; ok: boolean; detail: string }[];
+  ok: boolean;
+}
+
+export interface ResumeDisputeBody {
+  sender_method: AgreementMethod;
+  operator_method: AgreementMethod;
   reason: string;
 }
 

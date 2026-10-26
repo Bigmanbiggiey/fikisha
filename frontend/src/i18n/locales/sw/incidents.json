@@ -113,10 +113,29 @@
       "apply": "Tumia ufumbuzi"
     },
     "resume": {
-      "title": "Endelea na Kazi hii hadi {{status}}",
-      "reason": "Sababu ya kuendelea",
-      "action": "Endelea na Kazi hii hadi {{status}}",
-      "notAvailable": "Itaendelea mfumo halali utakapokubali — bado haipatikani."
+      "title": "Endeleza kazi hii hadi {{status}}",
+      "explain": "Kazi inaendelea pale ilipokomea, na dereva na gari lilelile. Kila tukio katika mzozo linafungwa.",
+      "reason": "Sababu ya kuendeleza (angalau herufi 10)",
+      "action": "Endeleza kazi hii hadi {{status}}",
+      "met": "imetimizwa",
+      "notMet": "haijatimizwa",
+      "check": {
+        "dispute_open": "Mzozo bado uko wazi",
+        "resumable_state": "Kazi iliingia mzozoni kabla ya kukamilika",
+        "within_window": "Ndani ya siku 7 tangu mzozo ufunguliwe (hadi {{when}})",
+        "serious_findings": "Kila tukio la upotevu, uharibifu, bidhaa kupungua au utovu wa nidhamu lina uamuzi",
+        "assignment_eligible": "Dereva na gari lilelile bado wanaweza kupewa kazi leo"
+      },
+      "senderAgreed": "Jinsi mtumaji alivyokubali kuendelea",
+      "operatorAgreed": "Jinsi mhudumu alivyokubali kuendelea",
+      "chooseMethod": "Chagua jinsi",
+      "method": {
+        "PHONE": "Kwa simu",
+        "IN_PERSON": "Ana kwa ana",
+        "IN_APP_MESSAGE": "Kwa ujumbe ndani ya programu"
+      },
+      "afterwards": "Hatua iliyokuwa ikisubiri inathibitishwa upya: misimbo mipya inatumwa, na uthibitisho wa awali hauhesabiwi tena.",
+      "platformAdminOnly": "Msimamizi wa Jukwaa pekee anaweza kuendeleza kazi."
     }
   },
   "finding": {

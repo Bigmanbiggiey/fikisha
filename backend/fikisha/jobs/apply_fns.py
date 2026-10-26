@@ -324,12 +324,10 @@ def _ordered(present: set[str]) -> list[str]:
 
 
 def _recorded_evidence(job: Any, stage: str) -> list[Any]:
-    from fikisha.jobs.models import CustodyConfirmation
-
     ids: list[Any] = []
-    for row in CustodyConfirmation.objects.filter(job=job, stage=stage).values_list(
-        "evidence_ids", flat=True
-    ):
+    from fikisha.jobs import confirmations
+
+    for row in confirmations.counted(job, stage).values_list("evidence_ids", flat=True):
         ids.extend(row or [])
     return ids
 
@@ -466,6 +464,19 @@ resolve_failed = noop
 resolve_cancelled = noop
 
 
+def resume(job: Any, actor: Any, ctx: dict[str, Any]) -> None:
+    """``DISPUTED -> pre-dispute state`` (trust-and-disputes plan B1, B2):
+    the pending step gets fresh codes. At pickup a new pickup code; at the
+    destination a new recipient code and the recipient link revoked and
+    reissued with the same actions. Earlier confirmations stop counting
+    (``jobs.confirmations``). No commission (none exists before COMPLETED)."""
+    target = ctx.get("routed_job_status")
+    if target == JobStatus.AT_PICKUP:
+        arrive_pickup(job, actor, ctx)
+    elif target == JobStatus.AT_DESTINATION:
+        arrive_destination(job, actor, ctx)
+
+
 APPLY: dict[str, ApplyFn] = {
     "noop": noop,
     "publish": publish,
@@ -484,4 +495,5 @@ APPLY: dict[str, ApplyFn] = {
     "resolve_completed": resolve_completed,
     "resolve_failed": resolve_failed,
     "resolve_cancelled": resolve_cancelled,
+    "resume": resume,
 }

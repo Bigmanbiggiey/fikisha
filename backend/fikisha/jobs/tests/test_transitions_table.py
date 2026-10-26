@@ -10,6 +10,13 @@ from fikisha.jobs.transitions import ALLOWED_PAIRS, ALLOWED_TRANSITIONS, rule_fo
 
 # Exactly the rows in job-state-machine.md §3.1-3.4 (RESUME excluded — ADR-2D-07).
 EXPECTED_PAIRS = {
+    # resume to the pre-dispute state (ADR-2D-54)
+    ("DISPUTED", "ASSIGNED"),
+    ("DISPUTED", "AT_PICKUP"),
+    ("DISPUTED", "PICKED_UP"),
+    ("DISPUTED", "IN_TRANSIT"),
+    ("DISPUTED", "AT_DESTINATION"),
+    ("DISPUTED", "DELIVERED"),
     ("DRAFT", "REQUESTED"),
     ("DRAFT", "CANCELLED"),
     ("REQUESTED", "NEGOTIATING"),
@@ -52,11 +59,14 @@ def test_table_matches_state_machine_doc() -> None:
     assert set(ALLOWED_PAIRS) == EXPECTED_PAIRS
 
 
-def test_resume_path_is_absent() -> None:
-    # DISPUTED → <pre_dispute_status> (RESUME) is OPEN — not implemented in 2D.
+def test_resume_goes_only_to_a_resumable_state() -> None:
+    # DISPUTED → a terminal state (resolution) or back to an in-progress state
+    # (resume, ADR-2D-54) — never DRAFT / REQUESTED / NEGOTIATING / CONFIRMED.
+    from fikisha.jobs.constants import RESUMABLE_PRE_DISPUTE_STATES
+
     for _from, to in ALLOWED_PAIRS:
         if _from == "DISPUTED":
-            assert to in TERMINAL_STATES
+            assert to in TERMINAL_STATES or to in RESUMABLE_PRE_DISPUTE_STATES
 
 
 def test_no_transition_out_of_terminal_states_except_post_completion_dispute() -> None:

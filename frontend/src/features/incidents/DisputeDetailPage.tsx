@@ -17,6 +17,7 @@ import { formatKes, parseKesToMinorUnits } from '@/features/jobs/money';
 import { localizeError } from '@/services/errorMessage';
 
 import { disputesApi, incidentsApi } from './incidentsApi';
+import { ResumeCard } from './ResumeCard';
 import {
   COMMISSION_TREATMENTS,
   ROUTABLE_JOB_STATUSES,
@@ -28,8 +29,8 @@ import {
 
 /**
  * DisputeDetailPage — §17.2 (Ops Officer review, amicable-first) / §17.3
- * (Platform Admin binding resolution + the disabled `DISPUTED → RESUME`
- * shell). Band gating (Ops Officer STANDARD-only, Platform-Admin-only
+ * (Platform Admin binding resolution, and resuming the job — trust plan
+ * Part B). Band gating (Ops Officer STANDARD-only, Platform-Admin-only
  * above STANDARD, REDUCE/WAIVE Platform-Admin-only) mirrors exactly what
  * the backend's `AdminBandAuthorised` guard and `can_adjust_commission`
  * already enforce server-side — this is UX only, never the real gate.
@@ -256,22 +257,7 @@ export function DisputeDetailPage(): JSX.Element {
         </Card>
       )}
 
-      {isPlatformAdmin && !isResolved && (
-        <Card className="space-y-2">
-          <h2 className="text-label text-fg-secondary">
-            {t('dispute.resume.title', { status: t(`jobs:status.${d.pre_dispute_status}`) })}
-          </h2>
-          <Textarea
-            aria-label={t('dispute.resume.reason')}
-            placeholder={t('dispute.resume.reason')}
-            disabled
-          />
-          <Button disabled fullWidth>
-            {t('dispute.resume.action', { status: t(`jobs:status.${d.pre_dispute_status}`) })}
-          </Button>
-          <p className="text-body-sm text-fg-muted">{t('dispute.resume.notAvailable')}</p>
-        </Card>
-      )}
+      {isAdminViewer && !isResolved && <ResumeCard dispute={d} canResume={isPlatformAdmin} />}
     </div>
   );
 }

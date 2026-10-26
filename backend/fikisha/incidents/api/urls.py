@@ -72,6 +72,11 @@ urlpatterns = [
     ),
     path("disputes/<uuid:dispute_id>", views.DisputeDetailView.as_view(), name="dispute-detail"),
     path(
+        "disputes/<uuid:dispute_id>/resume",
+        views.DisputeResumeView.as_view(),
+        name="dispute-resume",
+    ),
+    path(
         "disputes/<uuid:dispute_id>/resolve",
         views.DisputeResolveView.as_view(),
         name="dispute-resolve",

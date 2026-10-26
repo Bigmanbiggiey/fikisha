@@ -89,7 +89,7 @@ state machine.
 | `DISPUTED` | `COMPLETED` | Admin resolution | Job deemed successfully delivered (possibly with adjustments recorded) |
 | `DISPUTED` | `FAILED` | Admin resolution | Job deemed not completed |
 | `DISPUTED` | `CANCELLED` | Admin resolution | Job unwound by agreement |
-| `DISPUTED` | *(prior state)* | Admin resolution | **OPEN QUESTION:** allow resume to the pre-dispute state if the issue is cleared and the job can continue (e.g. breakdown fixed, replacement vehicle). Recommended: yes, admin-only, logged. |
+| `DISPUTED` | *(prior state)* | Admin resolution | **DECIDED 2026-10-20 (ADR-2D-54):** Platform Admin only, logged, same driver and vehicle (no replacement), within 7 days, both parties' agreement recorded. Was an open question. |
 
 ### 2.4 Post-completion disputes
 

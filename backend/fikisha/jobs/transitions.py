@@ -280,7 +280,7 @@ ALLOWED_TRANSITIONS: dict[tuple[str, str], Rule] = {
         events=("JobDisputed",),
         event_type=JobEventType.DISPUTED,
     ),
-    # ── 3.4 dispute resolution (RESUME is NOT implemented — ADR-2D-07) ──
+    # ── 3.4 dispute resolution ─────────────────────────────────────────
     (S.DISPUTED, S.COMPLETED): Rule(
         initiators=("ADMIN", "PLATFORM_ADMIN"),
         guards=("ResolutionRecorded", "AdminBandAuthorised"),
@@ -302,6 +302,26 @@ ALLOWED_TRANSITIONS: dict[tuple[str, str], Rule] = {
         events=("DisputeResolved", "JobCancelled"),
         event_type=JobEventType.DISPUTE_RESOLVED,
     ),
+    # ── 3.4b resume (trust-and-disputes plan B1, ADR-2D-54) ─────────────
+    # DISPUTED -> its recorded pre-dispute state, Platform Admin only, with a
+    # recorded resume resolution and the existing assignment still eligible.
+    **{
+        (S.DISPUTED, target): Rule(
+            initiators=("PLATFORM_ADMIN",),
+            guards=("ResolutionRecorded", "ResumeAllowed"),
+            apply="resume",
+            events=("DisputeResolved", "JobResumed"),
+            event_type=JobEventType.RESUMED,
+        )
+        for target in (
+            S.ASSIGNED,
+            S.AT_PICKUP,
+            S.PICKED_UP,
+            S.IN_TRANSIT,
+            S.AT_DESTINATION,
+            S.DELIVERED,
+        )
+    },
 }
 
 

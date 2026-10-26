@@ -9,6 +9,8 @@ import type {
   RecordFindingBody,
   ReportIncidentBody,
   ResolveDisputeBody,
+  ResumeChecks,
+  ResumeDisputeBody,
 } from './types';
 
 // `Paged` isn't used by these list endpoints (both return a plain
@@ -73,6 +75,13 @@ export const disputesApi = {
     }).then((r) => {
       rememberJobVersion(r.job);
       return r;
+    }),
+  resumeChecks: (disputeId: string) => apiRequest<ResumeChecks>(`/disputes/${disputeId}/resume`),
+  resume: (disputeId: string, body: ResumeDisputeBody, idempotencyKey: string) =>
+    apiRequest<{ resolution_id: string; job: unknown }>(`/disputes/${disputeId}/resume`, {
+      method: 'POST',
+      body,
+      idempotencyKey,
     }),
   resolve: (disputeId: string, body: ResolveDisputeBody, idempotencyKey: string) =>
     apiRequest<{ resolution_id: string; job: unknown }>(`/disputes/${disputeId}/resolve`, {

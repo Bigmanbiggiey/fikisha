@@ -113,10 +113,29 @@
       "apply": "Apply resolution"
     },
     "resume": {
-      "title": "Resume this Job to {{status}}",
-      "reason": "Reason for resuming",
-      "action": "Resume this Job to {{status}}",
-      "notAvailable": "Resume when the authoritative system permits it — not available yet."
+      "title": "Resume this job to {{status}}",
+      "explain": "The job carries on from where it stopped, with the same driver and vehicle. Every incident in the dispute is closed.",
+      "reason": "Reason for resuming (at least 10 characters)",
+      "action": "Resume this job to {{status}}",
+      "met": "met",
+      "notMet": "not met",
+      "check": {
+        "dispute_open": "The dispute is still open",
+        "resumable_state": "The job was disputed before it completed",
+        "within_window": "Within 7 days of the dispute opening (until {{when}})",
+        "serious_findings": "Every loss, damage, missing-goods or misconduct incident has a finding",
+        "assignment_eligible": "The same driver and vehicle could still be assigned today"
+      },
+      "senderAgreed": "How the sender agreed to carry on",
+      "operatorAgreed": "How the operator agreed to carry on",
+      "chooseMethod": "Choose how",
+      "method": {
+        "PHONE": "By phone",
+        "IN_PERSON": "In person",
+        "IN_APP_MESSAGE": "By message in the app"
+      },
+      "afterwards": "The step that was waiting is confirmed again: fresh codes are sent, and earlier confirmations no longer count.",
+      "platformAdminOnly": "Only a Platform Administrator can resume a job."
     }
   },
   "finding": {
