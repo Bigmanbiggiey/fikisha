@@ -11,7 +11,9 @@ ADR-2D-42).
   earnings, the admin list with totals.
 
 Commission data comes only through ``jobs.commission``'s billing reads
-(module boundary rule). Nothing here moves money: Fikisha records what a
+(module boundary rule). Since the commission split (ADR-2D-55) a business is
+billed for its own share too, on a statement of its own (D-1); only its
+Owner sees it (D-3). Nothing here moves money: Fikisha records what a
 payee owes for its own commission and what they reported paying.
 """
 
@@ -28,13 +30,17 @@ from django.utils import timezone
 from rest_framework import status
 
 from fikisha.audit import services as audit
+from fikisha.business import authz as business_authz
+from fikisha.business import services as business_services
 from fikisha.common.exceptions import AuthorizationError, DomainError
 from fikisha.groups import authz as groups_authz
 from fikisha.groups import services as groups_services
 from fikisha.identity.authz.policies import actor_has_permission
 from fikisha.identity.authz.step_up import require_step_up
 from fikisha.jobs import commission as jobs_commission
-from fikisha.jobs.selectors import current_config_version
+from fikisha.jobs import job_authz
+from fikisha.jobs.constants import CommissionParty
+from fikisha.jobs.selectors import current_config_version, get_job
 from fikisha.operators import authz as operators_authz
 from fikisha.operators import services as operators_services
 from fikisha.outbox.services import emit
@@ -425,11 +431,15 @@ def _locked_statement(statement_id: Any) -> CommissionStatement:
 # ─── Who may see what (plan §3.5) ────────────────────────────────────────
 def is_payee(actor: Any, payee_kind: str, payee_id: Any) -> bool:
     """A solo operator for their own statements; a group's OWNER/MANAGER for
-    the group's. A group DRIVER member is not a payee (FR-O-8)."""
+    the group's; a business's OWNER for the business's (commission split
+    D-3). A group DRIVER member is not a payee (FR-O-8), nor is a business
+    Dispatcher or Viewer."""
     if payee_kind == PayeeKind.OPERATOR:
         return operators_authz.owns_profile(actor, {"operator_id": str(payee_id)})
     if payee_kind == PayeeKind.GROUP:
         return groups_authz.can_manage(actor, {"group_id": str(payee_id)})
+    if payee_kind == PayeeKind.BUSINESS:
+        return business_authz.is_owner(actor, {"business_id": str(payee_id)})
     return False
 
 
@@ -455,6 +465,13 @@ def statements_for(actor: Any) -> QuerySet[CommissionStatement]:
     ]
     if managed:
         q |= Q(payee_kind=PayeeKind.GROUP, payee_id__in=managed)
+    owned = [
+        b.id
+        for b in business_services.businesses_for(user)
+        if business_authz.is_owner(actor, {"business_id": str(b.id)})
+    ]
+    if owned:
+        q |= Q(payee_kind=PayeeKind.BUSINESS, payee_id__in=owned)
     return CommissionStatement.objects.filter(q).order_by("-period_start", "-created_at")
 
 
@@ -521,6 +538,8 @@ def unseen_count(actor: Any) -> int:
 def _payee_name(payee_kind: str, payee_id: Any) -> str | None:
     if payee_kind == PayeeKind.OPERATOR:
         return operators_services.display_name_for(payee_id)
+    if payee_kind == PayeeKind.BUSINESS:
+        return business_services.display_name_for(payee_id)
     return groups_services.display_name_for(payee_id)
 
 
@@ -607,26 +626,45 @@ def statement_detail(statement: CommissionStatement) -> dict[str, Any]:
     return data
 
 
-def job_earnings(*, actor: Any, job_id: Any) -> dict[str, Any]:
-    """ "Earnings for this Job" (P3 §7.4) for the job's payee or staff with
-    ``statements.read.all``. Anyone else gets 404, so a job's existence and
-    commission don't leak."""
+def _may_see_side(actor: Any, row: dict[str, Any], job: Any) -> bool:
+    """Staff see both sides. The operator side: its payee. The business side:
+    the business's Owner and Dispatchers, who send its jobs (D-3: the fee on
+    each job is visible to those who send it; the statement to the Owner)."""
+    if actor_has_permission(actor, PERM_READ_ALL):
+        return True
+    if row["party"] == CommissionParty.BUSINESS:
+        return job_authz.business_is_party(actor, job)
+    return is_payee(actor, row["payee_kind"], row["payee_id"])
+
+
+def job_earnings(*, actor: Any, job_id: Any, party: str | None = None) -> dict[str, Any]:
+    """One side's commission on a job: "Earnings for this job" for the
+    operator side (P3 §7.4), "Cost for this job" for the business side
+    (ADR-2D-55). ``party`` picks the side; without it, the first side the
+    actor may see (the business's before the operator's). Anyone with no
+    side to see gets 404, so a job's existence and commission don't leak."""
     from rest_framework.exceptions import NotFound
 
-    row = jobs_commission.commission_for_job(job_id)
-    if row is None or not (
-        actor_has_permission(actor, PERM_READ_ALL)
-        or is_payee(actor, row["payee_kind"], row["payee_id"])
-    ):
+    rows = jobs_commission.commission_for_job(job_id)
+    if party is not None:
+        rows = [r for r in rows if r["party"] == party]
+    job = get_job(job_id) if rows else None
+    visible = [r for r in rows if _may_see_side(actor, r, job)]
+    if not visible:
         raise NotFound("No earnings for this job.")
+    row = visible[0]
     line = (
         StatementLine.objects.select_related("statement")
         .filter(commission_record_id=row["record_id"])
         .first()
     )
+    # the statement itself only to whoever may open it (the payee or staff)
     row["statement"] = (
-        {"id": str(line.statement_id), "reference": line.statement.reference} if line else None
+        {"id": str(line.statement_id), "reference": line.statement.reference}
+        if line and can_read_statement(actor, line.statement)
+        else None
     )
+    row["sides"] = [r["party"] for r in visible]
     row.pop("record_id")
     return row
 

@@ -327,11 +327,35 @@ def job_detail(job: Job, viewer: Any = None) -> dict[str, Any]:
     agreement = job.agreement
     assignment = job.assignment
     view["agreed_price_kes"] = agreement.agreed_price_kes if agreement is not None else None
+    view["fees"] = _fees_view(job, viewer)
     view["assigned_driver_id"] = (
         str(assignment.assigned_driver_profile_id) if assignment is not None else None
     )
     view["assigned_vehicle_id"] = str(assignment.vehicle_id) if assignment is not None else None
     return view
+
+
+def _fees_view(job: Job, viewer: Any) -> list[dict[str, Any]]:
+    """Fikisha's fee on the agreed price (commission split, ADR-2D-55): what
+    was recorded once the job completed, else the rates fixed on the
+    agreement. The business's own to the business, the
+    operator's own to the confirmed operator or group, both to staff.
+    Nobody else (a driver, an operator still negotiating) sees any."""
+    from fikisha.jobs import commission
+    from fikisha.jobs.constants import CommissionParty
+
+    agreement = job.agreement
+    if agreement is None or viewer is None:
+        return []
+    if job_authz.is_admin(viewer):
+        parties = [CommissionParty.BUSINESS, CommissionParty.OPERATOR]
+    else:
+        parties = []
+        if job_authz.business_is_party(viewer, job):
+            parties.append(CommissionParty.BUSINESS)
+        if job_authz.is_agreed_operator(viewer, job):
+            parties.append(CommissionParty.OPERATOR)
+    return commission.fees_for_job(job, parties) if parties else []
 
 
 #: Two decimal places of latitude/longitude is about 1.1 km at the equator:

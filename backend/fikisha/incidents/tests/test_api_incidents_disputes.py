@@ -371,7 +371,9 @@ class TestCommissionRead:
         client = client_for(admin_actor.user)
         r = client.get(f"/api/v1/jobs/{job.id}/commission")
         assert r.status_code == 200, r.content
-        assert r.data["commission_kes"] > 0
+        # one record per paying side (ADR-2D-55)
+        assert [x["party"] for x in r.data["records"]] == ["BUSINESS", "OPERATOR"]
+        assert all(x["commission_kes"] > 0 for x in r.data["records"])
 
     def test_a_business_cannot_read_the_commission_record(
         self,

@@ -152,7 +152,12 @@ export function CommissionPage(): JSX.Element {
                         </Link>
                         <span className="block font-normal text-fg-muted">{row.business_name}</span>
                       </th>
-                      <td className="px-3 py-2 text-fg">{row.payee.name ?? '—'}</td>
+                      <td className="px-3 py-2 text-fg">
+                        {row.payee.name ?? '—'}
+                        <span className="block text-fg-muted">
+                          {t(`admin:commission.party.${row.party}`)}
+                        </span>
+                      </td>
                       <td className="fk-numeric px-3 py-2">{formatKes(row.agreed_price_kes)}</td>
                       <td className="fk-numeric px-3 py-2">
                         {formatKes(row.commission_kes)}

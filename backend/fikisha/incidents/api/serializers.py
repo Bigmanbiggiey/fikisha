@@ -73,6 +73,14 @@ class ResolveDisputeSerializer(serializers.Serializer[dict[str, Any]]):
         choices=CommissionTreatment.choices, required=False, default=CommissionTreatment.APPLY
     )
     reduced_amount_kes = serializers.IntegerField(required=False, allow_null=True, min_value=1)
+    # The business side (commission split D-5). Left out: the same as the
+    # operator side's treatment and amount.
+    business_commission_treatment = serializers.ChoiceField(
+        choices=CommissionTreatment.choices, required=False, allow_null=True
+    )
+    business_reduced_amount_kes = serializers.IntegerField(
+        required=False, allow_null=True, min_value=1
+    )
     agreed_compensation_kes = serializers.IntegerField(required=False, allow_null=True, min_value=1)
     actions = serializers.ListField(
         child=serializers.ChoiceField(choices=ResolutionAction.choices), required=False

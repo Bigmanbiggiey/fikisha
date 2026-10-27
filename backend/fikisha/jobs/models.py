@@ -33,6 +33,7 @@ from fikisha.jobs.constants import (
     CancellationReason,
     CancellingSide,
     CommissionAdjustmentKind,
+    CommissionParty,
     ConfirmationMethod,
     GeoState,
     HighValueDecision,
@@ -253,6 +254,19 @@ class Agreement(AppendOnlyModel):
     terms_note = models.TextField(blank=True, default="")
     version = models.PositiveIntegerField(default=1)
     agreed_at = models.DateTimeField(auto_now_add=True)
+    #: Each side's commission rate, fixed when the price is agreed so the fee
+    #: shown before agreeing is the fee charged (commission split D-4,
+    #: ADR-2D-55). Null on agreements made before the split: those use the
+    #: rates in force at completion.
+    business_rate = models.DecimalField(max_digits=6, decimal_places=4, null=True, blank=True)
+    operator_rate = models.DecimalField(max_digits=6, decimal_places=4, null=True, blank=True)
+    rates_config_version = models.ForeignKey(
+        "platform_config.PlatformConfigVersion",
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="+",
+    )
 
     objects = AppendOnlyQuerySet.as_manager()
 
@@ -704,10 +718,11 @@ class HighValueReversal(AppendOnlyModel):
 
 
 class CommissionRecord(AppendOnlyModel):
-    """The platform's commission entitlement for one completed Job (Step 9,
-    plan §19, CLAUDE.md §4 "Payments / revenue"). Created exactly once per Job
-    — ``OneToOneField`` gives the ``UNIQUE(job_id)`` DB backstop — by
-    ``jobs.commission.create_commission_record_locked``, called from the
+    """One side's commission for one completed Job (Step 9, plan §19,
+    CLAUDE.md §4 "Payments / revenue"; split by party in ADR-2D-55). Created
+    at most once per Job and party — ``UNIQUE(job_id, party)`` is the DB
+    backstop — by ``jobs.commission.create_commission_records_locked``,
+    called from the
     ``complete`` apply fn (both the ordinary ``DELIVERED → COMPLETED`` path
     and a ``DISPUTED → COMPLETED`` resolution that completes a job for the
     first time) inside the transition's own transaction and row lock.
@@ -721,12 +736,19 @@ class CommissionRecord(AppendOnlyModel):
     commission entitlement, not a payment, and moves no money (CLAUDE.md §4
     "Payments / revenue" / Step 9 brief §3/§13)."""
 
-    job = models.OneToOneField(Job, on_delete=models.PROTECT, related_name="commission_record")
+    job = models.ForeignKey(Job, on_delete=models.PROTECT, related_name="commission_records")
+    #: Who owes it (ADR-2D-55). Records written before the split are all
+    #: ``OPERATOR``.
+    party = models.CharField(
+        max_length=8, choices=CommissionParty.choices, default=CommissionParty.OPERATOR
+    )
     agreement = models.ForeignKey(Agreement, on_delete=models.PROTECT, related_name="+")
     agreed_price_kes = models.BigIntegerField()
     rate = models.DecimalField(max_digits=6, decimal_places=4)
-    min_fee_kes = models.BigIntegerField()
-    cap_kes = models.BigIntegerField()
+    #: Only records written under the old model (10%, KES 40 minimum, KES
+    #: 5,000 cap) have these; the split has no minimum or cap.
+    min_fee_kes = models.BigIntegerField(null=True, blank=True)
+    cap_kes = models.BigIntegerField(null=True, blank=True)
     commission_kes = models.BigIntegerField()
     currency = models.CharField(max_length=3, default="KES")
     config_version = models.ForeignKey(
@@ -742,6 +764,7 @@ class CommissionRecord(AppendOnlyModel):
     class Meta:
         db_table = "commission_record"
         constraints = [
+            models.UniqueConstraint(fields=["job", "party"], name="uq_commission_job_party"),
             models.CheckConstraint(
                 condition=models.Q(agreed_price_kes__gte=0), name="ck_commission_price_non_negative"
             ),
@@ -752,7 +775,7 @@ class CommissionRecord(AppendOnlyModel):
         ]
 
     def __str__(self) -> str:
-        return f"commission {self.commission_kes} KES for job {self.job_id}"
+        return f"{self.party} commission {self.commission_kes} KES for job {self.job_id}"
 
 
 class CommissionAdjustment(AppendOnlyModel):

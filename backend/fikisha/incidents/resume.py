@@ -204,6 +204,7 @@ def resume_dispute(
         outcome_code=ResolutionOutcome.AMICABLE_AGREEMENT,
         rationale=reason,
         commission_treatment=CommissionTreatment.APPLY,
+        business_commission_treatment=CommissionTreatment.APPLY,
         actions=[],
         routed_job_status=target,
         resolved_by_admin=user,

@@ -34,7 +34,7 @@ do. ``resolve_completed`` (``DISPUTED → COMPLETED``) is the one resolution
 route with a real job-side effect — see "Completion + commission" below.
 
 Completion + commission (Step 9, plan §19): ``complete`` calls
-``fikisha.jobs.commission.create_commission_record_locked`` — a same-app
+``fikisha.jobs.commission.create_commission_records_locked`` — a same-app
 domain-surface module (mirrors ``jobs.otp`` / ``jobs.recipient``; no
 cross-app boundary question at all, since commission is Job-lifecycle
 financial data, not a separate bounded workflow the way Incidents is). This
@@ -282,6 +282,8 @@ def confirm(job: Any, actor: Any, ctx: dict[str, Any]) -> None:
         agreed_price_kes=int(ctx["agreed_price_kes"]),
         accepting_entry_ids=list(ctx.get("accepting_entry_ids") or []),
         terms_note=(ctx.get("terms_note") or "").strip(),
+        # each side's commission rate, fixed now (commission split D-4)
+        **commission_service.pinned_rates(),
     )
     job.agreement = agreement
     # The frozen agreed price becomes the job's price of record.
@@ -426,16 +428,17 @@ def confirm_delivery(job: Any, actor: Any, ctx: dict[str, Any]) -> None:
 def complete(job: Any, actor: Any, ctx: dict[str, Any]) -> None:
     """``DELIVERED -> COMPLETED`` *and* ``DISPUTED -> COMPLETED``
     (``resolve_completed`` is a literal alias — see below) share this body:
-    ensure exactly one ``CommissionRecord`` exists for this job, computed
-    from its frozen ``Agreement`` under the row lock this apply fn already
-    runs inside (job-state-machine.md §2.1 — apply fns run *before* the
-    status write, in the same transaction the engine commits or rolls back
-    as one unit; a failure here aborts the whole transition, so ``job.status``
-    never reaches ``COMPLETED`` with a missing commission record). Idempotent:
-    a job that reaches ``COMPLETED`` a second time (a post-completion dispute
-    resolved back to ``COMPLETED``, Step 8 ADR-2D-20) already has its record
-    from the first pass and gets no second one (plan §19 Step 9 brief §18-19)."""
-    commission_service.create_commission_record_locked(job=job, actor=actor)
+    ensure the job's ``CommissionRecord``s (one per paying side, ADR-2D-55)
+    exist, computed from its frozen ``Agreement`` and the rates fixed on it,
+    under the row lock this apply fn already runs inside
+    (job-state-machine.md §2.1 — apply fns run *before* the status write, in
+    the same transaction the engine commits or rolls back as one unit; a
+    failure here aborts the whole transition, so ``job.status`` never
+    reaches ``COMPLETED`` with a missing commission record). Idempotent: a
+    job that reaches ``COMPLETED`` a second time (a post-completion dispute
+    resolved back to ``COMPLETED``, Step 8 ADR-2D-20) already has its records
+    from the first pass and gets none new (plan §19 Step 9 brief §18-19)."""
+    commission_service.create_commission_records_locked(job=job, actor=actor)
     driver_id = getattr(job.assignment, "assigned_driver_profile_id", None)
     if driver_id is not None:
         transaction.on_commit(lambda: _propose_tier(driver_id))

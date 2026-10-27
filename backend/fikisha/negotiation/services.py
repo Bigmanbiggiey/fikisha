@@ -246,7 +246,11 @@ def _thread_payload(
     if viewer_side in (EntryActorRole.BUSINESS, EntryActorRole.OPERATOR):
         target = counterparty_figure_to_accept(thread, for_role=viewer_side)
         if target is not None:
-            counterparty_offer = {"entry_id": str(target.id), "amount_kes": target.amount_kes}
+            counterparty_offer = {
+                "entry_id": str(target.id),
+                "amount_kes": target.amount_kes,
+                "fee": _viewer_fee(target.amount_kes, viewer_side),
+            }
     return {
         "thread_id": str(thread.id),
         "job_id": str(job.id),
@@ -261,6 +265,7 @@ def _thread_payload(
                 "entry_id": str(offer.id),
                 "actor_role": offer.actor_role,
                 "amount_kes": offer.amount_kes,
+                "fee": _viewer_fee(offer.amount_kes, viewer_side),
             }
             if offer
             else None
@@ -274,6 +279,25 @@ def _thread_payload(
         if viewer_side == EntryActorRole.BUSINESS
         else None,
     }
+
+
+def _viewer_fee(amount_kes: int | None, viewer_side: str | None) -> dict[str, Any] | None:
+    """Fikisha's fee on this figure for the side looking at it (commission
+    split, ADR-2D-55): what the business would pay on top, or what the
+    operator would keep. Live rates; they're fixed on the agreement the
+    moment both sides accept. Only the viewer's own side, never the other's."""
+    from fikisha.jobs import commission
+    from fikisha.jobs.constants import CommissionParty
+
+    if viewer_side == EntryActorRole.BUSINESS:
+        party = CommissionParty.BUSINESS
+    elif viewer_side == EntryActorRole.OPERATOR:
+        party = CommissionParty.OPERATOR
+    else:
+        return None
+    if not amount_kes:
+        return None
+    return commission.quote(int(amount_kes), party)
 
 
 def _operator_summary(thread: NegotiationThread) -> dict[str, Any] | None:

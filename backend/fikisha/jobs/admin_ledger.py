@@ -4,6 +4,9 @@ the effective amount. Read-only: records and adjustments are append-only,
 and nothing here moves money. Fikisha records commission; the fare moves
 party-to-party.
 
+Since the commission split (ADR-2D-55) a completed job has a record per
+paying side (``party``): the business's and the operator's.
+
 Weekly statements and manual settlement live in ``fikisha.statements``
 (ADR-2D-42); eTIMS is not built. This ledger stays the per-job record.
 """
@@ -19,6 +22,7 @@ from django.db.models.functions import Coalesce
 from fikisha.business import services as business_services
 from fikisha.common.exceptions import DomainError
 from fikisha.groups import services as groups_services
+from fikisha.jobs.constants import CommissionParty
 from fikisha.jobs.models import CommissionRecord
 from fikisha.jobs.ops import job_reference
 from fikisha.operators import services as operators_services
@@ -34,6 +38,8 @@ def queryset(
     until: datetime | None = None,
     operator_id: Any = None,
     group_id: Any = None,
+    business_id: Any = None,
+    party: str | None = None,
 ) -> QuerySet[CommissionRecord]:
     qs = CommissionRecord.objects.select_related(
         "job", "agreement", "config_version"
@@ -42,14 +48,28 @@ def queryset(
         qs = qs.filter(created_at__gte=since)
     if until is not None:
         qs = qs.filter(created_at__lt=until)
+    if party is not None:
+        if party not in CommissionParty.values:
+            raise InvalidLedgerFilter("party must be BUSINESS or OPERATOR.")
+        qs = qs.filter(party=party)
+    # an operator or group owes only the operator side; a business only its own
     if operator_id is not None:
-        qs = qs.filter(agreement__operator_id=operator_id)
+        qs = qs.filter(party=CommissionParty.OPERATOR, agreement__operator_id=operator_id)
     if group_id is not None:
-        qs = qs.filter(agreement__group_id=group_id)
+        qs = qs.filter(party=CommissionParty.OPERATOR, agreement__group_id=group_id)
+    if business_id is not None:
+        qs = qs.filter(party=CommissionParty.BUSINESS, job__business_id=business_id)
     return qs
 
 
 def _payee(record: CommissionRecord) -> dict[str, Any]:
+    """Who owes this record."""
+    if record.party == CommissionParty.BUSINESS:
+        return {
+            "kind": "BUSINESS",
+            "id": str(record.job.business_id),
+            "name": business_services.display_name_for(record.job.business_id),
+        }
     agreement = record.agreement
     if agreement.operator_id is not None:
         return {
@@ -83,6 +103,7 @@ def row(record: CommissionRecord) -> dict[str, Any]:
         "job_id": str(record.job_id),
         "job_reference": job_reference(record.job_id),
         "business_name": business_services.display_name_for(record.job.business_id),
+        "party": record.party,
         "payee": _payee(record),
         "agreed_price_kes": record.agreed_price_kes,
         "rate": str(record.rate),

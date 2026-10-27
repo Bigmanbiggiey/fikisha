@@ -21,9 +21,8 @@ import type { ConfigPreview } from './types';
  * type a percentage and whole shillings. */
 type Unit = 'percent' | 'kes' | 'hours' | 'days' | 'minutes';
 const UNIT: Record<string, Unit> = {
-  'commission.rate': 'percent',
-  'commission.min_fee_kes': 'kes',
-  'commission.cap_kes': 'kes',
+  'commission.business_rate': 'percent',
+  'commission.operator_rate': 'percent',
   'timeouts.post_completion_window.high_and_latent_days': 'days',
   'timeouts.stale_assignment_alert_minutes': 'minutes',
 };
@@ -223,7 +222,17 @@ export function ConfigPage(): JSX.Element {
                     <tr key={s.agreed_price_kes} className="border-b border-line">
                       <th scope="row" className="fk-numeric py-2 pr-3 font-normal">{formatKes(s.agreed_price_kes)}</th>
                       <td className="fk-numeric py-2 pr-3">{formatKes(s.before_kes)}</td>
-                      <td className="fk-numeric py-2 font-semibold">{formatKes(s.after_kes)}</td>
+                      <td className="fk-numeric py-2 font-semibold">
+                        {formatKes(s.after_kes)}
+                        {s.after && (
+                          <span className="block font-normal text-fg-muted">
+                            {t('admin:config.sides', {
+                              business: formatKes(s.after.business_kes),
+                              operator: formatKes(s.after.operator_kes),
+                            })}
+                          </span>
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody>

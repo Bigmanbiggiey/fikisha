@@ -415,5 +415,16 @@
     "paidCash": "Amelipa kwa pesa taslimu",
     "paidMpesa": "Amelipa kwa M-Pesa",
     "paidRef": "Msimbo wa M-Pesa {{ref}}"
+  },
+  "fee": {
+    "fee": "Ada ya Fikisha ({{rate}})",
+    "youPay": "Jumla utakayolipa",
+    "youKeep": "Unabaki na",
+    "party": {
+      "BUSINESS": "Upande wa biashara",
+      "OPERATOR": "Upande wa mhudumu"
+    },
+    "businessNote": "Mlipe mhudumu bei iliyokubaliwa. Ada ya Fikisha itakuja kwenye taarifa yako ya wiki.",
+    "operatorNote": "Ada ya Fikisha itakuja kwenye taarifa yako ya wiki."
   }
 }

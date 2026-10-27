@@ -45,6 +45,28 @@ def frozen() -> Iterator[Any]:
         yield clock
 
 
+@pytest.fixture(autouse=True)
+def operator_side_only(request: Any) -> None:
+    """Most tests here check the billing mechanics on the operator side, so
+    the business rate is 0 and each job makes one record. A test that asks
+    for ``both_sides`` keeps the real split (ADR-2D-55). Set before any job
+    is agreed, since the rates are fixed on the agreement."""
+    if "both_sides" in request.fixturenames:
+        return
+    from fikisha.platform_config import services as config
+
+    config.apply_change(
+        patch={"commission": {"business_rate": 0}},
+        changed_by=None,
+        rationale="test: operator side only",
+    )
+
+
+@pytest.fixture
+def both_sides() -> None:
+    """Ask for this to keep the 5% + 5% split (see ``operator_side_only``)."""
+
+
 @pytest.fixture
 def stepped_up_admin(admin_actor: Any) -> Any:  # noqa: F811
     return dataclasses.replace(admin_actor, is_step_up_fresh=True)

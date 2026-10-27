@@ -1,6 +1,6 @@
 {
   "title": "Taarifa za malipo",
-  "intro": "Kila wiki Fikisha hujumlisha kamisheni yake kwenye kazi zako zilizokamilika katika taarifa moja. Unalipa kupitia paybill ya M-Pesa ya Fikisha. Fikisha haishiki nauli kamwe.",
+  "intro": "Kila wiki Fikisha hujumlisha ada yake kwenye kazi zako zilizokamilika katika taarifa moja. Unalipa kupitia paybill ya M-Pesa ya Fikisha. Fikisha haishiki nauli kamwe.",
   "empty": "Bado hakuna taarifa",
   "emptyBody": "Taarifa yako ya kwanza itatokea Jumatatu baada ya muda wa malalamiko wa kazi iliyokamilika kuisha.",
   "new": "Mpya",
@@ -44,10 +44,10 @@
   "earnings": {
     "title": "Mapato ya kazi hii",
     "agreed": "Bei iliyokubaliwa",
-    "commission": "Kamisheni ya Fikisha",
+    "commission": "Ada ya Fikisha ({{rate}})",
     "net": "Yako",
     "onStatement": "Imewekwa kwenye taarifa",
-    "notYetBilled": "Kamisheni itawekwa kwenye taarifa yako ya wiki muda wa malalamiko ukiisha."
+    "notYetBilled": "Ada itawekwa kwenye taarifa yako ya wiki muda wa malalamiko ukiisha."
   },
   "home": {
     "title_one": "Taarifa mpya",
@@ -60,17 +60,18 @@
     "subtitle": "Kila taarifa ya kamisheni ya wiki, pamoja na kilichotozwa na kilicholipwa. Malipo huingia kwenye paybill ya Fikisha; rekodi kila moja hapa.",
     "run": "Endesha wiki",
     "runTitle": "Endesha taarifa za wiki",
-    "runExplain": "Hii hutoza kila mwendeshaji na kikundi chenye kamisheni iliyo tayari kufikia mwisho wa wiki hiyo. Ni salama kuiendesha tena: hakuna kinachotozwa mara mbili, na yeyote ambaye tayari ana taarifa ya wiki hiyo anarukwa.",
+    "runExplain": "Hii hutoza kila biashara, mwendeshaji na kikundi chenye kamisheni iliyo tayari kufikia mwisho wa wiki hiyo. Ni salama kuiendesha tena: hakuna kinachotozwa mara mbili, na yeyote ambaye tayari ana taarifa ya wiki hiyo anarukwa.",
     "runConfirm": "Endesha taarifa",
     "ranResult_one": "Taarifa {{count}} imeundwa kwa {{period}}. Tayari walikuwa nayo: {{skipped}}.",
     "ranResult_other": "Taarifa {{count}} zimeundwa kwa {{period}}. Tayari walikuwa nayo: {{skipped}}.",
     "week": "Wiki",
     "allWeeks": "Wiki zote",
-    "payeeKind": "Mwendeshaji au kikundi",
+    "payeeKind": "Anayelipa",
     "kind": {
       "all": "Wote",
       "OPERATOR": "Mwendeshaji",
-      "GROUP": "Kikundi"
+      "GROUP": "Kikundi",
+      "BUSINESS": "Biashara"
     },
     "total": {
       "statements": "Taarifa",
@@ -82,7 +83,7 @@
     "emptyHint": "Taarifa huundwa kila Jumatatu kwa wiki iliyotangulia.",
     "col": {
       "statement": "Taarifa",
-      "payee": "Mwendeshaji au kikundi",
+      "payee": "Anayelipa",
       "week": "Wiki",
       "due": "Kinachodaiwa",
       "paid": "Kilicholipwa",
@@ -119,11 +120,20 @@
     "reverseConfirm": "Batilisha malipo",
     "reversed": "Malipo {{ref}} yamebatilishwa.",
     "noPayments": "Bado hakuna malipo yaliyorekodiwa.",
-    "overdueNote": "Taarifa hii imechelewa. Hakuna kinachotokea moja kwa moja; fuatilia na mwendeshaji au kikundi.",
+    "overdueNote": "Taarifa hii imechelewa. Hakuna kinachotokea moja kwa moja; fuatilia na anayedaiwa.",
     "paymentAccount": "Namba ya akaunti ya paybill {{reference}}",
     "summaryTitle": "Taarifa za {{period}}",
     "summaryNone": "Hakuna taarifa za wiki hiyo.",
     "summaryOpen": "Fungua taarifa",
     "gross": "Kamisheni kwenye kazi hizi"
+  },
+  "businessOwnerOnly": "Ni mmiliki wa biashara yako pekee anayeona taarifa zake.",
+  "cost": {
+    "title": "Gharama ya kazi hii",
+    "agreed": "Kilicholipwa kwa mhudumu",
+    "fee": "Ada ya Fikisha ({{rate}})",
+    "total": "Jumla",
+    "onStatement": "Ada imewekwa kwenye taarifa",
+    "notYetBilled": "Ada itawekwa kwenye taarifa ya wiki ya biashara yako muda wa malalamiko ukiisha. Mlipe mhudumu bei iliyokubaliwa kama kawaida."
   }
 }

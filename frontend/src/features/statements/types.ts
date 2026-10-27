@@ -1,5 +1,10 @@
 /** Commission statements (Commission & Statements S-2, ADR-2D-42). Every
- * `*_kes` is integer KES minor units. */
+ * `*_kes` is integer KES minor units. Since the commission split
+ * (ADR-2D-55) a business gets statements for its own 5% too. */
+
+export type PayeeKind = 'OPERATOR' | 'GROUP' | 'BUSINESS';
+/** Who owes a commission record: the business's side or the operator's. */
+export type CommissionParty = 'BUSINESS' | 'OPERATOR';
 
 export type StatementState = 'UNPAID' | 'PART_PAID' | 'PAID';
 
@@ -7,7 +12,7 @@ export interface StatementSummary {
   id: string;
   /** `ST-` + 6 characters; also the paybill account number (D-3). */
   reference: string;
-  payee: { kind: 'OPERATOR' | 'GROUP'; id: string; name: string | null };
+  payee: { kind: PayeeKind; id: string; name: string | null };
   /** Kenya dates, Monday to Sunday. */
   period_start: string;
   period_end: string;
@@ -60,16 +65,28 @@ export interface StatementsPage {
   unseen_count: number;
 }
 
+/** One side's commission on one job: "Earnings for this job" for the
+ * operator side, "Cost for this job" for the business side. */
 export interface JobEarnings {
   job_id: string;
-  payee_kind: 'OPERATOR' | 'GROUP';
+  party: CommissionParty;
+  payee_kind: PayeeKind;
   payee_id: string;
   agreed_price_kes: number;
+  /** e.g. "0.0500" */
+  rate: string;
   commission_kes: number;
   adjustments_kes: number;
   effective_commission_kes: number;
-  net_to_operator_kes: number;
+  /** Operator side only. */
+  net_to_operator_kes?: number;
+  /** Business side only: the agreed price plus Fikisha's fee. */
+  total_cost_kes?: number;
+  /** Null when not billed yet, or when the caller may not open it (a
+   * business Dispatcher: statements are the Owner's). */
   statement: { id: string; reference: string } | null;
+  /** The sides this caller may see on this job. */
+  sides: CommissionParty[];
 }
 
 /** Staff list (`GET /admin/statements`, S-3). Totals cover the whole filter. */

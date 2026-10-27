@@ -130,7 +130,10 @@ export interface Resolution {
   outcome_code: ResolutionOutcome;
   rationale: string;
   routed_job_status: RoutableJobStatus;
+  /** the operator side's commission */
   commission_treatment: CommissionTreatment;
+  /** the business side's commission (commission split D-5) */
+  business_commission_treatment?: CommissionTreatment;
   /** intent flags recorded before findings existed; history only */
   recorded_actions?: string[];
   /** resolved by resuming the job to `routed_job_status` (trust plan B1) */
@@ -188,7 +191,12 @@ export interface ResolveDisputeBody {
   outcome_code: ResolutionOutcome;
   rationale: string;
   routed_job_status: RoutableJobStatus;
+  /** the operator side's commission */
   commission_treatment?: CommissionTreatment;
   reduced_amount_kes?: number;
+  /** the business side's (commission split D-5); left out, the same as the
+   * operator side's treatment and amount */
+  business_commission_treatment?: CommissionTreatment;
+  business_reduced_amount_kes?: number;
   agreed_compensation_kes?: number;
 }

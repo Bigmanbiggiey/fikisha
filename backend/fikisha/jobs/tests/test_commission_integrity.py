@@ -1,5 +1,6 @@
 """Database-level integrity for the commission history tables (Step 9 brief
-§9/§20): exactly one CommissionRecord per job, append-only enforcement, and
+§9/§20): one CommissionRecord per job and paying side (ADR-2D-55),
+append-only enforcement, and
 the CHECK constraints backing the domain invariants."""
 
 from __future__ import annotations
@@ -10,7 +11,7 @@ from typing import Any
 import pytest
 from django.db import DatabaseError, IntegrityError, connection, transaction
 
-from fikisha.jobs.constants import CommissionAdjustmentKind
+from fikisha.jobs.constants import CommissionAdjustmentKind, CommissionParty
 from fikisha.jobs.models import CommissionAdjustment, CommissionRecord
 
 pytestmark = pytest.mark.django_db
@@ -20,17 +21,18 @@ pytestmark = pytest.mark.django_db
 def a_commission_record(delivered_job: Callable, complete_job: Callable) -> CommissionRecord:
     job = delivered_job()
     complete_job(job)
-    return CommissionRecord.objects.get(job=job)
+    return CommissionRecord.objects.get(job=job, party=CommissionParty.OPERATOR)
 
 
-# ─── exactly one per job ─────────────────────────────────────────────
-def test_a_second_commission_record_for_the_same_job_is_rejected(
+# ─── one per job and side ─────────────────────────────────────────────
+def test_a_second_commission_record_for_the_same_job_and_side_is_rejected(
     a_commission_record: CommissionRecord,
 ) -> None:
     with pytest.raises(IntegrityError):
         with transaction.atomic():
             CommissionRecord.objects.create(
                 job=a_commission_record.job,
+                party=a_commission_record.party,
                 agreement=a_commission_record.agreement,
                 agreed_price_kes=a_commission_record.agreed_price_kes,
                 rate=a_commission_record.rate,
@@ -122,9 +124,7 @@ def test_negative_agreed_price_is_rejected(delivered_job: Callable) -> None:
                 job=job,
                 agreement=job.agreement,
                 agreed_price_kes=-1,
-                rate="0.1000",
-                min_fee_kes=4000,
-                cap_kes=500000,
+                rate="0.0500",
                 commission_kes=1000,
             )
 
@@ -137,9 +137,7 @@ def test_negative_commission_amount_is_rejected(delivered_job: Callable) -> None
                 job=job,
                 agreement=job.agreement,
                 agreed_price_kes=job.agreement.agreed_price_kes,
-                rate="0.1000",
-                min_fee_kes=4000,
-                cap_kes=500000,
+                rate="0.0500",
                 commission_kes=-1,
             )
 

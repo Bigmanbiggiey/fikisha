@@ -24,7 +24,7 @@ PAID_ON = date(2026, 10, 13)
 def statement(completed_solo_job: Callable, admin_actor: Any) -> CommissionStatement:
     completed_solo_job()
     services.run_statements(period_start=LAST_WEEK, actor=admin_actor)
-    return CommissionStatement.objects.get()  # net due 25_000
+    return CommissionStatement.objects.get()  # net due 12_500: the operator's 5% of KES 2,500
 
 
 def _pay(actor: Any, statement: Any, amount: int, ref: str = "SJK4ABC123") -> dict[str, Any]:
@@ -38,9 +38,9 @@ def test_part_then_full_payment(statement: Any, stepped_up_admin: Any) -> None:
     assert (data["state"], data["settled_kes"], data["outstanding_kes"]) == (
         "PART_PAID",
         10_000,
-        15_000,
+        2_500,
     )
-    data = _pay(stepped_up_admin, statement, 15_000, ref="sjk4abc124")
+    data = _pay(stepped_up_admin, statement, 2_500, ref="sjk4abc124")
     assert (data["state"], data["outstanding_kes"]) == ("PAID", 0)
     assert data["settlements"][1]["payment_ref"] == "SJK4ABC124"  # stored upper-case
 
@@ -49,7 +49,7 @@ def test_more_than_owed_and_a_reused_reference_are_refused(
     statement: Any, stepped_up_admin: Any
 ) -> None:
     with pytest.raises(services.SettlementExceedsDue):
-        _pay(stepped_up_admin, statement, 25_001)
+        _pay(stepped_up_admin, statement, 12_501)
     _pay(stepped_up_admin, statement, 5_000)
     with pytest.raises(services.DuplicatePaymentRef):
         _pay(stepped_up_admin, statement, 5_000)
@@ -68,7 +68,7 @@ def test_more_than_owed_and_a_reused_reference_are_refused(
 def test_a_reversal_cancels_a_payment_once_and_frees_its_reference(
     statement: Any, stepped_up_admin: Any
 ) -> None:
-    _pay(stepped_up_admin, statement, 25_000)
+    _pay(stepped_up_admin, statement, 12_500)
     payment = StatementSettlement.objects.get()
     with pytest.raises(services.InvalidSettlement):
         services.reverse_payment(
@@ -100,7 +100,7 @@ def test_a_reversal_cancels_a_payment_once_and_frees_its_reference(
             settlement_id=reversal.id,
             reason="Reversing a reversal is not allowed",
         )
-    assert _pay(stepped_up_admin, statement, 25_000)["state"] == "PAID"  # same ref again
+    assert _pay(stepped_up_admin, statement, 12_500)["state"] == "PAID"  # same ref again
 
 
 def test_settling_needs_a_fresh_step_up_and_a_platform_admin(
@@ -144,5 +144,5 @@ def test_an_unpaid_statement_is_overdue_after_14_days_and_paid_clears_it(
     assert services.statement_summary(statement)["overdue"] is False
     frozen.move_to("2026-10-29T07:00:00+00:00")  # 15 days after it was generated
     assert services.statement_summary(statement)["overdue"] is True
-    _pay(stepped_up_admin, statement, 25_000)
+    _pay(stepped_up_admin, statement, 12_500)
     assert services.statement_summary(statement)["overdue"] is False

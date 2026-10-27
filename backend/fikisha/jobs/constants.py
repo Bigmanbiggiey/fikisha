@@ -261,3 +261,11 @@ class RecipientIssueCategory(models.TextChoices):
 class CommissionAdjustmentKind(models.TextChoices):
     REDUCTION = "REDUCTION", "Partial reduction"
     WAIVER = "WAIVER", "Full waiver"
+
+
+#: Who owes a commission record (commission split, ADR-2D-55, founder
+#: decision 2026-10-22): the sender (business) and the operator each pay
+#: their own share of every completed job, as separate records.
+class CommissionParty(models.TextChoices):
+    BUSINESS = "BUSINESS", "Business"
+    OPERATOR = "OPERATOR", "Operator"

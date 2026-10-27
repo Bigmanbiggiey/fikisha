@@ -38,6 +38,13 @@ def test_operator_engaging_opens_thread_and_seeds_posted_price(
         "entry_id": view["entries"][1]["id"],
         "actor_role": "OPERATOR",
         "amount_kes": 230_000,
+        # Fikisha's 5% for the side looking (ADR-2D-55)
+        "fee": {
+            "party": "OPERATOR",
+            "rate": "0.0500",
+            "fee_kes": 11_500,
+            "operator_keeps_kes": 218_500,
+        },
     }
     # the wireframe (design-phase-3-wireframes.md §8.1) shows the proposer's
     # name on every offer card — resolved via operators.services, not a raw
@@ -64,12 +71,25 @@ def test_thread_payload_carries_the_viewers_own_counterparty_offer(
     assert view["counterparty_offer"] == {
         "entry_id": view["entries"][0]["id"],
         "amount_kes": 250_000,
+        "fee": {
+            "party": "OPERATOR",
+            "rate": "0.0500",
+            "fee_kes": 12_500,
+            "operator_keeps_kes": 237_500,
+        },
     }
 
     from_business = services.view_thread(actor=owner_actor, thread_id=thread_id)
     assert from_business["counterparty_offer"] == {
         "entry_id": view["entries"][1]["id"],
         "amount_kes": 230_000,
+        # the business sees only its own fee, never the operator's
+        "fee": {
+            "party": "BUSINESS",
+            "rate": "0.0500",
+            "fee_kes": 11_500,
+            "total_cost_kes": 241_500,
+        },
     }
 
 
@@ -110,6 +130,13 @@ def test_entries_stay_correctly_ordered_when_created_at_ties(
         "entry_id": view["entries"][1]["id"],
         "actor_role": "OPERATOR",
         "amount_kes": 230_000,
+        # Fikisha's 5% for the side looking (ADR-2D-55)
+        "fee": {
+            "party": "OPERATOR",
+            "rate": "0.0500",
+            "fee_kes": 11_500,
+            "operator_keeps_kes": 218_500,
+        },
     }
 
 

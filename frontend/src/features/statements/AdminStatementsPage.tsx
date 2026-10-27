@@ -21,7 +21,7 @@ import { periodLabel, recentWeekStarts, stateBadge, weekEnd } from './statementF
 import { cursorFrom, statementsApi, statementsQueryKey } from './statementsApi';
 import type { RunResult, StatementSummary } from './types';
 
-const PAYEE_KINDS = ['', 'OPERATOR', 'GROUP'] as const;
+const PAYEE_KINDS = ['', 'OPERATOR', 'GROUP', 'BUSINESS'] as const;
 
 /**
  * Statements, staff view (P3 §19.4, Commission & Statements S-3). Every

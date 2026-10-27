@@ -79,7 +79,12 @@ from fikisha.incidents.models import (
     Resolution,
 )
 from fikisha.jobs import commission as commission_service
-from fikisha.jobs.constants import CommissionAdjustmentKind, JobStatus, RecipientIssueCategory
+from fikisha.jobs.constants import (
+    CommissionAdjustmentKind,
+    CommissionParty,
+    JobStatus,
+    RecipientIssueCategory,
+)
 from fikisha.jobs.errors import (
     InvalidCommissionAdjustmentAmount,
     NotAuthorisedForCommissionAdjustment,
@@ -639,6 +644,8 @@ def resolve_dispute(
     routed_job_status: str,
     commission_treatment: str = "APPLY",
     reduced_amount_kes: int | None = None,
+    business_commission_treatment: str | None = None,
+    business_reduced_amount_kes: int | None = None,
     agreed_compensation_kes: int | None = None,
     actions: list[str] | None = None,
     idempotency_key: str = "",
@@ -659,27 +666,42 @@ def resolve_dispute(
     still resolve a Standard-band dispute (``incidents_authz.is_admin``) but
     may not reduce or waive commission while doing it (Step 9 brief §12).
     Only ``REDUCE``/``WAIVE`` ever create a ``CommissionAdjustment`` — never
-    automatically, and never for a job that has no ``CommissionRecord`` at
-    all (nothing to adjust)."""
+    automatically, and never for a side that has no ``CommissionRecord``
+    (nothing to adjust).
+
+    Commission split (D-5, ADR-2D-55): ``commission_treatment`` /
+    ``reduced_amount_kes`` are the operator side's; ``business_*`` the
+    business side's. A business treatment left out (``None``) means "the same
+    for both sides": the same treatment, and for ``REDUCE`` the amount is the
+    job's **total** reduction, split half and half between the two fees (an
+    odd cent to the operator side), or all of it to the one side that has a
+    record (a job completed before the split)."""
     if not incidents_authz.is_admin(actor):
         raise NotAuthorisedForBindingResolution()
     if routed_job_status not in ROUTABLE_JOB_STATUSES:
         raise InvalidResolutionRouting()
     if outcome_code not in ResolutionOutcome.values:
         raise InvalidResolutionOutcome()
-    if commission_treatment not in CommissionTreatment.values:
-        raise InvalidResolutionRouting(
-            f"{commission_treatment!r} is not a recognised commission treatment."
-        )
-    if commission_treatment in _COMMISSION_TREATMENTS_REQUIRING_ADJUSTMENT:
-        if not commission_service.can_adjust_commission(actor):
-            raise NotAuthorisedForCommissionAdjustment()
-        if commission_treatment == CommissionTreatment.REDUCE and (
-            reduced_amount_kes is None or reduced_amount_kes <= 0
-        ):
-            raise InvalidCommissionAdjustmentAmount(
-                "A positive reduced_amount_kes is required to reduce commission."
+    same_for_both = business_commission_treatment is None
+    business_treatment: str = business_commission_treatment or commission_treatment
+    if same_for_both:
+        business_reduced_amount_kes = reduced_amount_kes
+    treatments = {
+        CommissionParty.OPERATOR: (commission_treatment, reduced_amount_kes),
+        CommissionParty.BUSINESS: (business_treatment, business_reduced_amount_kes),
+    }
+    for treatment, amount in treatments.values():
+        if treatment not in CommissionTreatment.values:
+            raise InvalidResolutionRouting(
+                f"{treatment!r} is not a recognised commission treatment."
             )
+        if treatment in _COMMISSION_TREATMENTS_REQUIRING_ADJUSTMENT:
+            if not commission_service.can_adjust_commission(actor):
+                raise NotAuthorisedForCommissionAdjustment()
+            if treatment == CommissionTreatment.REDUCE and (amount is None or amount <= 0):
+                raise InvalidCommissionAdjustmentAmount(
+                    "A positive amount is required to reduce commission."
+                )
     rationale = (rationale or "").strip()
     if not rationale:
         raise RationaleRequired()
@@ -693,12 +715,30 @@ def resolve_dispute(
 
     job = job_for_update(dispute.job_id)
 
+    records = commission_service.get_commission_records(job)
+    if same_for_both and commission_treatment == CommissionTreatment.REDUCE:
+        total = int(reduced_amount_kes)  # type: ignore[arg-type]  # validated positive above
+        if CommissionParty.BUSINESS not in records:
+            operator_share, business_share = total, 0
+        elif CommissionParty.OPERATOR not in records:
+            operator_share, business_share = 0, total
+        else:
+            business_share = total // 2
+            operator_share = total - business_share
+        reduced_amount_kes, business_reduced_amount_kes = operator_share, business_share
+        treatments = {
+            CommissionParty.OPERATOR: (commission_treatment, operator_share),
+            CommissionParty.BUSINESS: (commission_treatment, business_share),
+        }
+
     resolution = Resolution.objects.create(
         dispute=dispute,
         outcome_code=outcome_code,
         rationale=rationale,
         commission_treatment=commission_treatment,
         reduced_amount_kes=reduced_amount_kes,
+        business_commission_treatment=business_treatment,
+        business_reduced_amount_kes=business_reduced_amount_kes,
         agreed_compensation_kes=agreed_compensation_kes,
         actions=list(actions or []),
         routed_job_status=routed_job_status,
@@ -738,28 +778,32 @@ def resolve_dispute(
             dispute=dispute,
         )
 
-    if commission_treatment in _COMMISSION_TREATMENTS_REQUIRING_ADJUSTMENT:
-        commission_record = commission_service.get_commission_record(job)
-        if commission_record is not None:
-            if commission_treatment == CommissionTreatment.WAIVE:
-                kind = CommissionAdjustmentKind.WAIVER
-                amount_kes = -commission_service.effective_commission_kes(commission_record)
-            else:  # REDUCE — validated positive above
-                kind = CommissionAdjustmentKind.REDUCTION
-                amount_kes = -int(reduced_amount_kes)  # type: ignore[arg-type]
-            if amount_kes < 0:
-                commission_service.create_adjustment(
-                    commission_record=commission_record,
-                    actor=actor,
-                    kind=kind,
-                    amount_kes=amount_kes,
-                    reason=rationale,
-                    source_dispute_id=dispute.id,
-                    source_resolution_id=resolution.id,
-                )
-            # amount_kes == 0 (e.g. a WAIVE on an already-fully-waived
-            # record): nothing left to adjust — the Resolution row still
-            # records the admin's decision; no adjustment row is created.
+    for party, (treatment, amount) in treatments.items():
+        commission_record = records.get(party)
+        if (
+            treatment not in _COMMISSION_TREATMENTS_REQUIRING_ADJUSTMENT
+            or commission_record is None
+        ):
+            continue
+        if treatment == CommissionTreatment.WAIVE:
+            kind = CommissionAdjustmentKind.WAIVER
+            amount_kes = -commission_service.effective_commission_kes(commission_record)
+        else:  # REDUCE — validated positive above
+            kind = CommissionAdjustmentKind.REDUCTION
+            amount_kes = -int(amount)  # type: ignore[arg-type]
+        if amount_kes < 0:
+            commission_service.create_adjustment(
+                commission_record=commission_record,
+                actor=actor,
+                kind=kind,
+                amount_kes=amount_kes,
+                reason=rationale,
+                source_dispute_id=dispute.id,
+                source_resolution_id=resolution.id,
+            )
+        # amount_kes == 0 (e.g. a WAIVE on an already-fully-waived record):
+        # nothing left to adjust — the Resolution row still records the
+        # admin's decision; no adjustment row is created.
 
     audit.record(
         actor=actor,

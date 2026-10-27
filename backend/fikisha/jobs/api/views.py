@@ -46,7 +46,7 @@ from fikisha.jobs.assignment import assign_job
 from fikisha.jobs.constants import JobStatus
 from fikisha.jobs.errors import CommissionRecordNotFound
 from fikisha.jobs.high_value import decide_high_value
-from fikisha.jobs.models import CommissionAdjustment, CommissionRecord, Job
+from fikisha.jobs.models import CommissionRecord, Job
 from fikisha.jobs.selectors import get_job
 
 
@@ -693,31 +693,42 @@ class JobCommissionView(OrgApiView):
 
     def get(self, request: Request, job_id: str) -> Response:
         job = self.get_authz_resource()
-        record = CommissionRecord.objects.filter(job=job).first()
-        if record is None:
-            raise CommissionRecordNotFound()
-        adjustments = CommissionAdjustment.objects.filter(commission_record=record).order_by(
-            "created_at"
+        records = list(
+            CommissionRecord.objects.filter(job=job)
+            .prefetch_related("adjustments")
+            .order_by("party")
         )
+        if not records:
+            raise CommissionRecordNotFound()
         return Response(
             {
                 "job_id": str(job.id),
-                "commission_kes": record.commission_kes,
-                "rate": str(record.rate),
-                "min_fee_kes": record.min_fee_kes,
-                "cap_kes": record.cap_kes,
-                "agreed_price_kes": record.agreed_price_kes,
-                "currency": record.currency,
-                "effective_commission_kes": commission_service.effective_commission_kes(record),
-                "adjustments": [
+                # one per paying side (ADR-2D-55)
+                "records": [
                     {
-                        "id": str(a.id),
-                        "kind": a.kind,
-                        "amount_kes": a.amount_kes,
-                        "reason": a.reason,
-                        "created_at": a.created_at.isoformat(),
+                        "id": str(record.id),
+                        "party": record.party,
+                        "commission_kes": record.commission_kes,
+                        "rate": str(record.rate),
+                        "min_fee_kes": record.min_fee_kes,
+                        "cap_kes": record.cap_kes,
+                        "agreed_price_kes": record.agreed_price_kes,
+                        "currency": record.currency,
+                        "effective_commission_kes": commission_service.effective_commission_kes(
+                            record
+                        ),
+                        "adjustments": [
+                            {
+                                "id": str(a.id),
+                                "kind": a.kind,
+                                "amount_kes": a.amount_kes,
+                                "reason": a.reason,
+                                "created_at": a.created_at.isoformat(),
+                            }
+                            for a in sorted(record.adjustments.all(), key=lambda a: a.created_at)
+                        ],
                     }
-                    for a in adjustments
+                    for record in records
                 ],
             }
         )

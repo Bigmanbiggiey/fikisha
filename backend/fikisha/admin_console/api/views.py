@@ -307,7 +307,7 @@ def _time_param(request: Request, name: str) -> Any:
 
 
 class CommissionLedgerView(OrgApiView):
-    """``GET /admin/commission?since=&until=&operator_id=&group_id=`` —
+    """``GET /admin/commission?since=&until=&operator_id=&group_id=&business_id=&party=`` —
     ``{data, page, totals, statements_available}``. ``totals`` covers the
     whole filtered ledger. Weekly statements exist since Commission & Statements
     S-1 (`GET /admin/statements`, ADR-2D-42)."""
@@ -320,6 +320,8 @@ class CommissionLedgerView(OrgApiView):
             until=_time_param(request, "until"),
             operator_id=_uuid_param(request, "operator_id"),
             group_id=_uuid_param(request, "group_id"),
+            business_id=_uuid_param(request, "business_id"),
+            party=request.query_params.get("party") or None,
         )
         paginator = CursorPagination()
         page = paginator.paginate_queryset(qs, request)

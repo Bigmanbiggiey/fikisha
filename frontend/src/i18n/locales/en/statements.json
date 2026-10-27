@@ -1,6 +1,6 @@
 {
   "title": "Statements",
-  "intro": "Each week Fikisha adds up its commission on your completed jobs into one statement. You pay it to Fikisha's M-Pesa paybill. Fikisha never holds the fare.",
+  "intro": "Each week Fikisha adds up its fee on your completed jobs into one statement. You pay it to Fikisha's M-Pesa paybill. Fikisha never holds the fare.",
   "empty": "No statements yet",
   "emptyBody": "Your first statement appears the Monday after a completed job's dispute window closes.",
   "new": "New",
@@ -44,10 +44,10 @@
   "earnings": {
     "title": "Earnings for this job",
     "agreed": "Agreed price",
-    "commission": "Fikisha commission",
+    "commission": "Fikisha fee ({{rate}})",
     "net": "Yours",
     "onStatement": "Billed on statement",
-    "notYetBilled": "The commission goes on your weekly statement once the dispute window closes."
+    "notYetBilled": "The fee goes on your weekly statement once the dispute window closes."
   },
   "home": {
     "title_one": "New statement",
@@ -60,17 +60,18 @@
     "subtitle": "Every weekly commission statement, with what was invoiced and what has been paid. Payments arrive at Fikisha's paybill; record each one here.",
     "run": "Run a week",
     "runTitle": "Run statements for a week",
-    "runExplain": "This bills every operator and group with commission ready by the end of that week. It's safe to run again: nothing already billed is billed twice, and anyone who already has that week's statement is skipped.",
+    "runExplain": "This bills every business, operator and group with commission ready by the end of that week. It's safe to run again: nothing already billed is billed twice, and anyone who already has that week's statement is skipped.",
     "runConfirm": "Run statements",
     "ranResult_one": "{{count}} statement created for {{period}}. Already had one: {{skipped}}.",
     "ranResult_other": "{{count}} statements created for {{period}}. Already had one: {{skipped}}.",
     "week": "Week",
     "allWeeks": "All weeks",
-    "payeeKind": "Operator or group",
+    "payeeKind": "Who pays",
     "kind": {
       "all": "All",
       "OPERATOR": "Operator",
-      "GROUP": "Group"
+      "GROUP": "Group",
+      "BUSINESS": "Business"
     },
     "total": {
       "statements": "Statements",
@@ -82,7 +83,7 @@
     "emptyHint": "Statements are created every Monday for the week before.",
     "col": {
       "statement": "Statement",
-      "payee": "Operator or group",
+      "payee": "Who pays",
       "week": "Week",
       "due": "Due",
       "paid": "Paid",
@@ -119,11 +120,20 @@
     "reverseConfirm": "Reverse payment",
     "reversed": "Payment {{ref}} reversed.",
     "noPayments": "No payments recorded yet.",
-    "overdueNote": "This statement is overdue. Nothing happens automatically; follow up with the operator or group.",
+    "overdueNote": "This statement is overdue. Nothing happens automatically; follow up with whoever owes it.",
     "paymentAccount": "Paybill account number {{reference}}",
     "summaryTitle": "Statements for {{period}}",
     "summaryNone": "No statements for that week.",
     "summaryOpen": "Open statements",
     "gross": "Commission on these jobs"
+  },
+  "businessOwnerOnly": "Only your business's owner sees its statements.",
+  "cost": {
+    "title": "Cost for this job",
+    "agreed": "Paid to the operator",
+    "fee": "Fikisha fee ({{rate}})",
+    "total": "Total",
+    "onStatement": "Fee billed on statement",
+    "notYetBilled": "The fee goes on your business’s weekly statement once the dispute window closes. Pay the operator the agreed price as usual."
   }
 }

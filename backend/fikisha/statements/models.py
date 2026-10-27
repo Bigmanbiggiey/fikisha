@@ -28,6 +28,8 @@ from fikisha.common.models import AppendOnlyModel, AppendOnlyQuerySet, Timestamp
 class PayeeKind(models.TextChoices):
     OPERATOR = "OPERATOR", "Operator"
     GROUP = "GROUP", "Operator group"
+    #: The business's own share since the commission split (ADR-2D-55).
+    BUSINESS = "BUSINESS", "Business"
 
 
 class LineKind(models.TextChoices):

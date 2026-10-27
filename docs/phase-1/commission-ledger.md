@@ -3,7 +3,17 @@
 Implements Phase 0 `D-BIZ-1..7`, `FR-M-1..6`, and the Phase 1 brief §3 (the
 commission clarification) and §21 (proper ledger, not `job.commission = 500`).
 
-**MVP commission rule (Phase 1 brief §3):**
+> **Superseded 2026-10-22 — commission split (ADR-2D-55,
+> `docs/commission-split-plan.md`).** Each completed job now has **two**
+> commission records: the business pays **5%** and the operator pays **5%**
+> of the agreed price, **no minimum, no cap**, each side rounded on its own.
+> Config `commission = {model: SPLIT_FLAT, business_rate, operator_rate}`;
+> the rates are fixed on the `Agreement` when the price is agreed. A
+> business gets weekly statements for its own share (Owner only). §2's
+> calculator and worked examples below describe the original rule and are
+> kept as history.
+
+**Original MVP commission rule (Phase 1 brief §3):**
 **10% of the completed agreed transport price, minimum KES 40, capped at KES
 5,000 per completed job.** No taper. No introductory ramp. **Configurable** so
 the founder can change it later without rewriting the transaction system.

@@ -84,7 +84,7 @@ via the link token itself, not a bearer session.
 | POST | `/jobs/<job_id>/cancel` | `job.transition` | `* → CANCELLED` (wherever a rule allows it) |
 | GET | `/jobs/<job_id>/assignment-candidates` | `job.assign.candidates` | Read-only driver/vehicle eligibility preview with concrete reasons; shares its predicates with the `assign` guard so the two cannot drift (Increment 4). On a group job: the group's active members (with `group_role`) and the group's vehicles for a Group Manager or staff; only the caller in a `DRIVER_ACCEPTS` group; refused otherwise; `supports_group_assignment: true` + `assignment_mode` (ADR-2D-41) |
 | POST | `/jobs/<job_id>/assign` | `job.assign` | `CONFIRMED → ASSIGNED` — driver + vehicle eligibility, high-value gate |
-| GET | `/jobs/<job_id>/commission` | `commission.read` | Read the job's commission record — **Platform-Admin-only** (ADR-2D-27) |
+| GET | `/jobs/<job_id>/commission` | `commission.read` | Read the job's commission records, `{job_id, records: [{id, party, commission_kes, rate, min_fee_kes, cap_kes, agreed_price_kes, currency, effective_commission_kes, adjustments}]}`, one per paying side (ADR-2D-55) — **Platform-Admin-only** (ADR-2D-27) |
 | POST | `/jobs/<job_id>/custody/arrive-pickup` | `job.proof.pickup` | `ASSIGNED → AT_PICKUP` |
 | POST | `/jobs/<job_id>/custody/confirm-pickup/otp` | `job.proof.pickup` | `AT_PICKUP → PICKED_UP` via pickup-contact OTP |
 | POST | `/jobs/<job_id>/custody/confirm-pickup/business` | `job.proof.pickup` | `AT_PICKUP → PICKED_UP` via in-app business confirmation |
@@ -133,7 +133,7 @@ via the link token itself, not a bearer session.
 | GET | `/jobs/<job_id>/disputes` | `incident.read` | List disputes for the job |
 | POST | `/jobs/<job_id>/disputes` | `dispute.open` | Open a dispute (`* → DISPUTED`; at most one open dispute per job, DB-backed) |
 | GET | `/disputes/<dispute_id>` | `incident.read` | Dispute detail |
-| POST | `/disputes/<dispute_id>/resolve` | `dispute.resolve` | Resolve (`DISPUTED → COMPLETED/CANCELLED/FAILED`); `commission_treatment=REDUCE/WAIVE` requires Platform-Admin specifically (ADR-2D-24), separate from resolution authority itself |
+| POST | `/disputes/<dispute_id>/resolve` | `dispute.resolve` | Resolve (`DISPUTED → COMPLETED/CANCELLED/FAILED`); `commission_treatment=REDUCE/WAIVE` requires Platform-Admin specifically (ADR-2D-24), separate from resolution authority itself. `commission_treatment` / `reduced_amount_kes` are the operator side's; `business_commission_treatment` / `business_reduced_amount_kes` the business side's. Business treatment left out = "same for both": for REDUCE, `reduced_amount_kes` is the job's total, split half and half (odd cent to the operator side) (ADR-2D-55) |
 
 `intake_recipient_report(report_id)` (promotes a `RecipientReportedIssue`
 into a full `Incident`) exists as a domain function but has **no HTTP route**
@@ -204,7 +204,7 @@ MFA doesn't exist yet (D-1), so they currently always return 403
 | GET | `/admin/config` | `admin.config.read` | `{version, config, editable_paths, versions}` |
 | POST | `/admin/config/preview` | `admin.config.read` | `{changes: {"<dotted path>": number}}` → `{version, changes: [{path, before, after}], commission_samples}`. Changes nothing. 422 `config_key_not_editable` / `invalid_config_change` |
 | POST | `/admin/config` | `admin.config.change` (*step-up*) | `{changes, rationale}` → 201 `{version, changes}` via `platform_config.services.apply_change` |
-| GET | `/admin/commission?since=&until=&operator_id=&group_id=&cursor=` | `admin.commission.read` | `{data, page, totals, statements_available: true}` (true since ADR-2D-42). Each row: job, payee, agreed price, rate/min/cap, commission, adjustments, effective, config version |
+| GET | `/admin/commission?since=&until=&operator_id=&group_id=&business_id=&party=&cursor=` | `admin.commission.read` | `{data, page, totals, statements_available: true}` (true since ADR-2D-42). Each row: job, `party` (BUSINESS/OPERATOR), payee (the business for the business side), agreed price, rate/min/cap (min/cap null since the split), commission, adjustments, effective, config version. `operator_id`/`group_id` filter the operator side, `business_id` the business side (ADR-2D-55) |
 
 **Also new:** `business_suspended` (422). It comes from job creation and from
 the DRAFT → REQUESTED guard when the business is suspended.
@@ -224,15 +224,24 @@ Detail adds:
 
 | Method | Path | Action (authz) | Purpose |
 | --- | --- | --- | --- |
-| GET | `/statements?cursor=` | `statements.read.own` | `{data, page, unseen_count}`: the caller's own statements as a payee (their operator profile, and groups they own or manage), newest week first. Each row adds `seen` (S-2) |
+| GET | `/statements?cursor=` | `statements.read.own` | `{data, page, unseen_count}`: the caller's own statements as a payee (their operator profile, groups they own or manage, and businesses they own: ADR-2D-55), newest week first. Each row adds `seen` (S-2). `payee.kind` is OPERATOR, GROUP or BUSINESS |
 | POST | `/statements/<id>/seen` | `statements.read.one` | 204. Records that the payee opened it (D-6 unread marker); staff opening it records nothing (S-2) |
 | GET | `/statements/<id>` | `statements.read.one` | Detail. 403 to anyone but the payee or staff with `statements.read.all` |
-| GET | `/jobs/<id>/earnings` | `statements.job_earnings` | `{job_id, payee_kind, payee_id, agreed_price_kes, commission_kes, adjustments_kes, effective_commission_kes, net_to_operator_kes, statement: {id, reference} or null}`. 404 to anyone but the payee or staff |
-| GET | `/admin/statements?period_start=&payee_kind=&payee_id=&cursor=` | `statements.read.all` | `{data, page, totals: {statements, invoiced_kes, settled_kes, outstanding_kes}}`. Totals cover the whole filter |
+| GET | `/jobs/<id>/earnings?party=` | `statements.job_earnings` | One side's commission: `{job_id, party, payee_kind, payee_id, agreed_price_kes, rate, commission_kes, adjustments_kes, effective_commission_kes, net_to_operator_kes (operator side) or total_cost_kes (business side), statement: {id, reference} or null, sides}`. Without `party`, the first side the caller may see. The operator side: its payee; the business side: the business's Owner and Dispatchers (the statement only to the Owner); staff both; 404 otherwise. 422 for an unknown `party` (ADR-2D-55) |
+| GET | `/admin/statements?period_start=&payee_kind=OPERATOR\|GROUP\|BUSINESS&payee_id=&cursor=` | `statements.read.all` | `{data, page, totals: {statements, invoiced_kes, settled_kes, outstanding_kes}}`. Totals cover the whole filter |
 | GET | `/admin/statements/<id>` | `statements.read.all` | Detail |
 | POST | `/admin/statements/run` | `statements.run` | `{period_start?}` (a Monday; default last week) → 201 if any statement was created, else 200, `{period_start, period_end, statements_created, statement_ids, payees_skipped_existing}`. 422 `invalid_statement_period` (not a Monday, or the week hasn't finished) |
 | POST | `/admin/statements/<id>/payments` | `statements.settle` (*step-up*) | `{amount_kes, payment_ref, paid_on, method?: MPESA_PAYBILL\|BANK\|OTHER, note?}` → 201 detail. 422 `invalid_settlement`; 409 `settlement_exceeds_due` / `duplicate_payment_ref` |
 | POST | `/admin/statements/<id>/payments/<payment_id>/reverse` | `statements.settle` (*step-up*) | `{reason}` (≥ 10 characters) → 201 detail. 409 `settlement_not_reversible` |
+
+**Fees shown before and after agreement (ADR-2D-55).** `GET /jobs/<id>` adds
+`fees: [{party, rate, fee_kes, total_cost_kes | operator_keeps_kes}]` — the
+viewer's own side at the rates fixed on the agreement, or, once the job has
+completed, what was recorded after any adjustment (a job completed before
+the split: the operator's 10% and no business fee). Staff see both; empty
+before agreement or for anyone else. Negotiation thread payloads add `fee`
+(the same shape, the viewer's own side at the live rates) to
+`standing_offer` and `counterparty_offer`.
 
 Beat: `statements-weekly-run` (Monday 06:00 EAT) and `statements-reconcile`
 (02:30 EAT nightly). Command: `manage.py statements_run [--period-start YYYY-MM-DD]`.

@@ -17,7 +17,9 @@ from fikisha.statements.tests.conftest import LAST_WEEK, WEEK_BEFORE, age_comple
 
 pytestmark = pytest.mark.django_db
 
-COMMISSION = 25_000  # 10% of the fixture's agreed KES 2,500, in minor units
+#: The operator's 5% of the fixture's agreed KES 2,500, in minor units (the
+#: business side is 0 here; see conftest ``operator_side_only``).
+COMMISSION = 12_500
 
 
 def _run(admin: Any, start: date = LAST_WEEK) -> dict[str, Any]:

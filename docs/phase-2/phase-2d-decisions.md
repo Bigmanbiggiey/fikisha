@@ -1813,6 +1813,80 @@ says when Fikisha resumed it.
 **Tests:** `incidents/tests/test_resume.py` (14). Frontend
 `DisputeDetailPage.test.tsx` updated.
 
+## ADR-2D-55 — Commission split: 5% from the business, 5% from the operator — CONFIRMED (founder decision 2026-10-22; plan `docs/commission-split-plan.md` approved 2026-10-26, D-1..D-7 as recommended)
+
+**Decision.** Commission stays at 10% of each completed job, split: the
+sender (business) pays 5% and the operator pays 5% of the agreed price, with
+**no minimum and no cap**. Supersedes D-BIZ-4 (operator pays it all) and the
+rate part of D-BIZ-5 (10%, KES 40 minimum, KES 5,000 cap). D-BIZ-6 and
+D-BIZ-7 stand: weekly statements to the paybill, no fare custody, disputed
+jobs wait for resolution, cancelled and failed jobs pay nothing.
+
+**Config.** `commission = {model: SPLIT_FLAT, business_rate: 0.05,
+operator_rate: 0.05}`; validation refuses any other model and the old keys.
+The Configuration console edits the two rates (allowlist, preview with each
+side's fee on sample prices, step-up, audit). A rate of 0 means no record for
+that side. `jobs/0021` switches a live config by replacing the whole
+`commission` section (`platform_config.services.replace_section`: versioned,
+hash-chained audit, outbox event); a fresh database is bootstrapped from the
+new defaults.
+
+**Rates fixed at agreement (D-4).** The `confirm` apply fn writes
+`business_rate`, `operator_rate` and `rates_config_version` on the
+append-only `Agreement`, so the fee shown before agreeing is the fee charged.
+An agreement made before the split has none and uses the rates in force at
+completion.
+
+**Two records per job.** `commission_record` gains `party` (BUSINESS /
+OPERATOR); `UNIQUE(job_id)` becomes `UNIQUE(job_id, party)`; `min_fee_kes` /
+`cap_kes` become nullable (old rows keep their values, new rows have none).
+Both sides are written in the `COMPLETED` transition, one audit entry and one
+`CommissionRecorded {job_id, party}` event each. Each side is rounded on its
+own, half up (D-2), so on odd amounts the two together can differ from 10% by
+a cent. Commission is fixed once, at the first completion. Existing rows got
+`party = OPERATOR` through an added column with a default, which Postgres
+applies without a row update, so the append-only triggers never fire.
+
+**Business statements (D-1, D-3, D-6).** `PayeeKind` gains `BUSINESS`; the
+weekly run bills a BUSINESS record to the business, on its own statement,
+same paybill and reference scheme, same billing rules, settlement, reversal
+and overdue marker (no automatic effect). Only the business's **Owner** sees
+its statements; the Owner and Dispatchers see the fee on each job
+(`GET /jobs/<id>/earnings?party=BUSINESS`, "Cost for this job"; the statement
+reference only to the Owner); a Viewer sees neither. Reverses statement
+plan D-7, which left businesses out because they were never charged.
+
+**What each side sees.** Job detail `fees`: the viewer's own side
+(business: fee + total; confirmed operator / group manager: fee + what it
+keeps; staff both; drivers and negotiators none) — at the agreement's rates
+until the job completes, then what was recorded, after any adjustment. So a
+job completed before the split shows its operator-only 10% and no business
+fee (a defect the live HTTP check caught: the first version priced every
+job at today's rates).
+Negotiation `standing_offer.fee` / `counterparty_offer.fee`: the viewer's own
+side at the live rates. Every amount is computed by the server.
+
+**Disputes (D-5).** `Resolution` gains `business_commission_treatment` /
+`business_reduced_amount_kes`; the existing fields are the operator side's.
+Left out, the business side follows the operator side ("same for both"): the
+same treatment, and for REDUCE the amount is the job's **total** reduction,
+split half and half between the two fees, an odd cent to the operator side,
+or all of it to the one side with a record (a job completed before the
+split); founder ruling 2026-10-26, after the first build took the amount off
+each side (twice the total). REDUCE / WAIVE on either side is Platform Admin
+only.
+Each side's adjustment is written against that side's record.
+
+**Deviation recorded.** `commission-ledger.md` §2 described one record per
+job with a min/cap calculator; it now records the split. **Why it's safe:**
+the decision is the founder's; no money moves through Fikisha; old records and
+statements are untouched; append-only and audit rules are unchanged.
+
+**Founder action (D-7).** The tax-advisor confirmation must cover business
+statements (VAT, eTIMS treatment, "not a tax invoice") before the first
+business statement reaches a real business, and the business terms of
+service must state the fee.
+
 ## Self-caught defects fixed during implementation
 
 Every one of these was found by the implementation's own review or test
